@@ -130,6 +130,10 @@ CHAT_ATTACHMENT_DIRECT_INJECTION_MAX_TOKENS = 64000
 # - 世界观超过该值：context_provider 不再全文注入，只给地图 + 首片。
 LONGREAD_WORLDVIEW_SLIDING_THRESHOLD_TOKENS = 64000
 # - 读/记一轮允许的最大窗口正文 token 数（read_longread_window 等工具侧上限）。
+#   与上传切分的口径铁律：该上限必须用切分时的同一口径（meta.estimate_model）
+#   实测，禁止跨口径比较。切分器是“≤ chunk_tokens 即合法”的装箱，窗口会
+#   顶着上限装满；口径一致时装箱承诺与本上限是同一把尺子（国家意志 e2e：
+#   切时无模型回退 64K vs 读时无模型回退 100K+ 的误杀，根因就是跨口径）。
 LONGREAD_MAX_WINDOW_TOKENS = 64000
 # - 上轮账本快照注入本轮尾部的字符上限。超过时只保留最新条目并注明省略，
 #   避免账本自身成为新的爆点。见 routes/chat.py::_append_longread_ledger_snapshot。

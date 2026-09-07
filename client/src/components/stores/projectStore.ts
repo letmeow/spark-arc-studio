@@ -277,6 +277,8 @@ export const useProjectStore = defineStore('project', {
         try {
           const workspaceMode = result?.workspaceMode === 'novel' ? 'novel' : 'script';
           await createProject(finalName, workspaceMode);
+          const chatStore = useChatStore();
+          chatStore.purgeProjectSessions(finalName);
           this.projectWorkspaceModes = { ...this.projectWorkspaceModes, [finalName]: workspaceMode };
           await this.loadProjects();
           // 创建成功后切换到新项目
@@ -300,6 +302,8 @@ export const useProjectStore = defineStore('project', {
       const deletedProject = this.currentProject;
       try {
         await deleteProject(this.currentProject);
+        const chatStore = useChatStore();
+        chatStore.purgeProjectSessions(deletedProject);
         const nextModes = { ...this.projectWorkspaceModes };
         delete nextModes[deletedProject];
         this.projectWorkspaceModes = nextModes;

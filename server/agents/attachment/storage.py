@@ -41,6 +41,10 @@ class AttachmentMeta:
     chunk_count: int
     content_hash: str
     uploaded_at: str
+    # 切分口径：estimate_model 为空表示无模型回退口径。同一内容 + 同一口径
+    # 才复用旧分片；任一变化都必须重切（国家意志 e2e：qwen 回退 64K 切出的
+    # 32 片在当前 500K 模型下实测 100K+，直接读窗必然被 LONGREAD 上限拒绝）。
+    estimate_model: str = ""
     # 可选字段：摘要状态、被引用时间等
     last_referenced_at: Optional[str] = None
 
@@ -53,6 +57,7 @@ class AttachmentMeta:
             "chunk_count": int(self.chunk_count),
             "content_hash": self.content_hash,
             "uploaded_at": self.uploaded_at,
+            "estimate_model": str(self.estimate_model or ""),
         }
         if self.last_referenced_at:
             data["last_referenced_at"] = self.last_referenced_at
@@ -68,6 +73,7 @@ class AttachmentMeta:
             chunk_count=int(data.get("chunk_count") or 0),
             content_hash=str(data.get("content_hash") or ""),
             uploaded_at=str(data.get("uploaded_at") or ""),
+            estimate_model=str(data.get("estimate_model") or ""),
             last_referenced_at=(str(data["last_referenced_at"]) if data.get("last_referenced_at") else None),
         )
 
@@ -136,6 +142,7 @@ def save_attachment(
     full_text: str,
     chunks: Iterable[str],
     total_tokens: int,
+    estimate_model: str | None = None,
 ) -> AttachmentMeta:
     """
     落盘附件到项目 .attachments 目录。
@@ -206,6 +213,7 @@ def save_attachment(
         chunk_count=len(chunk_list) if chunk_list else (1 if normalized_text else 0),
         content_hash=content_hash,
         uploaded_at=now_iso,
+        estimate_model=str(estimate_model or "").strip(),
         last_referenced_at=now_iso,
     )
 

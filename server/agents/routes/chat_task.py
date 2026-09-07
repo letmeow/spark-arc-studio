@@ -346,6 +346,31 @@ def wait_for_task_exit(task_key: str, timeout: float = 10.0) -> bool:
     return entry.finished_event.wait(max(float(timeout or 0), 0.0))
 
 
+def purge_project_tasks(user_id: str, project_name: str) -> int:
+    """移除指定用户+项目在内存任务注册表中的全部残留条目。
+
+    项目删除后，目录与 DB 聊天都会被清除；若同名项目被重建，残留的内存任务
+    （running 会被重连流，completed 会触发刷新历史）会被误判为新项目的任务。
+    只有 running 任务需要显式请求停止（写 stop_event），已终态任务直接移除，
+    避免等待其延迟 cleanup 计时器。
+    """
+    removed = 0
+    with _registry_lock:
+        keys = [
+            key
+            for key, entry in _active_chat_tasks.items()
+            if entry.user_id == user_id and entry.project_name == project_name
+        ]
+        for key in keys:
+            entry = _active_chat_tasks.get(key)
+            if entry is not None and entry.status == 'running' and not entry.finished_event.is_set():
+                entry.stop_event.set()
+                entry.cancel_requested = True
+            _active_chat_tasks.pop(key, None)
+            removed += 1
+    return removed
+
+
 def list_recent_tasks(user_id: str, project_name: str) -> list[ChatTaskEntry]:
     """列出指定用户+项目下所有未清理的任务（running + completed/cancelled/error 尚未被 cleanup）。
     供前端恢复场景使用：running → 重连流；completed → 刷新历史获取结果。

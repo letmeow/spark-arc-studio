@@ -50,7 +50,13 @@ def _read_attachment_window_text(
     source_id: str,
     chunk_index: int,
 ) -> tuple[str, str]:
-    """返回 (正文块, 错误文本)。成功时错误文本为空。"""
+    """返回 (正文块, 错误文本)。成功时错误文本为空。
+
+    口径铁律：读侧上限必须用切分时的同一口径（meta.estimate_model）实测。
+    跨口径比较（切时无模型回退、读时有模型真实值，反之亦然）是国家意志
+    e2e 的根因：32 个窗口全部被 64K 上限误杀。只有“同口径超窗”才是
+    真超窗，才提示重传；口径漂移的旧附件走自愈重切。
+    """
     from agents.attachment import (
         AttachmentNotFoundError,
         get_attachment_meta,
@@ -88,7 +94,17 @@ def _read_attachment_window_text(
     chunk_text = (chunks[chunk_index] or "").strip()
     if not chunk_text:
         return "", f'[读取失败] 长文档 "{meta.filename}" 第 {chunk_index + 1} 部分内容为空。'
-    if estimate_tokens(chunk_text) > LONGREAD_MAX_WINDOW_TOKENS:
+    # 同口径实测：切分口径（meta.estimate_model）与读口径必须一致。
+    # 口径漂移（旧附件无口径记录、用户换模型）的窗口不直接拒绝，走自愈重切。
+    split_model = str(getattr(meta, "estimate_model", "") or "").strip() or None
+    measured = estimate_tokens(chunk_text, model=split_model)
+    if measured > LONGREAD_MAX_WINDOW_TOKENS:
+        healed = _heal_oversized_window(
+            user_id, project_name, source_id, chunk_index,
+            chunk_text, split_model, chunks,
+        )
+        if healed is not None:
+            return healed, ""
         return (
             "",
             f'[读取失败] 长文档 "{meta.filename}" 第 {chunk_index + 1} 部分超过单窗口上限 '
@@ -105,6 +121,97 @@ def _read_attachment_window_text(
         total=chunk_count,
     )
     return chunk_text, ""
+
+
+def _heal_oversized_window(
+    user_id: str,
+    project_name: str,
+    source_id: str,
+    chunk_index: int,
+    chunk_text: str,
+    split_model: str | None,
+    chunks: list[str],
+) -> str | None:
+    """超窗窗口的读时自愈：把该窗口就地细分为合法子窗口并回写磁盘。
+
+    只在“口径漂移的旧附件”（meta 无 estimate_model 记录，或记录与当前
+    上传口径不一致）上触发：切分时的承诺在该口径下是合法的，只是读侧
+    换了更贵的口径。真正同口径超窗（新上传仍超）返回 None，走重传提示。
+
+    自愈后返回“第 1 子窗口正文 + 续读指引”，调用方直接可用；其余子窗口
+    按新序号落盘，后续按新窗口号读取。旧序号整体后移，地图需重看——
+    返回文本头部会明确告知新的窗口范围。
+    """
+    from math import ceil
+
+    from agents.attachment import get_attachment_meta, load_attachment_text
+    from core.project_settings import LONGREAD_MAX_WINDOW_TOKENS
+    from llm.agen_matchbox.estimate_tokens import estimate_tokens
+
+    meta = get_attachment_meta(user_id, project_name, source_id)
+    if meta is None:
+        return None
+    # 新附件（有口径记录）：同口径超窗是真超窗，不自愈，提示重传。
+    if str(getattr(meta, "estimate_model", "") or "").strip():
+        return None
+    read_size = max(1, estimate_tokens(chunk_text, model=None))
+    if read_size <= LONGREAD_MAX_WINDOW_TOKENS:
+        return None
+    parts = max(2, ceil(read_size / LONGREAD_MAX_WINDOW_TOKENS))
+    size = max(1, ceil(len(chunk_text) / parts))
+    sub_texts = [
+        chunk_text[start:start + size].strip()
+        for start in range(0, len(chunk_text), size)
+    ]
+    sub_texts = [piece for piece in sub_texts if piece]
+    if len(sub_texts) < 2:
+        return None
+    for piece in sub_texts:
+        if estimate_tokens(piece, model=None) > LONGREAD_MAX_WINDOW_TOKENS:
+            return None
+    try:
+        from agents.attachment.storage import (
+            CHUNK_FILENAME_FMT,
+            _chunks_dir,
+            get_attachment_root,
+        )
+        from core.json_state import save_json_file_atomic
+
+        chunks_dir = _chunks_dir(user_id, project_name, source_id)
+        new_chunks = list(chunks[:chunk_index]) + sub_texts + list(chunks[chunk_index + 1:])
+        import os
+
+        os.makedirs(chunks_dir, exist_ok=True)
+        for idx, text in enumerate(new_chunks):
+            with open(os.path.join(chunks_dir, CHUNK_FILENAME_FMT.format(index=idx)), "w", encoding="utf-8") as f:
+                f.write(text or "")
+        # 删除多余旧分片（新总数 < 旧总数时不可能发生，但保持对账语义）。
+        old_total = len(chunks)
+        for idx in range(len(new_chunks), old_total):
+            try:
+                os.remove(os.path.join(chunks_dir, CHUNK_FILENAME_FMT.format(index=idx)))
+            except OSError:
+                pass
+        meta.chunk_count = len(new_chunks)
+        meta.total_tokens = sum(estimate_tokens(text or "", model=None) for text in new_chunks)
+        root = get_attachment_root(user_id, project_name, source_id)
+        save_json_file_atomic(
+            os.path.join(root, "meta.json"), meta.to_dict(),
+        )
+        try:
+            full = load_attachment_text(user_id, project_name, source_id)
+        except Exception:
+            full = ""
+        last = chunk_index + len(sub_texts) - 1
+        notice = (
+            f"[自愈说明] 该窗口在旧切分口径下合法，当前读口径下超窗，"
+            f"已自动细分为 {len(sub_texts)} 个子窗口（新窗口号 {chunk_index}~{last}）。"
+            f"以下为第 1 子窗口正文；继续读下一子窗口请用 chunk_index={chunk_index + 1}。"
+            f"{'（全文共 ' + str(len(full)) + ' 字符）' if full else ''}\n\n"
+        )
+        return notice + sub_texts[0]
+    except Exception:
+        return None
 
 
 class ReadLongreadWindowInput(BaseModel):

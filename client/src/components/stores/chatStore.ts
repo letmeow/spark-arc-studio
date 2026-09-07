@@ -709,6 +709,38 @@ export const useChatStore = defineStore('chat', {
       this._getPrimarySession(this.primaryAgentId, this.primaryContextKey, this.activeProjectName);
     },
 
+    /**
+     * 项目删除后释放该项目的本地会话，避免同名重建时复用旧 history。
+     * 后端 DB 与内存任务由项目删除/创建接口清理，这里只清理前端内存；
+     * 不触碰其他项目的会话与运行中流。
+     */
+    purgeProjectSessions(projectName: string | null | undefined) {
+      const target = String(projectName || '').trim();
+      if (!target) return;
+      for (const id of Object.keys(this.sessions as Record<number, AnyRecord>).map(Number)) {
+        const session = (this.sessions as Record<number, AnyRecord>)[id];
+        if (!session || String(session.projectName || '').trim() !== target) continue;
+        this._invalidateSessionStream(id);
+        if (id === PRIMARY_SESSION_ID) {
+          const fresh = _createSession(PRIMARY_SESSION_ID, 'agent_director', 'primary');
+          this.sessions[id] = fresh;
+          continue;
+        }
+        this.clearSessionImportedContext(id);
+        delete (this.sessions as Record<number, AnyRecord>)[id];
+      }
+      const nextBindings: Record<string, number> = {};
+      for (const [scopeKey, sessionId] of Object.entries(this.primarySessionBindings || {})) {
+        if (scopeKey.split('::')[0] === target) continue;
+        if (!(this.sessions as Record<number, AnyRecord>)[sessionId]) continue;
+        nextBindings[scopeKey] = sessionId;
+      }
+      this.primarySessionBindings = nextBindings;
+      const nextChecks = { ...(this._bgChecksInProgress || {}) };
+      delete nextChecks[target];
+      this._bgChecksInProgress = nextChecks;
+    },
+
     /** 登出时才真正释放全部聊天会话。 */
     resetAllSessions() {
       for (const id of Object.keys(this.sessions as Record<number, AnyRecord>).map(Number)) {

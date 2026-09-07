@@ -27,6 +27,7 @@ agents.attachment
 from .storage import (
     AttachmentMeta,
     AttachmentNotFoundError,
+    compute_attachment_id,
     delete_attachment,
     ensure_attachments_root,
     get_attachment_meta,
@@ -42,6 +43,7 @@ from .gc import collect_orphan_attachments
 __all__ = [
     "AttachmentMeta",
     "AttachmentNotFoundError",
+    "compute_attachment_id",
     "delete_attachment",
     "ensure_attachments_root",
     "get_attachment_meta",

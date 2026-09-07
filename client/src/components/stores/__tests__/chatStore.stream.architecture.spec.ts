@@ -282,6 +282,25 @@ describe('chatStore NDJSON 消费契约', () => {
     expect(getChatHistory).toHaveBeenLastCalledWith('huang', 'agent_director', 'global', 80);
   });
 
+  it('删除项目后释放该项目的本地会话，同名重建不会复用旧历史', async () => {
+    const store = useChatStore();
+    store.switchProject('同名项目');
+    const staleSession = store.primarySession;
+    staleSession.history = [{ role: 'user', content: '旧聊天' }];
+
+    store.switchProject('其他项目');
+    store.purgeProjectSessions('同名项目');
+
+    expect(store.sessions[staleSession.id]).toBeUndefined();
+    expect(
+      Object.keys(store.primarySessionBindings).some((key) => key.split('::')[0] === '同名项目'),
+    ).toBe(false);
+
+    store.switchProject('同名项目');
+    expect(store.primarySession.id).not.toBe(staleSession.id);
+    expect(store.history).toEqual([]);
+  });
+
   it('历史刷新从最终失败助手消息恢复后台错误展示', async () => {
     vi.mocked(getChatHistory).mockResolvedValueOnce([
       { id: 1, role: 'user', content: '继续执行' },

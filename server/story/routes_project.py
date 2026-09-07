@@ -23,8 +23,9 @@ from core.utils import (
     get_project_stories_path,
     get_user_projects_root,
 )
-from core.models import UserInfoSession, ProjectVersion
+from core.models import UserInfoSession, ProjectVersion, Share
 from agents.chat_manager import ChatManager
+from agents.routes.chat_task import purge_project_tasks
 from agents.project_background_builds import cancel_project_background_builds
 
 project_router = APIRouter()
@@ -123,6 +124,32 @@ async def create_project(data: ProjectCreate, user: dict = Depends(get_current_u
         ensure_project_stories_directory(user_id, project_name)
         ensure_project_worldview_and_character_settings(user_id, project_name)
 
+        # 同名重建兜底：目录是新目录，但 DB（聊天/版本/分享）与内存任务都以
+        # (user_id, project_name) 为键。若旧项目删除时某类清理静默失败，
+        # 新项目会直接继承旧聊天与旧分享。这里显式清零，保证新项目从空开始。
+        try:
+            cm = ChatManager(user_id=user_id, project_name=project_name)
+            cm.clear_project_sessions()
+        except Exception as e:
+            print(f"Failed to clear stale chat history on project create: {e}")
+        try:
+            with UserInfoSession() as session:
+                session.query(ProjectVersion).filter_by(
+                    user_id=int(user_id),
+                    project_name=project_name,
+                ).delete()
+                session.query(Share).filter_by(
+                    user_id=int(user_id),
+                    project_name=project_name,
+                ).delete()
+                session.commit()
+        except Exception as e:
+            print(f"Failed to clear stale version/share history on project create: {e}")
+        try:
+            purge_project_tasks(user_id, project_name)
+        except Exception as e:
+            print(f"Failed to purge stale chat tasks on project create: {e}")
+
         try:
             from core.project_settings import initialize_project_workspace_mode
             initialize_project_workspace_mode(user_id, project_name, workspace_mode)
@@ -144,7 +171,7 @@ async def create_project(data: ProjectCreate, user: dict = Depends(get_current_u
 
 @project_router.delete('/api/projects/{project_name}')
 async def delete_project(project_name: str, user: dict = Depends(get_current_user)):
-    """删除指定项目（含聊天记录与版本记录）"""
+    """删除指定项目（含聊天记录、版本/分享记录与其快照文件）"""
     try:
         user_id = str(user['user_id'])
         project_path = get_project_path(user_id, project_name)
@@ -160,21 +187,48 @@ async def delete_project(project_name: str, user: dict = Depends(get_current_use
             )
         _remove_project_directory_with_retries(user_id, project_name, project_path)
 
-        # 2. 清除该项目所有聊天记录
+        # 2. 中断该项目的内存聊天任务，避免同名重建后被 recent-tasks/task-stream 误恢复。
+        try:
+            purge_project_tasks(user_id, project_name)
+        except Exception as e:
+            print(f"Failed to purge project chat tasks: {e}")
+
+        # 3. 清除该项目所有聊天记录
         try:
             cm = ChatManager(user_id=user_id, project_name=project_name)
             cm.clear_project_sessions()
         except Exception as e:
             print(f"Failed to clear project chat history: {e}")
 
-        # 3. 清除该项目所有版本记录
+        # 4. 清除该项目所有版本记录及其快照文件
         try:
             with UserInfoSession() as session:
-                session.query(ProjectVersion).filter_by(
+                versions = session.query(ProjectVersion).filter_by(
                     user_id=int(user_id),
                     project_name=project_name,
-                ).delete()
+                ).all()
+                snapshot_paths = [v.snapshot_path for v in versions if getattr(v, "snapshot_path", None)]
+                for version in versions:
+                    session.delete(version)
+                shares = session.query(Share).filter_by(
+                    user_id=int(user_id),
+                    project_name=project_name,
+                ).all()
+                snapshot_paths.extend(s.snapshot_path for s in shares if getattr(s, "snapshot_path", None))
+                for share in shares:
+                    session.delete(share)
                 session.commit()
+            from story.presentation_manifest import remove_presentation_snapshot
+            for snapshot_path in snapshot_paths:
+                try:
+                    if snapshot_path and os.path.exists(snapshot_path):
+                        os.remove(snapshot_path)
+                except OSError:
+                    pass
+                try:
+                    remove_presentation_snapshot(snapshot_path)
+                except Exception:
+                    pass
         except Exception as e:
             print(f"Failed to clear project version history: {e}")
 

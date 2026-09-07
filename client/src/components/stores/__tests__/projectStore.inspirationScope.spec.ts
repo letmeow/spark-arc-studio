@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   chatStore: {
     switchProject: vi.fn(),
     resetAllSessions: vi.fn(),
+    purgeProjectSessions: vi.fn(),
   },
   sceneStore: {
     workspaceMode: 'script',
@@ -82,5 +83,17 @@ describe('projectStore 灵感历史范围', () => {
 
     store.setCurrentProject(null);
     expect(store.inspirationHistoryScope).toBe('drafts');
+  });
+
+  it('删除项目后释放该项目的本地聊天会话，避免同名重建复用旧历史', async () => {
+    const { deleteProject } = await import('@/services/api');
+    vi.mocked(deleteProject).mockResolvedValueOnce({ success: true });
+    const store = useProjectStore();
+    store.projects = ['旧项目', '其他项目'];
+    store._currentProject = '旧项目';
+
+    await store.deleteCurrentProject();
+
+    expect(mocks.chatStore.purgeProjectSessions).toHaveBeenCalledWith('旧项目');
   });
 });

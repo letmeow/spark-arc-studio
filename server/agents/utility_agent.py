@@ -359,6 +359,11 @@ class UtilityAgent:
         parsed = parse_uploaded_file(file_path, filename, estimate_model)
         normalized_context_limit = max(int(max_context_tokens or 0), 0)
 
+        # 同口径装箱：切分器是“≤ chunk_tokens 即合法”的装箱，窗口会顶着上限
+        # 装满；读窗侧用同一口径（estimate_model）实测兜底。口径一致时装箱
+        # 承诺与读窗上限是同一把尺子，不存在系统性误杀（国家意志 e2e 的根因
+        # 恰是跨口径比较：切时无模型回退 64K、读时无模型回退 100K+）。
+        # 模型窗口只决定 is_oversized 清单降级，不参与切分窗口计算。
         splitter = TokenTextSplitter(
             chunk_tokens=chunk_tokens,
             tail_merge_threshold_ratio=0.5,
@@ -390,6 +395,7 @@ class UtilityAgent:
             full_text=parsed.full_text,
             chunks=[c.text for c in chunks],
             total_tokens=total_tokens_estimated,
+            estimate_model=estimate_model,
         )
         return ChatAttachmentPreparation(
             parsed=parsed,

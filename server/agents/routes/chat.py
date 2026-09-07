@@ -105,6 +105,7 @@ from .chat_task import (
     cleanup_task,
     wait_for_task_exit,
     list_recent_tasks,
+    purge_project_tasks,
     build_task_status_payload,
 )
 chat_router = APIRouter()
