@@ -149,6 +149,31 @@ def test_director_longread_tools_come_from_single_facade() -> None:
     assert facade_get_tools_for_agent is get_tools_for_agent
 
 
+def test_longread_and_search_tool_details_expose_pointer_only() -> None:
+    """面板展开只允许指针/搜了什么：读窗不暴露正文，检索不暴露命中正文。"""
+    read_evt = build_tool_stream_event(
+        "tool_exec_started",
+        "read_longread_window",
+        source_agent="agent_director",
+        tool_call_key="call-1",
+        tool_input={"source_id": "abc", "chunk_index": 2, "secret": "x"},
+        tool_result="窗口正文不应展示",
+    )
+    assert read_evt["tool_input"] == {"source_id": "abc", "chunk_index": 2}
+    assert "tool_result" not in read_evt
+
+    search_evt = build_tool_stream_event(
+        "tool_exec_started",
+        "search_project",
+        source_agent="agent_director",
+        tool_call_key="call-2",
+        tool_input={"pattern": "玉佩", "scope": ["attachment"], "max_results": 20},
+        tool_result="命中正文不应展示",
+    )
+    assert search_evt["tool_input"] == {"pattern": "玉佩", "scope": ["attachment"], "max_results": 20}
+    assert "tool_result" not in search_evt
+
+
 def test_tool_stream_event_injects_ui_metadata_from_backend_binding() -> None:
     evt = build_tool_stream_event(
         "tool_exec_started",

@@ -65,13 +65,21 @@ def parse_uploaded_file(
     file_path: str,
     filename: str | None = None,
     estimate_model: str | None = None,
+    *,
+    # 聊天附件链路不需要 section 级 token（切分器会重估全片），关闭可省
+    # N 次 tokenizer 调用；风格分析等需要 section 热度的调用方显式打开。
+    estimate_section_tokens: bool = False,
 ) -> ParsedDocument:
     suffix = Path(filename or file_path).suffix.lower()
     if suffix not in SUPPORTED_IMPORT_FORMATS:
         raise UnsupportedImportFormatError(f"仅支持 {', '.join(get_supported_formats('general'))} 文件")
 
     if suffix in {".txt", ".md"}:
-        parsed = _parse_text_like_file(file_path, suffix, filename, estimate_model=estimate_model)
+        parsed = _parse_text_like_file(
+            file_path, suffix, filename,
+            estimate_model=estimate_model,
+            estimate_tokens_per_section=estimate_section_tokens,
+        )
     elif suffix == ".docx":
         parsed = _parse_docx_file(file_path, filename, estimate_model=estimate_model)
     elif suffix == ".epub":
@@ -89,11 +97,17 @@ def _parse_text_like_file(
     suffix: str,
     filename: str | None = None,
     estimate_model: str | None = None,
+    *,
+    estimate_tokens_per_section: bool = True,
 ) -> ParsedDocument:
     with open(file_path, "rb") as f:
         raw_bytes = f.read()
     full_text, encoding_meta = decode_text_bytes(raw_bytes)
-    sections = _build_text_sections(full_text, suffix, estimate_model=estimate_model)
+    sections = _build_text_sections(
+        full_text, suffix,
+        estimate_model=estimate_model,
+        estimate_tokens_per_section=estimate_tokens_per_section,
+    )
     return ParsedDocument(
         filename=filename or os.path.basename(file_path),
         source_format=suffix,
@@ -229,6 +243,8 @@ def _build_text_sections(
     full_text: str,
     suffix: str,
     estimate_model: str | None = None,
+    *,
+    estimate_tokens_per_section: bool = True,
 ) -> list[DocumentSection]:
     blocks = [normalize_text(block) for block in re.split(r"\n\s*\n+", full_text) if normalize_text(block)]
     sections: list[DocumentSection] = []
@@ -245,7 +261,10 @@ def _build_text_sections(
                         text=section_text,
                         section_type="heading" if current_title else "paragraph_group",
                         title=current_title,
-                        estimated_tokens=estimate_text_tokens(section_text, model=estimate_model),
+                        estimated_tokens=(
+                            estimate_text_tokens(section_text, model=estimate_model)
+                            if estimate_tokens_per_section else 0
+                        ),
                     )
                 )
             current_lines = []
@@ -261,7 +280,10 @@ def _build_text_sections(
                     text=section_text,
                     section_type="heading" if current_title else "paragraph_group",
                     title=current_title,
-                    estimated_tokens=estimate_text_tokens(section_text, model=estimate_model),
+                    estimated_tokens=(
+                        estimate_text_tokens(section_text, model=estimate_model)
+                        if estimate_tokens_per_section else 0
+                    ),
                 )
             )
 

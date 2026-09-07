@@ -15,7 +15,8 @@ export type ImportSectionSummary = {
 };
 
 export type ParsedImportChunk = {
-  text: string;
+  /** 瘦身后不再回传：正文已落盘，读窗/注入一律按 attachment_id 从磁盘取。 */
+  text?: string;
   index: number;
   total: number;
   char_count: number;
@@ -29,7 +30,8 @@ export type ParsedImportResponse = {
   attachment_id: string;
   filename: string;
   source_format: string;
-  full_text: string;
+  /** 瘦身后不再回传：前端只持有引用，不持有正文。 */
+  full_text?: string;
   sections: ImportSectionSummary[];
   warnings: ImportWarning[];
   metadata: Record<string, unknown>;

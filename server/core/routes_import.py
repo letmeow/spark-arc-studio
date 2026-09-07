@@ -190,7 +190,9 @@ async def parse_import_file(
             "attachment_id": prepared.attachment_id,
             "filename": prepared.parsed.filename,
             "source_format": prepared.parsed.source_format,
-            "full_text": prepared.parsed.full_text,
+            # 响应瘦身：全文/全分片正文不再回传前端。前端只持有 attachment_id
+            # 引用（见 fileImportService.ts），正文由后端按 id 从磁盘按需注入；
+            # 全量回传是上传链路最大的下行浪费（七堇年实测 750KB，占总耗时大头）。
             "sections": [
                 {
                     "section_type": section.section_type,
@@ -207,9 +209,10 @@ async def parse_import_file(
                 for warning in prepared.parsed.warnings
             ],
             "metadata": prepared.parsed.metadata,
+            # chunks 只回传元信息（窗口号/字符数/token 数/上一片尾），不回传 text：
+            # 正文已落盘，读窗/注入一律按 id 从磁盘取；回传 text 是第二大浪费。
             "chunks": [
                 {
-                    "text": chunk.text,
                     "index": chunk.index,
                     "total": chunk.total,
                     "char_count": chunk.char_count,

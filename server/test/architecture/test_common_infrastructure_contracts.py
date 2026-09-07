@@ -80,13 +80,15 @@ def test_token_text_splitter_keeps_stable_chunk_metadata(monkeypatch) -> None:
     )
     chunks = splitter.split(text)
 
-    assert len(chunks) == 2
-    assert [chunk.index for chunk in chunks] == [0, 1]
-    assert all(chunk.total == 2 for chunk in chunks)
+    # 尾部合并的承诺是“合完仍是合法单窗”：9 + 1 + 4 = 14 > 10 不合，
+    # 保留 3 片；合完超窗的合并一律不做（读窗不可用比多一片更严重）。
+    assert len(chunks) == 3
+    assert [chunk.index for chunk in chunks] == [0, 1, 2]
+    assert all(chunk.total == 3 for chunk in chunks)
     assert chunks[1].previous_tail == chunks[0].text[-splitter.TAIL_CHARS:]
 
     _chunks, info = splitter.split_with_info(text)
-    assert info["chunk_count"] == 2
+    assert info["chunk_count"] == 3
     assert info["chunk_tokens_target"] == 10
 
 

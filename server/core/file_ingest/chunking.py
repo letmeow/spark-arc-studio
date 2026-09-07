@@ -42,11 +42,13 @@ class TokenTextSplitter:
         """Token 驱动的文本分块器。
 
         尾部合并策略：当切出的最后一片 < ``chunk_tokens * tail_merge_threshold_ratio``
-        且与倍数第二片合并后仍 <= ``chunk_tokens * tail_merge_cap_ratio`` 时，
-        合并二者，避免产生“小尾巴”分片。
+        且合并后实测仍 <= ``chunk_tokens`` 时，合并二者，避免产生“小尾巴”分片。
+        合并的承诺是“合完仍是合法单窗”，不存在“允许超窗合并”的语义：
+        ``tail_merge_cap_ratio`` 已废弃，仅为兼容旧调用签名保留，不再参与判断。
 
-        默认 0.2 / 1.15 保持保守，适用于风格分析以及 low-context 模型。
-        聊天附件场景可传 0.5 / 1.5，避免“64.1K 切成 64K + 0.1K” 这类尴尬。
+        默认 0.2 保持保守，适用于风格分析以及 low-context 模型。
+        聊天附件场景可传 0.5，避免“64.1K 切成 64K + 0.1K”这类尴尬——
+        但 64K + 0.1K 合完若实测超窗，仍会走最终钳制切开，不静默放行。
         """
         self.chunk_tokens = max(min_tokens, min(chunk_tokens, max_tokens))
         self.min_tokens = min_tokens
@@ -113,6 +115,14 @@ class TokenTextSplitter:
     # "\n\n" 连接符在常见 tokenizer 下估算为 1 个 token，用固定常数避免重复编码
     _JOIN_TOKENS = 1
 
+    def _verify_window(self, text: str) -> int:
+        """返回窗口正文的实测 token 数（真相源口径）。
+
+        pack 累加、合并判断、最终钳制全部以它为准；逐 unit 累加只用于
+        “装箱时何时换下一片”的启发式，不能作为窗口大小的承诺。
+        """
+        return self.estimate(text)
+
     def _pack_units(self, units: list[str]) -> list[str]:
         if not units:
             return []
@@ -155,19 +165,45 @@ class TokenTextSplitter:
         if current_parts:
             chunks.append(("\n\n".join(current_parts).strip(), current_tokens))
 
-        # 尾部合并：若最后一块 < threshold_ratio 目标 tokens，且合并后不超过 cap_ratio，合回倒数第二块
+        # 尾部合并：若最后一块 < threshold_ratio 目标 tokens，且合并后
+        # “实测”（_verify_window）仍 <= chunk_tokens，才合回倒数第二块。
+        # 合并的承诺是“合完仍是合法单窗”：64K 窗口 + 小尾巴合完必须仍 ≤64K，
+        # 否则读窗工具会返回超窗正文（七堇年 e2e：累加口径 63982+15588 相加
+        # 通过 cap 1.5x 放行，实测合并后 84K > 64K，不可用）。
+        # 实测必须用 estimate(合并后全文)，不能用累加口径相加：逐 unit 累加
+        # 在部分 tokenizer 下系统性偏小。
         if len(chunks) > 1:
             tail_text, tail_tokens = chunks[-1]
             threshold = max(1, int(self.chunk_tokens * self.tail_merge_threshold_ratio))
-            cap = int(self.chunk_tokens * self.tail_merge_cap_ratio)
             if tail_tokens < threshold:
-                prev_text, prev_tokens = chunks[-2]
-                merged_tokens = prev_tokens + self._JOIN_TOKENS + tail_tokens
-                if merged_tokens <= cap:
-                    chunks[-2] = (f"{prev_text}\n\n{tail_text}".strip(), merged_tokens)
+                prev_text, _prev_tokens = chunks[-2]
+                merged_text = f"{prev_text}\n\n{tail_text}".strip()
+                if self._verify_window(merged_text) <= self.chunk_tokens:
+                    chunks[-2] = (merged_text, self._verify_window(merged_text))
                     chunks.pop()
 
-        return [text for text, _tokens in chunks]
+        # 最终钳制：任何窗口实测超过 chunk_tokens 的，必须按行/字符强制重切。
+        # 这是读窗可用的最后一道门：pack 累加口径偏小、连接符低估都可能漏
+        # 过去，实测是唯一真相源。钳制后仍超窗的（整段不可再分），如实保留
+        # 并交由工具侧 LONGREAD_MAX_WINDOW_TOKENS 拒绝——不静默放行超窗正文。
+        clamped: list[str] = []
+        for text, _tokens in chunks:
+            if self._verify_window(text) <= self.chunk_tokens:
+                clamped.append(text)
+                continue
+            for sub in self._force_split_large_unit(text):
+                piece = sub.strip()
+                if not piece:
+                    continue
+                if self._verify_window(piece) <= self.chunk_tokens:
+                    clamped.append(piece)
+                    continue
+                for sub_piece in self._force_split_by_chars(piece):
+                    sub_piece = sub_piece.strip()
+                    if sub_piece:
+                        clamped.append(sub_piece)
+
+        return clamped if clamped else [text for text, _tokens in chunks]
 
     def _build_chunks(self, raw_chunks: list[str]) -> list[TokenChunk]:
         total = len(raw_chunks)

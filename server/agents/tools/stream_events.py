@@ -28,16 +28,21 @@ _SENSITIVE_STRUCTURED_TEXT_RE = re.compile(
 )
 
 
-# 仅这些工具允许在聊天轨迹中展示经过筛选的输入和返回内容。
-# 滑窗工具的 policy 是刻意最小化的：只存指针（source_id/chunk_index），
-# 不存正文。前端 segments/tool_traces 落盘 DB，64K 正文一旦进来就会污染
-# 版本库快照并撑爆历史接口；模型侧的正文走内存 ToolMessage，不走这里。
+# 仅输入白名单工具允许在聊天轨迹中展示传入参数；返回结果默认不展示。
+# （历史行为：tool_result 曾按同一白名单展示。滑窗读窗/检索命中正文可达
+# 64K，一旦进 segments/tool_traces 就会落盘 DB 并撑爆历史接口，因此返回
+# 结果一律不进面板；模型侧正文走内存 ToolMessage，不走这里。）
+# 滑窗读窗工具的 policy 是刻意最小化的：只存指针（source_id/chunk_index）。
+# 检索工具（search_project/semantic_search）存“简要调用内容”：pattern/query +
+# scope + k，供面板展开显示“搜了什么”；命中正文不存（走读窗按需取）。
 TOOL_DETAIL_POLICIES: Dict[str, tuple[str, ...]] = {
     "describe_longread_source": ("source_id",),
     "read_longread_window": ("source_id", "chunk_index"),
     "read_worldview_window": ("chunk_index",),
     "read_attachment_chunk": ("attachment_id", "chunk_index"),
     "note_window_clues": ("source_id", "chunk_index", "clue_type", "importance"),
+    "search_project": ("pattern", "scope", "max_results"),
+    "semantic_search": ("query", "scope", "k"),
     "delegate_task": (
         "target_agent", "task_description", "completion_mode", "chapter_name",
         "scene_name", "scene_file_path", "scene_guidance", "scene_characters",
@@ -184,7 +189,11 @@ def build_tool_display_details(
     tool_result: Any = None,
     tool_error: Any = None,
 ) -> Dict[str, Any]:
-    """生成前端可展开的受控工具详情，不改变模型请求参数。"""
+    """生成前端可展开的受控工具详情，不改变模型请求参数。
+
+    约束：只展示输入白名单字段；返回结果一律不展示（见 TOOL_DETAIL_POLICIES
+    顶部注释）。tool_result 参数保留仅为兼容旧调用签名，传入也会被丢弃。
+    """
     normalized = normalize_tool_name(tool_name)
     fields = TOOL_DETAIL_POLICIES.get(normalized)
     details: Dict[str, Any] = {}
@@ -194,8 +203,6 @@ def build_tool_display_details(
             details["tool_input"] = _clip_detail_payload(selected, limit=_DETAIL_MAX_RESULT)
         else:
             details["tool_input"] = _clip_detail_payload(tool_input, limit=_DETAIL_MAX_RESULT)
-    if fields is not None and tool_result is not None:
-        details["tool_result"] = _clip_detail_payload(tool_result, limit=_DETAIL_MAX_RESULT)
     if tool_error is not None:
         details["tool_error"] = _clip_detail_payload(tool_error, limit=_DETAIL_MAX_RESULT)
     return details

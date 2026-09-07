@@ -17,6 +17,19 @@
 
 开发 / 测试应优先使用 VSCode 当前选中的解释器、用户显式指定的 conda / venv / uv 环境（根目录找不到环境就考虑诸如conda env list寻找，需要灵活判断用户当前使用的是哪种包管理器）。
 
+### 1.2 后端启动路径边界（用户部署 vs 开发者调试）
+
+`start.bat` / `start.sh` 是**用户端部署入口**，不是开发者入口：
+- 配合 Launcher 受管目录（`~/.sparkarc/sparkarc-server`）使用**用户专有的数据目录**，与开发仓库的 `server/_userdata` 不是同一份数据。
+
+开发者 / AI 在开发测试时**必须直接启动代码**，严禁使用 `start.bat` / `start.sh`：
+
+- 解释器：VSCode 当前选中的解释器（或用户显式指定的 conda / venv / uv 环境）；
+- 入口：`server/app.py`，cwd=`server/`；
+- 环境：`SPARKARC_SERVER_TRAY=0`，保持热重载开启（非便携 Python 下默认即开，或显式 `SPARKARC_SERVER_RELOAD=1`；对标 `.vscode/launch.json` 的 "Server" 配置）。
+
+用错入口的后果：开发测试数据与用户数据目录错乱、改代码不生效（无热重载）、解释器缺依赖或版本不对。
+
 ## 2. 统一收口，不复制实现
 
 SparkArc 现有架构已经有清晰收口层。新增功能必须先判断是否能接入现有收口点，而不是新开平行管线。

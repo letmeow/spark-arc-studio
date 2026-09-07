@@ -29,6 +29,15 @@ export const TOOL_DETAIL_FIELD_POLICIES: Readonly<Record<string, readonly string
     'target_agent', 'task_description', 'completion_mode', 'chapter_name',
     'scene_name', 'scene_file_path', 'scene_guidance', 'scene_characters',
   ],
+  // 滑窗读窗：只展示指针，不展示正文（正文走内存 ToolMessage，不进落盘 segments）。
+  describe_longread_source: ['source_id'],
+  read_longread_window: ['source_id', 'chunk_index'],
+  read_worldview_window: ['chunk_index'],
+  read_attachment_chunk: ['attachment_id', 'chunk_index'],
+  note_window_clues: ['source_id', 'chunk_index', 'clue_type', 'importance'],
+  // 检索：展示“搜了什么”（pattern/query + scope），不展示命中正文。
+  search_project: ['pattern', 'scope', 'max_results'],
+  semantic_search: ['query', 'scope', 'k'],
   replace_from_search: ['indices', 'replacement'],
   patch_script: PATCH_FIELDS,
   patch_worldview: PATCH_FIELDS,
@@ -77,6 +86,16 @@ export const TOOL_DETAIL_FIELD_POLICIES: Readonly<Record<string, readonly string
 
 const FIELD_LABEL_KEYS: Readonly<Record<string, string>> = {
   value: 'components.chatMessageList.toolDetails.value',
+  source_id: 'components.chatMessageList.toolDetails.fields.sourceId',
+  attachment_id: 'components.chatMessageList.toolDetails.fields.attachmentId',
+  chunk_index: 'components.chatMessageList.toolDetails.fields.chunkIndex',
+  clue_type: 'components.chatMessageList.toolDetails.fields.clueType',
+  importance: 'components.chatMessageList.toolDetails.fields.importance',
+  pattern: 'components.chatMessageList.toolDetails.fields.pattern',
+  scope: 'components.chatMessageList.toolDetails.fields.scope',
+  max_results: 'components.chatMessageList.toolDetails.fields.maxResults',
+  query: 'components.chatMessageList.toolDetails.fields.query',
+  k: 'components.chatMessageList.toolDetails.fields.resultCount',
   target_agent: 'components.chatMessageList.toolDetails.fields.targetAgent',
   task_description: 'components.chatMessageList.toolDetails.fields.taskDescription',
   completion_mode: 'components.chatMessageList.toolDetails.fields.completionMode',
