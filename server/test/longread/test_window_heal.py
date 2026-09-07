@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 
+def _stub_unified_estimator(monkeypatch) -> None:
+    """冻结统一估算入口。统一入口是 estimate_text_tokens 及其底层
+    _estimate_tokens；stub 旧 estimate_tokens 别名无效。"""
+    stub = lambda text, model=None: len(text)
+    monkeypatch.setattr(
+        "core.file_ingest.chunking.estimate_text_tokens",
+        stub,
+    )
+    monkeypatch.setattr(
+        "core.file_ingest.chunking._estimate_tokens",
+        stub,
+    )
+
+
 def test_heal_oversized_window_splits_and_persists(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr("core.utils.USERDATA_ROOT", str(tmp_path))
-    monkeypatch.setattr(
-        "core.file_ingest.chunking.estimate_tokens",
-        lambda text, model=None: len(text),
-    )
-    monkeypatch.setattr(
-        "llm.agen_matchbox.estimate_tokens.estimate_tokens",
-        lambda text, model=None, is_code=False: len(text),
-    )
+    _stub_unified_estimator(monkeypatch)
     import agents.tools.longread as longread_mod
     import core.project_settings as settings
 
@@ -49,14 +56,7 @@ def test_heal_oversized_window_splits_and_persists(monkeypatch, tmp_path) -> Non
 def test_same_caliber_oversized_window_still_rejected(monkeypatch, tmp_path) -> None:
     """新附件（有口径记录）同口径超窗：不自愈，走重传提示。"""
     monkeypatch.setattr("core.utils.USERDATA_ROOT", str(tmp_path))
-    monkeypatch.setattr(
-        "core.file_ingest.chunking.estimate_tokens",
-        lambda text, model=None: len(text),
-    )
-    monkeypatch.setattr(
-        "llm.agen_matchbox.estimate_tokens.estimate_tokens",
-        lambda text, model=None, is_code=False: len(text),
-    )
+    _stub_unified_estimator(monkeypatch)
     import agents.tools.longread as longread_mod
     import core.project_settings as settings
 

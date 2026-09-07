@@ -2,18 +2,9 @@ import re
 
 from charset_normalizer import from_bytes
 
-try:
-    from llm.agen_matchbox.estimate_tokens import estimate_tokens
-except ImportError:
-    try:
-        from server.llm.agen_matchbox.estimate_tokens import estimate_tokens
-    except ImportError:
-        def estimate_tokens(text, model=None):
-            return len(text)
-
-
-def estimate_text_tokens(text: str, model: str | None = None) -> int:
-    return estimate_tokens(text or "", model=model)
+# 统一口径：本模块的 estimate_text_tokens 转调 chunking 的唯一入口，
+# 禁止各模块自行 import 不同的估算函数（国家意志 e2e：跨口径比较误杀）。
+from .chunking import estimate_text_tokens  # noqa: F401  (re-export，旧调用方兼容)
 
 
 def normalize_text(text: str) -> str:

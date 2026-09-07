@@ -1205,7 +1205,7 @@ const zhCN = {
           lengthHint: '篇幅提示', sceneLengthHint: '场景长度提示', sceneTargetChars: '场景字数目标', activeInspirationId: '当前灵感 ID',
           filePath: '文件路径', sceneNames: '正文单元名称列表', sceneFiles: '正文文件列表', chapterPath: '故事分组目录路径', newChapterName: '新的故事分组名称', scenePath: '正文文件路径', newSceneName: '新的正文单元名称', chapterPaths: '故事分组目录路径列表', scenePaths: '正文文件路径列表', oldName: '原名称', newName: '新名称', path: '路径',
           chapterIndex: '逻辑大纲章节序号', sceneIndex: '逻辑大纲场景序号', fromIndex: '原位置', toIndex: '目标位置', order: '排序结果', metadata: '元数据', renames: '重命名清单', updates: '更新清单',
-          sourceId: '长文档 source_id', attachmentId: '附件 ID', chunkIndex: '窗口号', clueType: '线索类型', importance: '重要度',
+          sourceId: '长文档 source_id', attachmentId: '附件 ID', chunkIndex: '窗口号', clues: '记录的线索', clueType: '线索类型', importance: '重要度',
           pattern: '正则表达式', scope: '搜索范围', maxResults: '结果上限', resultCount: '结果数量',
         },
       },

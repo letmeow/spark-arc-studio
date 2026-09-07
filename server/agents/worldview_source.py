@@ -11,12 +11,11 @@
 
 from __future__ import annotations
 
-from core.file_ingest.chunking import TokenTextSplitter
+from core.file_ingest.chunking import TokenTextSplitter, estimate_text_tokens as estimate_tokens
 from core.project_settings import (
     LONGREAD_WORLDVIEW_SLIDING_THRESHOLD_TOKENS,
     get_attachment_chunk_tokens,
 )
-from llm.agen_matchbox.estimate_tokens import estimate_tokens
 
 from agents.longread import SourceManifest
 

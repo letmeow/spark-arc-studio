@@ -35,12 +35,15 @@ _SENSITIVE_STRUCTURED_TEXT_RE = re.compile(
 # 滑窗读窗工具的 policy 是刻意最小化的：只存指针（source_id/chunk_index）。
 # 检索工具（search_project/semantic_search）存“简要调用内容”：pattern/query +
 # scope + k，供面板展开显示“搜了什么”；命中正文不存（走读窗按需取）。
+# 记账工具（note_window_clues）是唯一的例外：clues 是 Agent 写给用户看的
+# 线索结论，全量展示（只脱敏、不截断），否则面板只有 source_id/窗口号这类
+# 机器指针，用户完全看不到记了什么。
 TOOL_DETAIL_POLICIES: Dict[str, tuple[str, ...]] = {
     "describe_longread_source": ("source_id",),
     "read_longread_window": ("source_id", "chunk_index"),
     "read_worldview_window": ("chunk_index",),
     "read_attachment_chunk": ("attachment_id", "chunk_index"),
-    "note_window_clues": ("source_id", "chunk_index", "clue_type", "importance"),
+    "note_window_clues": ("source_id", "chunk_index", "clue_type", "importance", "clues"),
     "search_project": ("pattern", "scope", "max_results"),
     "semantic_search": ("query", "scope", "k"),
     "delegate_task": (
@@ -141,6 +144,41 @@ def _safe_detail(value: Any, *, limit: int = _DETAIL_MAX_STRING, depth: int = 0)
     return _redact_text(value, limit)
 
 
+def _redact_text_no_limit(value: str) -> str:
+    """只做敏感信息脱敏，不做任何长度截断（记账 clues 展示专用）。"""
+    text = str(value or "")
+    text = _SENSITIVE_TEXT_RE.sub(lambda match: f"{match.group(1)}=[已隐藏]", text)
+    text = _SENSITIVE_STRUCTURED_TEXT_RE.sub(lambda match: f"{match.group(1)}[已隐藏]", text)
+    return text
+
+
+def _safe_detail_no_truncate(value: Any, *, depth: int = 0) -> Any:
+    """递归脱敏但不限长度/条数（仅用于 note_window_clues.clues 全量展示）。
+
+    保留深度 guard 防递归爆炸、保留敏感 key 隐藏；去掉 _DETAIL_MAX_STRING、
+    _DETAIL_MAX_ITEMS、`…其余已省略` 这类截断。调用方已明确接受超长线索
+    进落盘 segments 的代价。
+    """
+    if depth > 5:
+        return "[嵌套层级过深]"
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, str):
+        return _redact_text_no_limit(value)
+    if isinstance(value, dict):
+        result: Dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key)
+            if _is_sensitive_key(key_text):
+                result[key_text] = "[已隐藏]"
+                continue
+            result[key_text] = _safe_detail_no_truncate(item, depth=depth + 1)
+        return result
+    if isinstance(value, (list, tuple, set)):
+        return [_safe_detail_no_truncate(item, depth=depth + 1) for item in list(value)]
+    return _redact_text_no_limit(value)
+
+
 def _clip_detail_payload(value: Any, *, limit: int) -> Any:
     """对复杂对象再做一次整体长度限制，保留合法 JSON 结构。"""
     safe = _safe_detail(value, limit=_DETAIL_MAX_STRING)
@@ -200,7 +238,18 @@ def build_tool_display_details(
     if fields is not None and tool_input is not None:
         if isinstance(tool_input, dict):
             selected = {field: deepcopy(tool_input[field]) for field in fields if field in tool_input}
-            details["tool_input"] = _clip_detail_payload(selected, limit=_DETAIL_MAX_RESULT)
+            if normalized == "note_window_clues" and "clues" in selected:
+                # 记账 clues 全量展示：只脱敏、不截断。账本单条上限 500 字符，
+                # 全量即账本原样；调用方已明确接受超长线索进落盘 segments 的代价。
+                selected = dict(selected)
+                selected["clues"] = _safe_detail_no_truncate(selected["clues"])
+                rest = {k: v for k, v in selected.items() if k != "clues"}
+                details["tool_input"] = {
+                    **_clip_detail_payload(rest, limit=_DETAIL_MAX_RESULT),
+                    "clues": selected["clues"],
+                }
+            else:
+                details["tool_input"] = _clip_detail_payload(selected, limit=_DETAIL_MAX_RESULT)
         else:
             details["tool_input"] = _clip_detail_payload(tool_input, limit=_DETAIL_MAX_RESULT)
     if tool_error is not None:

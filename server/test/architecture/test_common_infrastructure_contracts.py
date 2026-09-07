@@ -69,7 +69,11 @@ def test_story_body_char_count_excludes_format_and_conception() -> None:
 
 
 def test_token_text_splitter_keeps_stable_chunk_metadata(monkeypatch) -> None:
-    monkeypatch.setattr("core.file_ingest.chunking.estimate_tokens", lambda text, model=None: len(text))
+    # 统一入口 stub：estimate_text_tokens 及其底层 _estimate_tokens；
+    # 旧 estimate_tokens 别名已不再被切分器使用。
+    stub = lambda text, model=None: len(text)
+    monkeypatch.setattr("core.file_ingest.chunking.estimate_text_tokens", stub)
+    monkeypatch.setattr("core.file_ingest.chunking._estimate_tokens", stub)
 
     text = "甲" * 8 + "。" + "乙" * 8 + "。" + "丙" * 3 + "。"
     splitter = TokenTextSplitter(

@@ -34,7 +34,9 @@ export const TOOL_DETAIL_FIELD_POLICIES: Readonly<Record<string, readonly string
   read_longread_window: ['source_id', 'chunk_index'],
   read_worldview_window: ['chunk_index'],
   read_attachment_chunk: ['attachment_id', 'chunk_index'],
-  note_window_clues: ['source_id', 'chunk_index', 'clue_type', 'importance'],
+  // 记账是唯一展示结论正文的滑窗工具：clues 是 Agent 写给用户看的线索，
+  // 与 source_id/窗口号等机器指针对应展示（后端 TOOL_DETAIL_POLICIES 同步）。
+  note_window_clues: ['source_id', 'chunk_index', 'clue_type', 'importance', 'clues'],
   // 检索：展示“搜了什么”（pattern/query + scope），不展示命中正文。
   search_project: ['pattern', 'scope', 'max_results'],
   semantic_search: ['query', 'scope', 'k'],
@@ -89,6 +91,7 @@ const FIELD_LABEL_KEYS: Readonly<Record<string, string>> = {
   source_id: 'components.chatMessageList.toolDetails.fields.sourceId',
   attachment_id: 'components.chatMessageList.toolDetails.fields.attachmentId',
   chunk_index: 'components.chatMessageList.toolDetails.fields.chunkIndex',
+  clues: 'components.chatMessageList.toolDetails.fields.clues',
   clue_type: 'components.chatMessageList.toolDetails.fields.clueType',
   importance: 'components.chatMessageList.toolDetails.fields.importance',
   pattern: 'components.chatMessageList.toolDetails.fields.pattern',
@@ -256,7 +259,10 @@ export function adaptToolDetails(toolName: unknown, segment: Record<string, unkn
     const section = makeSection('input', segment.tool_input, policy);
     if (section) sections.push(section);
   }
-  if (policy && hasOwn(segment, 'tool_result') && !hasError) {
+  // 返回结果默认不展示：滑窗读窗/检索命中正文可达 64K，进落盘 segments
+  // 会撑爆历史接口（后端 TOOL_DETAIL_POLICIES 同步约束）。线上事件也不带
+  // tool_result；这里保留分支只为兼容旧 segments，绝不为新工具加 result 白名单。
+  if (hasOwn(segment, 'tool_result') && !hasError) {
     const section = makeSection('result', segment.tool_result);
     if (section) sections.push(section);
   }

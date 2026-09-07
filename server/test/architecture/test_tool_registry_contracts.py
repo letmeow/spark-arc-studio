@@ -150,7 +150,11 @@ def test_director_longread_tools_come_from_single_facade() -> None:
 
 
 def test_longread_and_search_tool_details_expose_pointer_only() -> None:
-    """面板展开只允许指针/搜了什么：读窗不暴露正文，检索不暴露命中正文。"""
+    """面板展开只允许指针/搜了什么：读窗不暴露正文，检索不暴露命中正文。
+
+    唯一的例外是 note_window_clues：clues 是 Agent 写给用户看的线索结论，
+    必须展示，否则面板只有机器指针。
+    """
     read_evt = build_tool_stream_event(
         "tool_exec_started",
         "read_longread_window",
@@ -172,6 +176,51 @@ def test_longread_and_search_tool_details_expose_pointer_only() -> None:
     )
     assert search_evt["tool_input"] == {"pattern": "玉佩", "scope": ["attachment"], "max_results": 20}
     assert "tool_result" not in search_evt
+
+    note_evt = build_tool_stream_event(
+        "tool_exec_started",
+        "note_window_clues",
+        source_agent="agent_director",
+        tool_call_key="call-3",
+        tool_input={
+            "source_id": "abc",
+            "chunk_index": 30,
+            "clue_type": "矛盾",
+            "importance": 5,
+            "clues": ["林淮生在窗口30现身"],
+            "secret": "x",
+        },
+        tool_result="已记录 1 条线索",
+    )
+    assert note_evt["tool_input"] == {
+        "source_id": "abc",
+        "chunk_index": 30,
+        "clue_type": "矛盾",
+        "importance": 5,
+        "clues": ["林淮生在窗口30现身"],
+    }
+    assert "tool_result" not in note_evt
+
+
+def test_note_window_clues_clues_are_never_truncated() -> None:
+    """记账 clues 全量展示：3000+ 字符不断尾，不出现省略标记。"""
+    long_clue = "林" * 3000
+    many_clues = [f"线索{i:02d}：" + "淮" * 100 for i in range(30)]
+    evt = build_tool_stream_event(
+        "tool_exec_started",
+        "note_window_clues",
+        source_agent="agent_director",
+        tool_call_key="call-4",
+        tool_input={
+            "source_id": "abc",
+            "chunk_index": 30,
+            "clues": [long_clue, *many_clues],
+        },
+    )
+    clues = evt["tool_input"]["clues"]
+    assert clues[0] == long_clue
+    assert len(clues) == 31
+    assert not any("省略" in str(item) for item in clues)
 
 
 def test_tool_stream_event_injects_ui_metadata_from_backend_binding() -> None:

@@ -1207,6 +1207,7 @@ const enUS = {
           lengthHint: 'Length hint', sceneLengthHint: 'Scene length hint', sceneTargetChars: 'Scene target characters', activeInspirationId: 'Active inspiration ID',
           filePath: 'File path', sceneNames: 'Story unit names', sceneFiles: 'Story files', chapterPath: 'Story group directory path', newChapterName: 'New story group name', scenePath: 'Story file path', newSceneName: 'New story unit name', chapterPaths: 'Story group directory paths', scenePaths: 'Story file paths', oldName: 'Old name', newName: 'New name', path: 'Path',
           chapterIndex: 'Logical outline chapter index', sceneIndex: 'Logical outline scene index', fromIndex: 'From position', toIndex: 'To position', order: 'Order', metadata: 'Metadata', renames: 'Rename operations', updates: 'Update operations',
+          sourceId: 'Long-doc source_id', attachmentId: 'Attachment ID', chunkIndex: 'Window index', clues: 'Recorded clues', clueType: 'Clue type', importance: 'Importance',
         },
       },
       tools: {

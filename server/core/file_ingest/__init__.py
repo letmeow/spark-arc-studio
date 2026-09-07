@@ -1,4 +1,4 @@
-from .chunking import TokenChunk, TokenTextSplitter, split_text_by_tokens
+from .chunking import TokenChunk, TokenTextSplitter, estimate_text_tokens, is_exact_counter_ready, split_text_by_tokens
 from .service import (
     ImportTextEmptyError,
     UnsupportedImportFormatError,

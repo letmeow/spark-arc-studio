@@ -1207,6 +1207,7 @@ const jaJP = {
           lengthHint: '長さの目安', sceneLengthHint: 'シーン長の目安', sceneTargetChars: 'シーン目標文字数', activeInspirationId: '現在の着想 ID',
           filePath: 'ファイルパス', sceneNames: '本文ユニット名一覧', sceneFiles: '本文ファイル一覧', chapterPath: 'ストーリーグループのディレクトリパス', newChapterName: '新しいストーリーグループ名', scenePath: '本文ファイルのパス', newSceneName: '新しい本文ユニット名', chapterPaths: 'ストーリーグループのディレクトリパス一覧', scenePaths: '本文ファイルのパス一覧', oldName: '旧名称', newName: '新名称', path: 'パス',
           chapterIndex: '論理アウトライン章インデックス', sceneIndex: '論理アウトラインシーンインデックス', fromIndex: '元の位置', toIndex: '移動先', order: '並び順', metadata: 'メタデータ', renames: '名前変更一覧', updates: '更新一覧',
+          sourceId: '長文ドキュメント source_id', attachmentId: '添付ファイル ID', chunkIndex: 'ウィンドウ番号', clues: '記録した手がかり', clueType: '手がかり種別', importance: '重要度',
         },
       },
       tools: {

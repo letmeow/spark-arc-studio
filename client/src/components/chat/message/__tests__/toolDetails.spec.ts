@@ -73,7 +73,6 @@ describe('工具详情展示适配', () => {
   it('滑窗读窗只展示指针，检索展示搜了什么', () => {
     const read = adaptToolDetails('read_longread_window', {
       tool_input: { source_id: 'abc123', chunk_index: 2, secret: '不能展示' },
-      tool_result: '窗口正文不应展示',
     });
     expect(read.expandable).toBe(true);
     expect(read.sections.map(section => section.key)).toEqual(['input']);
@@ -81,10 +80,32 @@ describe('工具详情展示适配', () => {
 
     const search = adaptToolDetails('search_project', {
       tool_input: { pattern: '玉佩', scope: ['attachment'], max_results: 20, secret: '不能展示' },
-      tool_result: '命中正文不应展示',
     });
     expect(search.expandable).toBe(true);
     expect(search.sections.map(section => section.key)).toEqual(['input']);
     expect(search.sections[0].entries.map(item => item.key)).toEqual(['pattern', 'scope', 'max_results']);
+  });
+
+  it('记账工具展开线索正文，读窗仍只展示指针', () => {
+    const note = adaptToolDetails('note_window_clues', {
+      tool_input: {
+        source_id: 'abc123',
+        chunk_index: 30,
+        clue_type: '矛盾',
+        importance: 5,
+        clues: ['林淮生在窗口30现身', '宋宁线收束'],
+        secret: '不能展示',
+      },
+    });
+    expect(note.expandable).toBe(true);
+    expect(note.sections.map(section => section.key)).toEqual(['input']);
+    expect(note.sections[0].entries.map(item => item.key)).toEqual([
+      'source_id',
+      'chunk_index',
+      'clue_type',
+      'importance',
+      'clues',
+    ]);
+    expect(note.sections[0].entries.find(item => item.key === 'clues')?.text).toContain('林淮生');
   });
 });

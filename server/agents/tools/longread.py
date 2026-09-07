@@ -63,8 +63,8 @@ def _read_attachment_window_text(
         load_chunks,
         touch_last_referenced,
     )
+    from core.file_ingest.chunking import estimate_text_tokens as estimate_tokens
     from core.project_settings import LONGREAD_MAX_WINDOW_TOKENS
-    from llm.agen_matchbox.estimate_tokens import estimate_tokens
 
     meta = get_attachment_meta(user_id, project_name, source_id)
     if meta is None:
@@ -145,8 +145,8 @@ def _heal_oversized_window(
     from math import ceil
 
     from agents.attachment import get_attachment_meta, load_attachment_text
+    from core.file_ingest.chunking import estimate_text_tokens as estimate_tokens
     from core.project_settings import LONGREAD_MAX_WINDOW_TOKENS
-    from llm.agen_matchbox.estimate_tokens import estimate_tokens
 
     meta = get_attachment_meta(user_id, project_name, source_id)
     if meta is None:

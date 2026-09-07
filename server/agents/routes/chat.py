@@ -1220,7 +1220,7 @@ async def compact_chat_context(data: ChatContextCompactRequest, user: dict = Dep
         summary_text = _context_summary_plain_text(summary)
         summary_json = json.dumps(summary, ensure_ascii=False, indent=2)
         try:
-            from llm.agen_matchbox.estimate_tokens import estimate_tokens
+            from core.file_ingest.chunking import estimate_text_tokens as estimate_tokens
             summary_tokens = int(estimate_tokens(summary_json, model=model_name))
             retained_tokens = int(estimate_tokens(
                 json.dumps(

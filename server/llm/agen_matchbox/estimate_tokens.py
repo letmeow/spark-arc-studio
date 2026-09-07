@@ -193,13 +193,20 @@ def _build_hf_attempts() -> list[dict[str, str | None]]:
     """构造 tokenizer 下载尝试序列。
 
     hf_mirror 已按配置、网络归属地和可达性排序，这里直接复用其候选列表。
+    注意：huggingface_hub 的 ENDPOINT 常量在 import 时快照 os.environ，
+    运行时改 os.environ['HF_ENDPOINT'] 不会影响已创建的 HfApi/transformers
+    调用。因此每个 attempt 必须同时设置 HF_ENDPOINT（给新进程/新 import
+    看）和直接改写 huggingface_hub.constants.ENDPOINT（给当前进程内已
+    import 的 hub 看），否则大陆镜像顺序排第一也切不过去——hf_debug 实测：
+    候选 [mirror, official] 全走 official 超时，而显式 HF_ENDPOINT=mirror
+    秒通。_apply_attempt_endpoint 统一做这两件事，调用方禁止只设一半。
     """
     if _LOCAL_ONLY:
         return [{"HF_ENDPOINT": None}]
 
     base_timeout = {
-        "HF_HUB_ETAG_TIMEOUT": "3",
-        "HF_HUB_DOWNLOAD_TIMEOUT": "8",
+        "HF_HUB_ETAG_TIMEOUT": "8",
+        "HF_HUB_DOWNLOAD_TIMEOUT": "30",
     }
     candidates = get_hf_candidates(probe=True)
     attempts: list[dict[str, str | None]] = []
@@ -234,6 +241,94 @@ def _cache_set_counter(key: str, value):
         _counter_cache[key] = value
 
 
+@contextmanager
+def _attempt_endpoint(endpoint: str | None):
+    """单个 HF 下载 attempt 的 endpoint 上下文：env + 进程内 hub 常量一起切。
+
+    只设 os.environ 不够：huggingface_hub.constants.ENDPOINT 在 import 时快照，
+    且 transformers 内部自建的 HfApi() 在构造时再次快照 constants.ENDPOINT——
+    运行时只改 env，已构造的 Api 照样走旧地址。只改常量也不够（子进程/新
+    import 看 env）。退出时两者都恢复，避免污染后续非 HF 请求。
+    """
+    old_env = os.environ.get("HF_ENDPOINT")
+    old_constants: list[tuple[object, str, object]] = []
+    try:
+        if endpoint is None:
+            os.environ.pop("HF_ENDPOINT", None)
+        else:
+            os.environ["HF_ENDPOINT"] = endpoint
+        try:
+            import huggingface_hub.constants as _hub_constants
+
+            for attr in ("ENDPOINT", "HUGGINGFACE_CO_URL_TEMPLATE"):
+                if hasattr(_hub_constants, attr):
+                    old_constants.append((_hub_constants, attr, getattr(_hub_constants, attr)))
+            _hub_constants.ENDPOINT = (endpoint or "https://huggingface.co").rstrip("/")
+            if hasattr(_hub_constants, "HUGGINGFACE_CO_URL_TEMPLATE"):
+                _hub_constants.HUGGINGFACE_CO_URL_TEMPLATE = (
+                    _hub_constants.ENDPOINT + "/{repo_id}/resolve/{revision}/{filename}"
+                )
+        except Exception:
+            pass
+        try:
+            # transformers.utils.hub 在 import 时就构造了一个全局 HfApi()
+            # 单例（transformers.utils.hub.list_repo_tree 是它的绑定方法），
+            # 其 endpoint 在 import 时快照，后续改 env/改常量都影响不到它——
+            # 这就是“候选顺序正确但流量仍走 official 超时”的根因。
+            # attempt 内把它也指向当前 endpoint，退出时恢复。
+            from huggingface_hub import HfApi as _HfApi
+
+            _orig_init = _HfApi.__init__
+
+            def _patched_init(self, endpoint=None, *args, **kwargs):
+                if endpoint is None:
+                    endpoint = os.environ.get("HF_ENDPOINT")
+                return _orig_init(self, endpoint=endpoint, *args, **kwargs)
+
+            _HfApi.__init__ = _patched_init  # type: ignore[method-assign]
+            _hfapi_patched = True
+            _hub_singleton_old_endpoint: str | None = None
+            try:
+                import transformers.utils.hub as _tf_hub
+
+                _hub_singleton = getattr(_tf_hub.list_repo_tree, "__self__", None)
+                if _hub_singleton is not None and hasattr(_hub_singleton, "endpoint"):
+                    _hub_singleton_old_endpoint = str(_hub_singleton.endpoint)
+                    _hub_singleton.endpoint = os.environ.get("HF_ENDPOINT") or _hub_singleton.endpoint
+            except Exception:
+                _hub_singleton = None
+        except Exception:
+            _hfapi_patched = False
+            _hub_singleton = None
+            _hub_singleton_old_endpoint = None
+        try:
+            yield
+        finally:
+            if _hfapi_patched:
+                try:
+                    _HfApi.__init__ = _orig_init  # type: ignore[method-assign]
+                except Exception:
+                    pass
+            try:
+                if _hub_singleton is not None and _hub_singleton_old_endpoint is not None:
+                    _hub_singleton.endpoint = _hub_singleton_old_endpoint
+            except Exception:
+                pass
+    finally:
+        try:
+            if old_env is None:
+                os.environ.pop("HF_ENDPOINT", None)
+            else:
+                os.environ["HF_ENDPOINT"] = old_env
+        except Exception:
+            pass
+        for module, attr, value in old_constants:
+            try:
+                setattr(module, attr, value)
+            except Exception:
+                pass
+
+
 def _get_hf_counter(cache_key: str, repo: str, trust_remote_code: bool = False) -> Optional[Callable[[str], int]]:
     cached = _cache_get_counter(cache_key)
     if cached is not None:
@@ -246,6 +341,7 @@ def _get_hf_counter(cache_key: str, repo: str, trust_remote_code: bool = False) 
 
     attempts = _build_hf_attempts()
 
+    last_error: Exception | None = None
     for envs in attempts:
         try:
             with warnings.catch_warnings():
@@ -253,19 +349,37 @@ def _get_hf_counter(cache_key: str, repo: str, trust_remote_code: bool = False) 
                 warnings.filterwarnings("ignore", message=".*unauthenticated.*")
                 warnings.filterwarnings("ignore", category=FutureWarning)
                 warnings.filterwarnings("ignore", category=UserWarning, module="transformers")
-                with _temporary_env(**envs):
-                    tok = AutoTokenizer.from_pretrained(
-                        repo,
-                        trust_remote_code=trust_remote_code,
-                        local_files_only=_LOCAL_ONLY,
-                    )
+                with _temporary_env(**{k: v for k, v in envs.items() if k != "HF_ENDPOINT"}):
+                    with _attempt_endpoint(envs.get("HF_ENDPOINT")):
+                        tok = AutoTokenizer.from_pretrained(
+                            repo,
+                            trust_remote_code=trust_remote_code,
+                            local_files_only=_LOCAL_ONLY,
+                        )
             _cache_set_tokenizer(f"tok::{cache_key}", tok)
             counter = _wrap_hf_tokenizer_counter(tok)
             _cache_set_counter(cache_key, counter)
             return counter
-        except Exception:
+        except Exception as exc:
+            # 保留最后一次失败原因：调用方（warmup 状态/estimate 诊断）需要它
+            # 判断是网络直连失败还是仓库本身不可用，而不是吞掉后只报 None。
+            last_error = exc
             continue
 
+    if last_error is not None:
+        try:
+            family = str(cache_key).replace("exact::", "")
+        except Exception:
+            family = ""
+        _set_warmup_status(
+            family or cache_key,
+            {
+                "matched": family or None,
+                "exact": True,
+                "ok": False,
+                "detail": f"loader failed: {type(last_error).__name__}: {str(last_error)[:300]}",
+            },
+        )
     return None
 
 
@@ -659,6 +773,23 @@ def _set_warmup_status(name: str, data: dict):
 def get_warmup_status() -> Dict[str, dict]:
     with _lock:
         return {k: dict(v) for k, v in _warmup_status.items()}
+
+
+def is_exact_counter_ready(model: str | None = None) -> bool:
+    """统一口径探针：给定 model 的真实 tokenizer 是否就绪。
+
+    全仓库“切多大 / 读不读 / 预算够不够”的调用方禁止自行判断
+    exact/fallback——需要向用户或日志解释口径时，调这个函数即可。
+    model 为空表示无模型回退口径，永远返回 False（调用方无需区分）。
+    """
+    if not (model or "").strip():
+        return False
+    rule = _match_rule(model)
+    if rule is None:
+        return False
+    if rule.get("exact_loader") is None:
+        return False
+    return _cache_get_counter(f"exact::{rule['name']}") is not None
 
 
 def _warmup_job(models: Optional[List[str]] = None) -> Dict[str, dict]:

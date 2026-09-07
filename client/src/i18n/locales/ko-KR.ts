@@ -1205,6 +1205,7 @@ const koKR = {
           lengthHint: '분량 힌트', sceneLengthHint: '씬 길이 힌트', sceneTargetChars: '씬 목표 글자 수', activeInspirationId: '현재 영감 ID',
           filePath: '파일 경로', sceneNames: '본문 단위 이름 목록', sceneFiles: '본문 파일 목록', chapterPath: '스토리 그룹 디렉터리 경로', newChapterName: '새 스토리 그룹 이름', scenePath: '본문 파일 경로', newSceneName: '새 본문 단위 이름', chapterPaths: '스토리 그룹 디렉터리 경로 목록', scenePaths: '본문 파일 경로 목록', oldName: '기존 이름', newName: '새 이름', path: '경로',
           chapterIndex: '논리 아웃라인 장 인덱스', sceneIndex: '논리 아웃라인 씬 인덱스', fromIndex: '기존 위치', toIndex: '이동 위치', order: '정렬 결과', metadata: '메타데이터', renames: '이름 변경 목록', updates: '업데이트 목록',
+          sourceId: '장문 문서 source_id', attachmentId: '첨부파일 ID', chunkIndex: '윈도우 번호', clues: '기록된 단서', clueType: '단서 유형', importance: '중요도',
         },
       },
       tools: {

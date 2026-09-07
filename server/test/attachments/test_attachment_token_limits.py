@@ -23,11 +23,19 @@ def _stub_chunking(monkeypatch, total_tokens: int) -> None:
     """冻结切分器的 token 口径，避免真实分词器抖动。
 
     注意口径统一：prepare_chat_attachment 全程使用切分器 pack 累加，
-    estimate_tokens(len) 按字符计；total_tokens 必须等于字符数。
+    estimate_text_tokens(len) 按字符计；total_tokens 必须等于字符数。
+    统一入口是 core.file_ingest.chunking.estimate_text_tokens，
+    必须 stub 它（及其底层 _estimate_tokens），stub 旧的 estimate_tokens
+    别名无效——切分器内部已不再走别名。
     """
+    stub = lambda text, model=None: len(text)
     monkeypatch.setattr(
-        "core.file_ingest.chunking.estimate_tokens",
-        lambda text, model=None: len(text),
+        "core.file_ingest.chunking.estimate_text_tokens",
+        stub,
+    )
+    monkeypatch.setattr(
+        "core.file_ingest.chunking._estimate_tokens",
+        stub,
     )
 
 

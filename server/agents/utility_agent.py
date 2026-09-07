@@ -15,7 +15,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from agents.agent_utils import load_prompt
 from core.file_ingest.chunking import TokenTextSplitter
-from llm.agen_matchbox.estimate_tokens import estimate_tokens
+from core.file_ingest.chunking import estimate_text_tokens as estimate_tokens
 
 
 UTILITY_AGENT_ID = "agent_utility"

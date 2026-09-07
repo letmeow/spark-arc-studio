@@ -597,7 +597,7 @@ async def warm_up():
 
     # 2. 预热分词器和模型估算
     try:
-        from llm.agen_matchbox.estimate_tokens import estimate_tokens
+        from core.file_ingest.chunking import estimate_text_tokens as estimate_tokens
         estimate_tokens("warmup ping")
         print("✅ Tokenizer warm-up complete", flush=True)
     except Exception as e:

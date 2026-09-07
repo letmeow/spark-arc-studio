@@ -2803,7 +2803,7 @@ async def estimate_tokens_endpoint(
 
     """
 
-    from llm.agen_matchbox.estimate_tokens import estimate_tokens
+    from core.file_ingest.chunking import estimate_text_tokens as estimate_tokens
 
 
 

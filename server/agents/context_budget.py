@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Generator, List, Sequence
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
-from llm.agen_matchbox.estimate_tokens import estimate_tokens
+from core.file_ingest.chunking import estimate_text_tokens as estimate_tokens
 
 
 CHAT_HISTORY_FETCH_LIMIT = 200

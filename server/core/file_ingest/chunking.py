@@ -2,13 +2,42 @@ from dataclasses import dataclass
 import re
 
 try:
-    from llm.agen_matchbox.estimate_tokens import estimate_tokens
+    from llm.agen_matchbox.estimate_tokens import estimate_tokens as _estimate_tokens
 except ImportError:
     try:
-        from server.llm.agen_matchbox.estimate_tokens import estimate_tokens
+        from server.llm.agen_matchbox.estimate_tokens import estimate_tokens as _estimate_tokens
     except ImportError:
-        def estimate_tokens(text, model=None):
+        def _estimate_tokens(text, model=None):
             return len(text)
+
+
+def estimate_text_tokens(text: str, model: str | None = None) -> int:
+    """全仓库统一的 token 估算唯一入口。
+
+    铁律：任何“切多大 / 读不读 / 预算够不够”的判断都走这里，禁止各模块
+    自行 import 不同的估算函数或手写字符换算。口径是否真实（tokenizer
+    已预热）还是回退，由 estimate_tokens 内部统一决定；调用方只传 model，
+    不关心 exact/fallback，从而消灭“切 64K、读 100K”这类跨口径比较
+    （国家意志 e2e 根因）。口径探针见 is_exact_counter_ready。
+    """
+    return _estimate_tokens(text or "", model=model)
+
+
+def is_exact_counter_ready(model: str | None = None) -> bool:
+    """统一口径探针的唯一出口：给定 model 的真实 tokenizer 是否就绪。"""
+    try:
+        from llm.agen_matchbox.estimate_tokens import is_exact_counter_ready as _ready
+    except ImportError:
+        try:
+            from server.llm.agen_matchbox.estimate_tokens import is_exact_counter_ready as _ready
+        except ImportError:
+            return False
+    return bool(_ready(model))
+
+
+# 历史兼容：旧调用方直接 import 本模块的 estimate_tokens，现收敛到统一入口。
+def estimate_tokens(text, model=None):
+    return estimate_text_tokens(text, model=model)
 
 
 @dataclass(slots=True)
@@ -59,7 +88,7 @@ class TokenTextSplitter:
         self.estimate_model = normalized_model or None
 
     def estimate(self, text: str) -> int:
-        return estimate_tokens(text, model=self.estimate_model)
+        return estimate_text_tokens(text, model=self.estimate_model)
 
     def split(self, text: str) -> list[TokenChunk]:
         normalized = self._normalize_text(text)
