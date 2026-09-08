@@ -385,6 +385,7 @@ import EngineView from '../Engine/EngineIndex.vue';
 import SettingsView from '../Settings/SettingsIndex.vue';
 import DashboardView from '../Dashboard/DashboardIndex.vue';
 import ChatDesktopView from '../ChatDesktop/ChatDesktopIndex.vue';
+import HomeView from '../Home/HomeIndex.vue';
 
 import bus from '../../eventBus';
 import { useResizer } from '../../hooks/useResizer';
@@ -678,6 +679,7 @@ const activeComponent = computed(() => {
     case 'settings': return SettingsView;
     case 'dashboard': return DashboardView;
     case 'chat': return ChatDesktopView;
+    case 'home': return HomeView;
     default: return null;
   }
 });

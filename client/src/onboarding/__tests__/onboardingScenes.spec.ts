@@ -10,6 +10,7 @@ import {
 describe('onboarding 场景契约', () => {
   it('为每个桌面主页面注册可重放教程', () => {
     expect(desktopPageScenes.map(scene => scene.id)).toEqual([
+      'page-home',
       'page-chat',
       'page-world',
       'page-synopsis',

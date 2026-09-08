@@ -21,6 +21,7 @@
         :context-token-usage="chat.contextTokenUsage"
         :context-window-stats="chat.contextWindowStats"
         loading-target="chat-primary"
+        input-wrapper-class="is-comfort"
         @update:agent-id="onAgentChanged"
         @update:draft="draft = $event"
         @update:editing-content="editingContent = $event"
@@ -52,7 +53,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue';
+import bus from '@/eventBus';
 import ChatPanel from '@/components/chat/ChatPanel.vue';
 import ChatWelcomeScreen from '@/components/chat/ChatWelcomeScreen.vue';
 import ChatFileImportButton from '@/components/chat/ChatFileImportButton.vue';
@@ -167,13 +169,28 @@ watch(
   }
 );
 
+// 首页发送过渡的收尾：预填 draft（用户在聊天页确认后发送，渐进委托）。
+function onHomeSendToDirector(payload: unknown) {
+  const text = typeof (payload as { text?: unknown } | null)?.text === 'string'
+    ? String((payload as { text: string }).text).trim()
+    : '';
+  if (!text) return;
+  draft.value = text;
+  nextTick(() => scrollToBottom(true));
+}
+
 onMounted(async () => {
   await loadRegistry();
   await initializeChatView();
+  bus.on('home-send-to-director', onHomeSendToDirector);
 });
 
 onActivated(async () => {
   await initializeChatView();
+});
+
+onBeforeUnmount(() => {
+  bus.off('home-send-to-director', onHomeSendToDirector);
 });
 </script>
 
@@ -222,9 +239,7 @@ onActivated(async () => {
   padding: 16px;
 }
 
-:deep(.desktop-chat-panel .chat-input-wrapper) {
-  padding: 16px;
-  background: var(--spark-panel-bg);
-  border-top: 1px solid var(--spark-border);
+:deep(.desktop-chat-panel .chat-input-wrapper.is-comfort) {
+  margin: 0 16px 16px;
 }
 </style>

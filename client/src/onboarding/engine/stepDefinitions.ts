@@ -232,6 +232,12 @@ function pageStep(
   };
 }
 
+const desktopHomeSteps = [
+  pageStep('home-composer', '.home-view .home-composer', 'bottom', 'home', 'composer', switchViewBeforeEnter('home')),
+  pageStep('home-recents', '.home-view .home-recents', 'top', 'home', 'recents'),
+  pageStep('home-muse', '.home-view .home-muse-line', 'top', 'home', 'muse'),
+];
+
 const desktopChatSteps = [
   pageStep('chat-team', '.chat-desktop-view .chat-panel-header', 'bottom', 'chat', 'team', switchViewBeforeEnter('chat')),
   pageStep('chat-history', '.chat-desktop-view .chat-panel-body', 'left', 'chat', 'history'),
@@ -306,6 +312,7 @@ const desktopSettingsSteps = [
 ];
 
 export const desktopPageScenes: OnboardingScene[] = [
+  { id: 'page-home', steps: desktopHomeSteps },
   { id: 'page-chat', steps: desktopChatSteps },
   { id: 'page-world', steps: desktopWorldSteps },
   { id: 'page-synopsis', steps: desktopSynopsisSteps },
@@ -367,6 +374,17 @@ export const desktopWorkspaceSteps: OnboardingStep[] = [
     spotlight: false,
   },
   ...workspaceChromeSteps,
+  {
+    id: 'dw-home',
+    target: '.activity-list .activity-item[data-view="home"]',
+    placement: 'right',
+    titleKey: 'onboarding.desktop.workspace.homeTitle',
+    descKey: 'onboarding.desktop.workspace.homeDesc',
+    spotlight: true,
+    spotlightPadding: 12,
+    beforeEnter: switchViewBeforeEnter('home'),
+  },
+  ...desktopHomeSteps,
   ...desktopChatSteps,
   ...desktopWorldSteps,
   ...desktopSynopsisSteps,

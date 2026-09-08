@@ -186,8 +186,8 @@
         <n-input
           :value="draft"
           type="textarea"
-          size="small"
-          :autosize="{ minRows: 1, maxRows: 5 }"
+          :size="inputWrapperClass.includes('is-compact') ? 'small' : undefined"
+          :autosize="inputWrapperClass.includes('is-compact') ? { minRows: 1, maxRows: 5 } : { minRows: 2, maxRows: 6 }"
           :placeholder="placeholder || t('components.chatPanel.inputPlaceholder')"
           @update:value="$emit('update:draft', $event)"
           @keydown="$emit('draft-keydown', $event)"
@@ -848,16 +848,35 @@ defineExpose({ listRef: chatListRef });
   transform: scale(0.88);
 }
 
-/* 输入区 */
+/* 输入区：默认 comfort 胶囊（圆角卡 + 呼吸感）；.compact 变体保留旧扁条以兼容抽屉紧凑场景 */
 .chat-input-wrapper {
   position: relative;
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--spark-border);
+  padding: 10px 12px 12px;
   contain: layout style;
   flex: 0 0 auto;
+}
+
+.chat-input-wrapper.is-comfort {
+  margin: 0 12px 12px;
+  padding: 10px 10px 8px 14px;
+  background: var(--spark-panel-bg);
+  border: 1px solid var(--spark-border);
+  border-radius: var(--spark-radius-lg);
+  box-shadow: var(--spark-shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-input-wrapper.is-comfort:focus-within {
+  border-color: var(--spark-primary);
+  box-shadow: 0 0 0 3px var(--spark-primary-glow), var(--spark-shadow-sm);
+}
+
+.chat-input-wrapper.is-compact {
+  padding: 8px 12px;
+  border-top: 1px solid var(--spark-border);
 }
 
 .chat-input-prefix {
