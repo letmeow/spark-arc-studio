@@ -783,6 +783,9 @@ def test_auto_write_emits_prewrite_before_writing_scene(monkeypatch, tmp_path: P
                 "max_attempts": 4,
                 "result": "已读取事实",
             })
+        if callback is not None:
+            callback("create_chapter")
+            callback("create_or_rewrite_script")
         scene_path.parent.mkdir(parents=True, exist_ok=True)
         scene_path.write_text(
             "# 初遇\n<conception>\n本场建立雨夜悬念。\n</conception>\n[旁白]\n已保存正文可见内容足够长可以落盘",
@@ -859,6 +862,7 @@ def test_auto_write_emits_prewrite_before_writing_scene(monkeypatch, tmp_path: P
     assert any(item.get("phaseToolName") == "story_memory_tool" for item in state_updates)
     assert any(item.get("phaseEvent") == "model_request_started" for item in state_updates)
     assert any(item.get("phaseEvent") == "tool_succeeded" for item in state_updates)
+    assert state_updates[-1]["writeStarted"] is True
 
     def failing_creation(*_args, **kwargs):
         lifecycle_callback = kwargs.get("on_lifecycle_event")

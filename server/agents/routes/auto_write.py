@@ -209,6 +209,8 @@ async def generate_script_stream(
     current_scene_title = ""
     generated_files: list[str] = []
     generated_scene_files: list[str] = []
+    # 当前 story_unit 的生命周期标记：只有落盘工具被调用后才置为 True。
+    write_started = False
     total_scenes_count = sum(len(ch.get("children") or []) for ch in chapter_nodes)
 
     state = begin_auto_write_run(
@@ -236,6 +238,7 @@ async def generate_script_stream(
             "currentSceneTitle": current_scene_title,
             "generatedFiles": generated_files,
             "generatedSceneFiles": generated_scene_files,
+            "writeStarted": bool(write_started),
         }
         payload.update(extra)
         return patch_auto_write_state(
@@ -392,6 +395,9 @@ async def generate_script_stream(
         for scene_idx, scene in enumerate(scenes):
             if scene_idx < effective_start_scene:
                 continue
+
+            # 每个 story_unit 都从调研阶段开始；上一场的写入状态不能泄漏到下一场。
+            write_started = False
             if request is not None and await request.is_disconnected():
                 stop_event.set()
                 update_state(
@@ -538,7 +544,6 @@ async def generate_script_stream(
                 ),
             )
 
-            write_started = False
             write_attempt = 0
 
             def report_prewrite_tool(tool_name: str) -> None:
