@@ -76,6 +76,7 @@ class ScriptwriterPreWriteResult:
     written_content: str = ""
     blocked_reason: str = ""
     continuity_turn: CompletedPromptTurn | None = None
+    capture_path: str = ""
 
     @property
     def saved(self) -> bool:
@@ -383,6 +384,7 @@ def _run_prewrite_tool_loop(
     )
     from langchain_core.messages import AIMessage, HumanMessage
     from llm.agen_matchbox.reasoning_compat import extract_text_content_from_message
+    from agents.runtime_capture import RuntimeCapture
 
     clean = clean_text or (lambda value: str(value or ""))
     brief = _build_prewrite_brief(request)
@@ -413,6 +415,33 @@ def _run_prewrite_tool_loop(
         current_user_message=user_prompt,
     ).messages
 
+    capture = None
+    if require_save:
+        capture = RuntimeCapture.create(
+            agent_id="agent_scriptwriter",
+            user_id=str(request.user_id),
+            project_name=request.project_name,
+            metadata={
+                "capture_kind": "auto_write_prewrite",
+                "export_format": request.export_format or "arc",
+                "chapter_name": request.chapter_name,
+                "scene_name": request.scene_name,
+                "task_description": request.task_description,
+                "scene_guidance": request.scene_guidance,
+                "scene_characters": request.scene_characters,
+                "available_context": request.available_context,
+                "story_tags": request.story_tags,
+                "worldview": request.worldview,
+                "roles": request.roles,
+                "full_outline": request.full_outline,
+                "style_profile": request.style_profile,
+                "chr_reference": request.chr_reference,
+                "target_chars": request.target_chars,
+            },
+        )
+        if capture is not None:
+            capture.start(messages=messages, tools=tools)
+
     user_token = current_user_id.set(str(request.user_id))
     project_token = current_project_name.set(request.project_name)
     agent_token = current_agent_id.set("agent_scriptwriter")
@@ -427,6 +456,7 @@ def _run_prewrite_tool_loop(
     blocked_reason = ""
     last_tool_failure = ""
     request_count = 0
+    capture_error = ""
 
     def emit_lifecycle(event: str, **payload: Any) -> None:
         """上报自动写作生命周期；观察回调失败不得影响正文任务。"""
@@ -447,6 +477,7 @@ def _run_prewrite_tool_loop(
                     "直接调用 create_chapter 与 create_or_rewrite_script 完成落盘；不得再调用任何只读调查工具。"
                     "只有关键依据冲突时才停止并明确说明冲突。"
                 )))
+            messages_before = list(messages)
             emit_lifecycle(
                 "model_request_started",
                 attempt=attempt,
@@ -483,15 +514,42 @@ def _run_prewrite_tool_loop(
                 if not require_save:
                     if response_text and response_text != "PREWRITE_READY":
                         blocked_reason = response_text
+                    if capture is not None:
+                        capture.record_turn(
+                            ordinal=attempt,
+                            messages_before=messages_before,
+                            response=response,
+                            tool_specs=(),
+                            tool_results=(),
+                            messages_after=messages,
+                        )
                     break
                 if round_index == request_limit - 1:
                     blocked_reason = response_text
+                    if capture is not None:
+                        capture.record_turn(
+                            ordinal=attempt,
+                            messages_before=messages_before,
+                            response=response,
+                            tool_specs=(),
+                            tool_results=(),
+                            messages_after=messages,
+                        )
                     break
                 messages.append(AIMessage(content=response_text or "未调用工具。"))
                 messages.append(HumanMessage(content=(
                     "不要输出调查总结。若不存在关键事实冲突，请继续调查或直接调用正文落盘工具；"
                     "若存在关键冲突，请明确指出冲突材料与需要裁决的问题。"
                 )))
+                if capture is not None:
+                    capture.record_turn(
+                        ordinal=attempt,
+                        messages_before=messages_before,
+                        response=response,
+                        tool_specs=(),
+                        tool_results=(),
+                        messages_after=messages,
+                    )
                 continue
 
             messages.append(build_tool_history_message(response, tool_specs))
@@ -575,6 +633,15 @@ def _run_prewrite_tool_loop(
                     break
 
             messages.extend(build_tool_result_messages(tool_results))
+            if capture is not None:
+                capture.record_turn(
+                    ordinal=attempt,
+                    messages_before=messages_before,
+                    response=response,
+                    tool_specs=tool_specs,
+                    tool_results=tool_results,
+                    messages_after=messages,
+                )
             if saved_payload is not None:
                 chapter_specs = [
                     spec for spec in tool_specs
@@ -600,7 +667,18 @@ def _run_prewrite_tool_loop(
                 tools=tools,
                 current_user_message=user_prompt,
             ).messages
+    except Exception as exc:
+        capture_error = f"{type(exc).__name__}: {exc}"
+        raise
     finally:
+        if capture is not None:
+            capture.finalize(
+                messages=messages,
+                status="saved" if saved_payload is not None else "failed" if capture_error else "blocked",
+                error=capture_error,
+                saved_payload=saved_payload,
+                written_content=written_content,
+            )
         current_scriptwriter_prewrite_receipt.reset(receipt_state_token)
         current_export_format.reset(format_token)
         current_agent_id.reset(agent_token)
@@ -626,6 +704,7 @@ def _run_prewrite_tool_loop(
             written_content=written_content,
             preserved_messages=preserved_messages,
         ) if require_save else None,
+        capture_path=str(capture.output_path) if capture is not None and capture.output_path else "",
     )
 
 
@@ -678,7 +757,9 @@ def run_autonomous_scriptwriter_creation(
         (
             "### 本次落盘必须逐字复用的可读名称\n"
             f"chapter_name：{request.chapter_name.strip()}\n"
-            f"scene_name/work_name：{request.scene_name.strip()}"
+            f"scene_name/work_name：{request.scene_name.strip()}\n"
+            "注意：以上是可读标题，不是文件名；work_name 绝对不要附加 .arc 或 .md 扩展名，"
+            "也不要自行添加 1-1 等编号。"
         ),
         f"### 当前创作任务\n{request.task_description.strip()}",
         "请按需调查；材料足够后直接创建章节并调用正文工具落盘。不要输出独立的 PreWrite 总结。",

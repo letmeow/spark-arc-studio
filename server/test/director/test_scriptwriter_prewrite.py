@@ -574,6 +574,12 @@ def test_full_script_write_requires_and_consumes_matching_receipt(monkeypatch, t
         mismatch = create_or_rewrite_script.invoke(args)
         assert "尚未完成匹配的 PreWrite" in mismatch
 
+        extension_mismatch = create_or_rewrite_script.invoke({
+            **args,
+            "work_name": "1-1 初遇.md",
+        })
+        assert "work_name 必须是不含扩展名" in extension_mismatch
+
         set_scriptwriter_prewrite_receipt({
             "receipt_id": "receipt-2",
             "user_id": "u3",

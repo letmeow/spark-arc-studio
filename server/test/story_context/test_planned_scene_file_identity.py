@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 
 def test_find_scene_file_by_identity_uses_filename_meta_across_project(tmp_path: Path) -> None:
     from story.file_naming import find_scene_file_by_identity
@@ -196,6 +198,58 @@ def test_create_or_rewrite_script_reuses_legacy_scene_and_rejects_zero_scene(mon
     assert existing.read_text(encoding="utf-8").endswith("新正文")
     assert "必须是大于 0" in rejected
     assert len(list(stories_path.glob("*.arc"))) == 1
+
+
+@pytest.mark.parametrize(
+    ("export_format", "content", "expected_reason"),
+    [
+        ("arc", "<conception>只有构思，没有 ARC 正文。</conception>", "body_empty"),
+        ("arc", "<conception>未闭合的构思", "markup_tag_unbalanced:conception"),
+        ("novel", "<conception>未闭合的构思", "markup_tag_unbalanced:conception"),
+    ],
+)
+def test_create_or_rewrite_script_rejects_metadata_only_or_unbalanced_content(
+    monkeypatch,
+    tmp_path: Path,
+    export_format: str,
+    content: str,
+    expected_reason: str,
+) -> None:
+    from core.request_context import current_export_format, current_project_name, current_user_id
+    from agents.tools.scriptwriter import create_or_rewrite_script
+
+    monkeypatch.setattr("core.utils.USERDATA_ROOT", str(tmp_path))
+    monkeypatch.setattr("agents.story_memory.enqueue_scene_memory_write", lambda **_kwargs: None)
+    stories_path = tmp_path / "uid_7" / "projects" / "demo" / "stories" / "一 · 开端"
+    stories_path.mkdir(parents=True)
+    existing = stories_path / (
+        "1-1 初遇.__spark__chap=001.scene=001.order=001001."
+        + ("arc" if export_format == "arc" else "md")
+    )
+    existing.write_text("旧正文", encoding="utf-8")
+
+    user_token = current_user_id.set("7")
+    project_token = current_project_name.set("demo")
+    format_token = current_export_format.set(export_format)
+    try:
+        result = create_or_rewrite_script.invoke(
+            {
+                "chapter_name": "一 · 开端",
+                "work_name": "1-1 初遇",
+                "overwrite_content": content,
+            }
+        )
+    finally:
+        current_export_format.reset(format_token)
+        current_project_name.reset(project_token)
+        current_user_id.reset(user_token)
+
+    assert result.startswith((
+        "创建/重写剧本失败：正文落盘校验未通过",
+        "创建/重写剧本失败：正文没有可见内容",
+    ))
+    assert expected_reason in result
+    assert existing.read_text(encoding="utf-8") == "旧正文"
 
 
 def test_auto_write_scene_plan_uses_outline_position_instead_of_bad_title_number(monkeypatch, tmp_path: Path) -> None:

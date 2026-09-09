@@ -1643,11 +1643,12 @@ class SparkBaseAgent:
             tools_override=tools,
         )
         from agents.prompt_layout import build_chat_prompt_layout
+        runtime_tail = self._build_runtime_tail(tools_override=tools)
         prompt_layout = build_chat_prompt_layout(
             system_instruction=system_instruction,
             user_message=user_message,
             active_context=active_context,
-            runtime_tail=self._build_runtime_tail(),
+            runtime_tail=runtime_tail,
         )
 
         # 2. 调用 LLM（支持多轮工具调用）
@@ -1819,11 +1820,12 @@ class SparkBaseAgent:
             tools_override=tools,
         )
         from agents.prompt_layout import build_chat_prompt_layout
+        runtime_tail = self._build_runtime_tail(tools_override=tools)
         prompt_layout = build_chat_prompt_layout(
             system_instruction=system_instruction,
             user_message=user_message,
             active_context=active_context,
-            runtime_tail=self._build_runtime_tail(),
+            runtime_tail=runtime_tail,
         )
 
         from llm.agen_matchbox import matchbox
@@ -1874,6 +1876,39 @@ class SparkBaseAgent:
         if tools:
             stream_llm = stream_llm.bind_tools(tools)
 
+        from agents.runtime_capture import RuntimeCapture
+
+        capture = None
+        if self.agent_id == "agent_scriptwriter":
+            from core.request_context import get_current_export_format
+
+            visual_enabled = None
+            visual_settings_fn = getattr(self, "_visual_illustration_settings", None)
+            if callable(visual_settings_fn):
+                try:
+                    visual_enabled = bool((visual_settings_fn() or {}).get("enabled"))
+                except Exception:
+                    visual_enabled = None
+            capture = RuntimeCapture.create(
+                agent_id=self.agent_id,
+                user_id=str(self.user_id),
+                project_name=str(self.project_name),
+                metadata={
+                    "capture_kind": "chat_stream",
+                    "modality": "pipeline" if skip_tool_confirmation else "chat",
+                    "skip_tool_confirmation": bool(skip_tool_confirmation),
+                    "stop_after_pipeline_completion": bool(stop_after_pipeline_completion),
+                    "user_message": str(user_message or ""),
+                    "active_context": str(active_context or ""),
+                    "runtime_tail": str(runtime_tail or ""),
+                    "export_format": str(get_current_export_format() or "arc"),
+                    "visual_illustration_enabled": visual_enabled,
+                },
+            )
+        if capture is not None:
+            capture.start(messages=messages, tools=tools)
+        capture_error = ""
+
         try:
             pipeline_write_receipts: List[tuple[str, Any]] = []
             while True:
@@ -1885,6 +1920,7 @@ class SparkBaseAgent:
                 tool_intent_keys: Dict[str, str] = {}
                 tool_chunk_buffers: Dict[int, Dict[str, Any]] = {}
                 stream_reasoning_adapter = MessageEventStreamReasoningAdapter()
+                messages_before = list(messages)
 
                 for chunk in stream_model_turn_with_retry(
                     stream_llm,
@@ -1989,6 +2025,15 @@ class SparkBaseAgent:
                         if isinstance(aggregated_chunk.content, str) and aggregated_chunk.content:
                             aggregated_chunk.content = extract_visible_text_from_plain_text(aggregated_chunk.content)
                         messages.append(aggregated_chunk)
+                    if capture is not None:
+                        capture.record_turn(
+                            ordinal=len(capture.payload.get("turns") or []) + 1,
+                            messages_before=messages_before,
+                            response=aggregated_chunk,
+                            tool_specs=(),
+                            tool_results=(),
+                            messages_after=messages,
+                        )
                     if conversation_recorder is not None:
                         conversation_recorder(list(messages[1:]))
                     break  # 没有工具调用，对话结束
@@ -2123,6 +2168,16 @@ class SparkBaseAgent:
                 fresh_call_ids = {cid for cid, _, _ in tool_results}
                 messages.extend(build_tool_result_messages(tool_results))
 
+                if capture is not None:
+                    capture.record_turn(
+                        ordinal=len(capture.payload.get("turns") or []) + 1,
+                        messages_before=messages_before,
+                        response=aggregated_chunk,
+                        tool_specs=tool_specs,
+                        tool_results=tool_results,
+                        messages_after=messages,
+                    )
+
                 if stop_after_pipeline_completion:
                     completion_receipt = resolve_pipeline_completion(
                         self.agent_id,
@@ -2165,6 +2220,7 @@ class SparkBaseAgent:
                 messages = tool_budget_result.messages
 
         except Exception as e:
+            capture_error = f"{type(e).__name__}: {e}"
             if is_stop_event_set(stop_event):
                 return
             import traceback
@@ -2179,6 +2235,13 @@ class SparkBaseAgent:
                 "data": format_ai_error(e),
                 "retryable": not isinstance(e, ModelStreamRetryExhaustedError),
             }
+        finally:
+            if capture is not None:
+                capture.finalize(
+                    messages=messages,
+                    status="failed" if capture_error else "completed",
+                    error=capture_error,
+                )
 
 
 class CommunicationContext:

@@ -504,6 +504,15 @@ def create_or_rewrite_script(
     # export_format 是系统确定的项目模式；用户称谓由统一术语表决定，不能按工具名“剧本”推断。
     terms = get_story_terminology("novel" if effective_format == "novel" else "script")
     user_id, project_name = ToolExecutionContext.get_context()
+    raw_work_name = str(work_name or "").strip()
+    if (
+        ToolExecutionContext.get_agent_id() == "agent_scriptwriter"
+        and raw_work_name.casefold().endswith((".arc", ".md"))
+    ):
+        return (
+            f"创建/重写剧本失败：work_name 必须是不含扩展名的{terms['unit']}可读标题，"
+            f"当前收到“{raw_work_name}”。请去掉末尾的 .arc 或 .md，并使用与 PreWrite 的 scene_name 完全一致的标题后重试。"
+        )
     if ToolExecutionContext.get_agent_id() == "agent_scriptwriter" and not has_matching_prewrite_receipt(
         user_id=user_id,
         project_name=project_name,
@@ -546,12 +555,46 @@ def create_or_rewrite_script(
     if not content:
         return f"创建/重写剧本失败：overwrite_content 为空（当前正文单元为{terms['unit']}）。"
 
-    # 仅有标题、格式标记或 <conception> 构思块时，不允许伪装成已保存正文。
-    # 这样模型消耗请求后没有可见产出时，会回到工具循环重试，而不是生成 0 字场景。
-    from story.text_metrics import count_story_body_chars
+    # 保存前执行统一格式与正文校验，避免把未闭合 conception 或元数据块
+    # 误计为正文，造成“保存成功但实际正文为空”的伪成功回执。
+    from story.text_metrics import find_story_markup_violations, validate_story_document
 
-    if count_story_body_chars(content, effective_format) <= 0:
-        return f"创建/重写剧本失败：正文没有可见内容，不能落盘。请生成实际{terms['unit']}正文后重试。"
+    raw_markup_reasons = find_story_markup_violations(submitted_content, effective_format)
+    if raw_markup_reasons:
+        return (
+            f"创建/重写剧本失败：正文落盘校验未通过（{'; '.join(raw_markup_reasons)}）。"
+            f"请生成合法且包含实际{terms['unit']}正文的最终内容后重试。"
+        )
+
+    is_scriptwriter_agent = ToolExecutionContext.get_agent_id() == "agent_scriptwriter"
+    has_scene_header = bool(re.search(r"^#\s+\S", content, re.MULTILINE))
+    validation_content = content
+    # 兼容旧调用：ARC 片段可以省略场景标题，保存时由下方逻辑自动补齐。
+    # 校验时构造等价的临时完整文档；纯文本片段视作旁白节点，避免绕过正文校验。
+    if effective_format != "novel" and not has_scene_header:
+        has_speaker = bool(re.search(r"^\s*\[[^\]\r\n]+\]\s*$", validation_content, re.MULTILINE))
+        speaker_prefix = "" if has_speaker else "[旁白]\n"
+        validation_content = f"# {str(work_name or '当前场景').strip() or '当前场景'}\n{speaker_prefix}{validation_content}"
+
+    validation_reasons = validate_story_document(
+        validation_content,
+        effective_format,
+        # 自动写作 PreWrite 链路会在调用工具前强制要求 conception；
+        # 直接工具调用保留旧兼容行为，小说可不带该块，但任何已出现的标签必须完整闭合。
+        require_conception=False,
+        require_parseable_arc=effective_format != "novel",
+    )
+    if validation_reasons:
+        if "body_empty" in validation_reasons:
+            return (
+                "创建/重写剧本失败：正文没有可见内容，不能落盘。"
+                f"（正文落盘校验未通过：{'; '.join(validation_reasons)}）"
+                f"请生成实际{terms['unit']}正文后重试。"
+            )
+        return (
+            f"创建/重写剧本失败：正文落盘校验未通过（{'; '.join(validation_reasons)}）。"
+            f"请生成合法且包含实际{terms['unit']}正文的最终内容后重试。"
+        )
 
     stories_path = get_project_stories_path(user_id, project_name)
     os.makedirs(stories_path, exist_ok=True)
