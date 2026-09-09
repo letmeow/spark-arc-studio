@@ -26,8 +26,6 @@ export default {
         workflowDesc: 'SparkArc 把复杂创作拆成一条可反复迭代的工作流。你不必一次做完，也可以随时让 AI 导演协调专家推进下一步。',
         activityBarTitle: '创作导航栏',
         activityBarDesc: '每一步创作都有专属工具和视图。点击图标即可切换。',
-        homeTitle: '创作首页',
-        homeDesc: '从一句话开始：中央输入框发给导演，随手想法点 ✦ 存入灵感匣。',
         worldTitle: '灵感与世界观',
         worldDesc: '记录灵感碎片，构建角色、地点与设定。这是故事的根基。',
         synopsisTitle: '故事梗概',
@@ -72,12 +70,9 @@ export default {
       },
     },
     pages: {
-      home: {
-        composerTitle: '一句话，发给导演', composerDesc: '中央输入框是首页唯一主角。写下目标后回车，内容会飞入聊天页并预填，由你确认后发送。',
-        recentsTitle: '最近项目与灵感', recentsDesc: '左列按更新时间列出最近项目，点击切换；右列是未绑定任何项目的灵感草稿，点击可入项目。',
-        museTitle: '随手想法点 ✦ 存灵感', museDesc: '不成形的半句话不需要发给导演。点输入框旁的 ✦ 只记入灵感匣，不触发对话。',
-      },
       chat: {
+        composerTitle: '一句话，发给导演', composerDesc: '中央输入框是空态唯一主角。写下目标后回车，内容直接发给导演，无需跳转。',
+        recentsTitle: '最近项目与灵感', recentsDesc: '左列按更新时间列出最近项目，点击切换；右列是未绑定任何项目的灵感草稿，点击可入项目。',
         teamTitle: '按住左上角，选择 AI 专家', teamDesc: '按住左上角的专家按钮打开轮盘，拖向需要的专家即可切换。如果不知道该找谁，直接吩咐导演，他会协调合适的专家。',
         historyTitle: '任务会在后台继续', historyDesc: '发送任务后无需停留在当前页面，可以去处理自己的事情。回复、思考与工具进度会完整保留，回来或刷新后仍可继续查看。',
         inputTitle: '把目标和素材交给团队', inputDesc: '在这里描述目标，也可导入文件。尽量说明要修改的项目、范围和期望结果。',

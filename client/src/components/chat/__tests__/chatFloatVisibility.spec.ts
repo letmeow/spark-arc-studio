@@ -5,7 +5,7 @@ import {
 } from '../chatFloatVisibility';
 
 describe('悬浮聊天可见性策略', () => {
-  it('桌面端在全屏聊天页与编剧面板隐藏悬浮聊天（编剧面板已内嵌右侧边栏）', () => {
+  it('桌面端在首页概念删除后：仅全屏聊天页与编剧面板隐藏悬浮聊天（编剧面板已内嵌右侧边栏）', () => {
     expect(resolveChatFloatSurface({
       expanded: false,
       isMobile: false,

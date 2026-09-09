@@ -78,12 +78,18 @@
             </n-tooltip>
 
             <!-- 默认按钮模式：用于各页面顶部工具栏 -->
-            <n-button v-else size="small" quaternary class="model-selector-btn">
+            <n-button v-else-if="trigger !== 'pill'" size="small" quaternary class="model-selector-btn">
               <template #icon>
                 <n-icon :component="Zap" />
               </template>
               {{ currentModelName || '选择模型' }}
             </n-button>
+
+            <!-- 模型名 pill：专用于聊天输入框气泡内，显示当前模型名，点击弹出同一张卡片 -->
+            <button v-else type="button" class="model-name-pill" :title="computedTooltipText">
+              <span class="model-name-pill-dot"></span>
+              <span class="model-name-pill-text">{{ currentModelName || '选择模型' }}</span>
+            </button>
           </slot>
         </template>
 
@@ -160,7 +166,7 @@ const props = defineProps({
   compact: { type: Boolean, default: false },
   agentName: { type: String, default: null },
   placement: { type: String as PropType<any>, default: 'bottom-start' },
-  trigger: { type: String as PropType<'button' | 'icon'>, default: 'button' },
+  trigger: { type: String as PropType<'button' | 'icon' | 'pill'>, default: 'button' },
   tooltipText: { type: String, default: '' },
 });
 const message = useMessage();
@@ -677,6 +683,44 @@ onBeforeUnmount(() => {
   color: var(--spark-primary);
   background: var(--spark-primary-glow);
   opacity: 1;
+}
+
+/* 模型名 pill：聊天输入框气泡内右下角，扁平无浮雕，与主题同色系 */
+.model-name-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--spark-text-muted);
+  font-size: var(--spark-fs-xs);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.model-name-pill:hover {
+  border-color: var(--spark-border);
+  color: var(--spark-text);
+}
+
+.model-name-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--spark-text-muted);
+  opacity: 0.6;
+}
+
+.model-name-pill-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 640px) {

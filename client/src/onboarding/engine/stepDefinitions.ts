@@ -233,9 +233,8 @@ function pageStep(
 }
 
 const desktopHomeSteps = [
-  pageStep('home-composer', '.home-view .home-composer', 'bottom', 'home', 'composer', switchViewBeforeEnter('home')),
-  pageStep('home-recents', '.home-view .home-recents', 'top', 'home', 'recents'),
-  pageStep('home-muse', '.home-view .home-muse-line', 'top', 'home', 'muse'),
+  pageStep('home-composer', '.chat-desktop-view .welcome-composer', 'top', 'home', 'composer', switchViewBeforeEnter('chat')),
+  pageStep('home-recents', '.chat-desktop-view .welcome-recents', 'top', 'home', 'recents'),
 ];
 
 const desktopChatSteps = [
@@ -312,8 +311,7 @@ const desktopSettingsSteps = [
 ];
 
 export const desktopPageScenes: OnboardingScene[] = [
-  { id: 'page-home', steps: desktopHomeSteps },
-  { id: 'page-chat', steps: desktopChatSteps },
+  { id: 'page-chat', steps: [...desktopHomeSteps, ...desktopChatSteps] },
   { id: 'page-world', steps: desktopWorldSteps },
   { id: 'page-synopsis', steps: desktopSynopsisSteps },
   { id: 'page-structure', steps: desktopStructureSteps },
@@ -374,16 +372,6 @@ export const desktopWorkspaceSteps: OnboardingStep[] = [
     spotlight: false,
   },
   ...workspaceChromeSteps,
-  {
-    id: 'dw-home',
-    target: '.activity-list .activity-item[data-view="home"]',
-    placement: 'right',
-    titleKey: 'onboarding.desktop.workspace.homeTitle',
-    descKey: 'onboarding.desktop.workspace.homeDesc',
-    spotlight: true,
-    spotlightPadding: 12,
-    beforeEnter: switchViewBeforeEnter('home'),
-  },
   ...desktopHomeSteps,
   ...desktopChatSteps,
   ...desktopWorldSteps,

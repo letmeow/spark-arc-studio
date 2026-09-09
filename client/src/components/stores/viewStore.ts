@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export type AppViewKey =
-  | 'home'
   | 'muse'
   | 'world'
   | 'characters'
@@ -19,9 +18,9 @@ export type AppViewKey =
   | 'chat';
 
 export const useViewStore = defineStore('view', () => {
-  // 'home' | 'muse' | 'world' | 'synopsis' | 'structure' | 'production' | 'style' | 'blueprint' | 'settings' | 'dashboard' | 'chat'
-  // 首页 Home 是应用内默认落地页：中央大输入框 + 最近项目/灵感，发送后过渡到 chat。
-  const currentView = ref<AppViewKey>('home');
+  // 'muse' | 'world' | 'synopsis' | 'structure' | 'production' | 'style' | 'blueprint' | 'settings' | 'dashboard' | 'chat'
+  // 首页概念已删除：聊天页空态欢迎（ChatWelcomeScreen）即首页，无需独立视图与跳转。
+  const currentView = ref<AppViewKey>('chat');
   const pendingChatAgentId = ref<string | null>(null);
 
   function setView(view: AppViewKey) {

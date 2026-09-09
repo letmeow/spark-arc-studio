@@ -26,8 +26,6 @@ export default {
         workflowDesc: 'SparkArc turns a complex production into an iterative path. You can revisit any stage or ask the AI Director to coordinate the next step.',
         activityBarTitle: 'Creative Navigation',
         activityBarDesc: 'Each creative step has its own tool and view. Click icons to switch.',
-        homeTitle: 'Home',
-        homeDesc: 'Start from one line: send it to the Director, or tap ✦ to save it as a spark.',
         worldTitle: 'Inspiration & World',
         worldDesc: 'Capture idea fragments, build characters, locations and settings. The foundation of your story.',
         synopsisTitle: 'Story Synopsis',
@@ -72,12 +70,9 @@ export default {
       },
     },
     pages: {
-      home: {
-        composerTitle: 'One line, sent to the Director', composerDesc: 'The center composer is the only protagonist here. Press Enter and your words fly into the chat page as a prefilled draft for you to confirm.',
-        recentsTitle: 'Recent projects & sparks', recentsDesc: 'The left column lists recent projects by update time; the right column shows unbound spark drafts. Tap a spark to adopt it into a project.',
-        museTitle: 'Tap ✦ to save half-formed ideas', museDesc: 'Half sentences do not need to reach the Director. The ✦ button files them into the spark box without starting a conversation.',
-      },
       chat: {
+        composerTitle: 'One line, sent to the Director', composerDesc: 'The center composer is the only protagonist when empty. Press Enter and your words go straight to the Director, no navigation needed.',
+        recentsTitle: 'Recent projects & sparks', recentsDesc: 'The left column lists recent projects by update time; the right column shows unbound spark drafts. Tap a spark to adopt it into a project.',
         teamTitle: 'Hold the top-left button to choose an expert', teamDesc: 'Hold the expert button in the top-left to open the wheel, then drag toward the expert you need. If you are unsure, tell the Director and it will coordinate the right specialists.',
         historyTitle: 'Tasks keep running in the background', historyDesc: 'You do not need to stay on this page after sending a task. Continue with other work; replies, reasoning, and tool progress remain available when you return or refresh.',
         inputTitle: 'Give the team a clear goal', inputDesc: 'Describe the outcome and attach source files. Name the project, scope, and expected result whenever possible.',

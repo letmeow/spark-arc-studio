@@ -87,7 +87,9 @@
         >
           <template #input-prefix>
             <ChatFileImportButton :session-id="primarySessionId" :agent-id="chat.currentAgentId" />
-            <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-start" trigger="icon" />
+          </template>
+          <template #input-model>
+            <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-end" trigger="pill" />
           </template>
           <!-- 新建窗口按钮 -->
           <template #header-actions>
@@ -208,7 +210,9 @@
         >
           <template #input-prefix>
             <ChatFileImportButton :session-id="primarySessionId" :agent-id="chat.currentAgentId" />
-            <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-start" trigger="icon" />
+          </template>
+          <template #input-model>
+            <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-end" trigger="pill" />
           </template>
           <template #header-right>
             <n-tooltip trigger="hover">

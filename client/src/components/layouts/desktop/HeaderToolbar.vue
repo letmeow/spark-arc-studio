@@ -4,10 +4,10 @@
       <n-tooltip trigger="hover">
         <template #trigger>
           <a class="logo" :href="SPARKARC_GITHUB_URL" target="_blank" rel="noopener">
-            <AppBrand :size="28" :alt="t('components.headerToolbar.backHome')" />
+            <AppBrand :size="28" :alt="t('components.headerToolbar.projectHome')" />
           </a>
         </template>
-        {{ t('components.headerToolbar.backHome') }}
+        {{ t('components.headerToolbar.projectHome') }}
       </n-tooltip>
       <ProjectSelector />
     </div>

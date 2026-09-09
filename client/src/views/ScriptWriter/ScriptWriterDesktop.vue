@@ -194,7 +194,9 @@
                       >
                         <template #input-prefix>
                           <ChatFileImportButton :session-id="primarySessionId" :agent-id="chat.currentAgentId" />
-                          <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-start" trigger="icon" />
+                        </template>
+                        <template #input-model>
+                          <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-end" trigger="pill" />
                         </template>
 
                         <!-- 标题栏右侧：编剧与工具箱切换胶囊 + 工作区打开 + 收起按钮 -->
@@ -385,7 +387,6 @@ import EngineView from '../Engine/EngineIndex.vue';
 import SettingsView from '../Settings/SettingsIndex.vue';
 import DashboardView from '../Dashboard/DashboardIndex.vue';
 import ChatDesktopView from '../ChatDesktop/ChatDesktopIndex.vue';
-import HomeView from '../Home/HomeIndex.vue';
 
 import bus from '../../eventBus';
 import { useResizer } from '../../hooks/useResizer';
@@ -679,7 +680,6 @@ const activeComponent = computed(() => {
     case 'settings': return SettingsView;
     case 'dashboard': return DashboardView;
     case 'chat': return ChatDesktopView;
-    case 'home': return HomeView;
     default: return null;
   }
 });

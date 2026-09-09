@@ -22,6 +22,8 @@
         :context-window-stats="chat.contextWindowStats"
         loading-target="chat-primary"
         input-wrapper-class="is-comfort"
+        :hide-header-when-empty="true"
+        :hide-input-when-empty="true"
         @update:agent-id="onAgentChanged"
         @update:draft="draft = $event"
         @update:editing-content="editingContent = $event"
@@ -41,11 +43,16 @@
           <OnboardingHelpButton scene-id="page-chat" />
         </template>
         <template #empty-state>
-          <ChatWelcomeScreen v-if="chat.currentAgentId === 'agent_director'" />
+          <ChatWelcomeScreen
+            v-if="chat.currentAgentId === 'agent_director'"
+            @send="onWelcomeSend"
+          />
         </template>
         <template #input-prefix>
           <ChatFileImportButton :session-id="primarySessionId" :agent-id="chat.currentAgentId" />
-          <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-start" trigger="icon" />
+        </template>
+        <template #input-model>
+          <AiSettingsPanel :visible="true" :compact="true" :agent-name="chat.currentAgentId" placement="top-end" trigger="pill" />
         </template>
       </ChatPanel>
     </div>
@@ -53,8 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated, onBeforeUnmount, nextTick, watch } from 'vue';
-import bus from '@/eventBus';
+import { ref, computed, onMounted, onActivated, nextTick, watch } from 'vue';
 import ChatPanel from '@/components/chat/ChatPanel.vue';
 import ChatWelcomeScreen from '@/components/chat/ChatWelcomeScreen.vue';
 import ChatFileImportButton from '@/components/chat/ChatFileImportButton.vue';
@@ -169,28 +175,24 @@ watch(
   }
 );
 
-// 首页发送过渡的收尾：预填 draft（用户在聊天页确认后发送，渐进委托）。
-function onHomeSendToDirector(payload: unknown) {
-  const text = typeof (payload as { text?: unknown } | null)?.text === 'string'
-    ? String((payload as { text: string }).text).trim()
-    : '';
-  if (!text) return;
-  draft.value = text;
-  nextTick(() => scrollToBottom(true));
+// 首页概念已删除：欢迎页（ChatWelcomeScreen 空态）携带文本触发发送，
+// 父级写入自身 draft 后经 useChatActions.send 统一收口发送，无视图跳转。
+// 注意：欢迎页 draft 与父级 draft 是两份隔离 ref，必须经参数传文本，
+// 直接调 send() 会因父级 draft 为空而静默返回。
+async function onWelcomeSend(text: string) {
+  const cleanText = String(text || '').trim();
+  if (!cleanText || chat.sending) return;
+  draft.value = cleanText;
+  await send();
 }
 
 onMounted(async () => {
   await loadRegistry();
   await initializeChatView();
-  bus.on('home-send-to-director', onHomeSendToDirector);
 });
 
 onActivated(async () => {
   await initializeChatView();
-});
-
-onBeforeUnmount(() => {
-  bus.off('home-send-to-director', onHomeSendToDirector);
 });
 </script>
 

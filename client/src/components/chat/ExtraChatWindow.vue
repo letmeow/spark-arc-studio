@@ -60,7 +60,9 @@
         >
           <template #input-prefix>
             <ChatFileImportButton :session-id="session.id" :agent-id="session.agentId" />
-            <AiSettingsPanel :visible="true" :compact="true" :agent-name="session.agentId" placement="top-start" trigger="icon" />
+          </template>
+          <template #input-model>
+            <AiSettingsPanel :visible="true" :compact="true" :agent-name="session.agentId" placement="top-end" trigger="pill" />
           </template>
           <!-- 关闭按钮 -->
           <template #header-right>

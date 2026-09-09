@@ -71,7 +71,7 @@
 import { ref, computed, markRaw, watch } from 'vue';
 import { NIcon, NTooltip } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
-import { Activity, Code, Gauge, Globe2, House, Library, List, Map as MapIcon, MessagesSquare, Settings, SquarePen, UsersRound } from '@lucide/vue';
+import { Activity, Code, Gauge, Globe2, Library, List, Map as MapIcon, MessagesSquare, Settings, SquarePen, UsersRound } from '@lucide/vue';
 import { useViewStore, type AppViewKey } from '../../stores/viewStore';
 
 type ActivityItem = {
@@ -91,7 +91,6 @@ defineEmits(['open-settings']);
 // 统一图标配置 - 双端共用
 function buildDefaultItems(): ActivityItem[] {
   return [
-    { id: 'home', view: 'home', title: t('activityBar.home'), icon: markRaw(House) },
     { id: 'chat', view: 'chat', title: t('activityBar.chat'), icon: markRaw(MessagesSquare) },
     { id: 'world', view: 'world', title: t('activityBar.world'), icon: markRaw(Globe2) },
     { id: 'characters', view: 'characters', title: t('activityBar.characters'), icon: markRaw(UsersRound) },

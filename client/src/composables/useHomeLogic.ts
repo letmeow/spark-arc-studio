@@ -1,21 +1,17 @@
 /**
- * useHomeLogic.ts - 创作首页数据逻辑
+ * useHomeLogic.ts - 聊天欢迎页（空态首页）数据逻辑
  *
- * 职责（仅数据，不含动画与发送过渡）：
- * 1. 问候语（按时间段取 i18n）与当前用户名。
+ * 职责（仅数据，不做视图跳转）：
+ * 1. 问候语（按时间段取 i18n）。
  * 2. 最近项目（projectStore.projects + last_project 缓存排序，取前 3）。
  * 3. 最近灵感草稿（scope=drafts，取前 3；语义见 aiContracts：project_links 为空即草稿）。
  * 4. 存灵感（createInspiration(source)，纯记一条草稿，不点燃、不建项目）。
- * 5. 建议片（按 A 无项目 / B 有项目 / C 回访 三态取 i18n）。
- * 6. 发送给导演：切到 chat 视图，由 ChatDesktop 走统一 chatStore.send（本文件只做视图切换与过渡标记）。
- *
- * 发送过渡动画见 components/home/HomeSendTransition.ts。
+ * 5. 取发送文本（beginSendToDirector 纯取文本；实际发送由 ChatDesktopIndex 经 chatStore 统一收口）。
  */
 
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import bus from '@/eventBus';
-import { useViewStore } from '@/components/stores/viewStore';
 import { useProjectStore } from '@/components/stores/projectStore';
 import { useChatStore } from '@/components/stores/chatStore';
 import { getInspirations, createInspiration } from '@/services/storyService';
@@ -33,11 +29,8 @@ function getLastProjectKey(): string {
   }
 }
 
-export type HomeState = 'A' | 'B' | 'C';
-
 export function useHomeLogic() {
   const { t } = useI18n();
-  const viewStore = useViewStore();
   const projectStore = useProjectStore();
   const chatStore = useChatStore();
 
@@ -46,7 +39,6 @@ export function useHomeLogic() {
   const savingMuse = ref(false);
   const loadingRecents = ref(false);
   const recentMuses = ref<InspirationEntry[]>([]);
-  const museTotal = ref(0);
 
   // ── 问候语 ──
   const greetWord = computed(() => {
@@ -58,30 +50,11 @@ export function useHomeLogic() {
     return t('views.home.greetEvening');
   });
 
-  // ── 三态：A 无项目 / B 有项目 / C 回访（有历史） ──
-  const homeState = computed<HomeState>(() => {
-    if (!projectStore.currentProject) return 'A';
-    if ((chatStore.history || []).length > 0) return 'C';
-    return 'B';
-  });
-
-  // ── 输入框占位符（上下文感知） ──
+  // ── 输入框占位符（无项目时提示先聊想法，有项目时提示发给导演） ──
   const placeholder = computed(() => {
-    if (homeState.value === 'A') return t('views.home.placeholderNoProject');
-    if (homeState.value === 'C') return t('views.home.placeholderResume');
+    if (!projectStore.currentProject) return t('views.home.placeholderNoProject');
     return t('views.home.placeholderDefault');
   });
-
-  // ── 建议片（单击填入输入框，不直接发送） ──
-  const chips = computed<string[]>(() => {
-    if (homeState.value === 'A') return [t('views.home.chipA1'), t('views.home.chipA2'), t('views.home.chipA3')];
-    if (homeState.value === 'C') return [t('views.home.chipC1'), t('views.home.chipC2'), t('views.home.chipC3')];
-    return [t('views.home.chipB1'), t('views.home.chipB2'), t('views.home.chipB3')];
-  });
-
-  function fillChip(text: string) {
-    draft.value = `${text}：`;
-  }
 
   // ── 最近项目：上次项目置顶，其余按原序，取前 3 ──
   const recentProjects = computed<string[]>(() => {
@@ -106,11 +79,9 @@ export function useHomeLogic() {
     try {
       const result = await getInspirations({ scope: 'drafts' });
       const items = Array.isArray(result?.inspirations) ? result.inspirations : [];
-      museTotal.value = items.length;
       recentMuses.value = items.slice(0, 3);
     } catch {
       recentMuses.value = [];
-      museTotal.value = 0;
     } finally {
       loadingRecents.value = false;
     }
@@ -139,19 +110,11 @@ export function useHomeLogic() {
     }
   }
 
-  // ── 发送给导演：只做视图切换 + 过渡标记，实际发送由调用方在 chat 页触发 ──
-  // 返回发送文本，调用方（HomeDesktop）负责 FLIP 动画后再 setView + send。
+  // ── 取发送文本（纯取文本，不做视图跳转；发送由 ChatDesktopIndex 经 chatStore 统一收口） ──
   function beginSendToDirector(): string | null {
     const text = draft.value.trim();
     if (!text || sending.value) return null;
     return text;
-  }
-
-  function commitSendToDirector(text: string) {
-    draft.value = '';
-    viewStore.openChatView('agent_director');
-    // 聊天页挂载后由 HomeSendTransition 完成 draft 预填与自动发送（见 HomeDesktop）。
-    bus.emit('home-send-to-director', { text });
   }
 
   onMounted(() => {
@@ -164,19 +127,13 @@ export function useHomeLogic() {
     savingMuse,
     loadingRecents,
     greetWord,
-    homeState,
     placeholder,
-    chips,
     recentProjects,
     recentMuses,
-    museTotal,
-    fillChip,
     openProject,
     refreshMuses,
     saveAsMuse,
     beginSendToDirector,
-    commitSendToDirector,
-    viewStore,
     projectStore,
     chatStore,
   };

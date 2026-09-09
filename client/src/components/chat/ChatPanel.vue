@@ -1,7 +1,7 @@
 <template>
   <div class="chat-panel">
-    <!-- Header -->
-    <div class="chat-panel-header" @mousedown="$emit('header-mousedown', $event)" @touchstart.passive="$emit('header-touchstart', $event)">
+    <!-- Header：空态欢迎模式下自动隐藏（欢迎页自带问候与输入引导，不需要 Agent 切换条） -->
+    <div v-if="!(hideHeaderWhenEmpty && isEmptyState)" class="chat-panel-header" @mousedown="$emit('header-mousedown', $event)" @touchstart.passive="$emit('header-touchstart', $event)">
       <div class="chat-panel-header-left">
         <span v-if="!hideHeaderIcon" class="chat-header-icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -179,10 +179,7 @@
           <slot name="empty-state"></slot>
         </template>
       </ChatMessageList>
-      <div class="chat-input-wrapper" :class="inputWrapperClass">
-        <div v-if="slots['input-prefix']" class="chat-input-prefix">
-          <slot name="input-prefix"></slot>
-        </div>
+      <div v-if="!(hideInputWhenEmpty && isEmptyState)" class="chat-input-wrapper" :class="inputWrapperClass">
         <n-input
           :value="draft"
           type="textarea"
@@ -193,14 +190,20 @@
           @keydown="$emit('draft-keydown', $event)"
           class="chat-textarea"
         />
-        <n-button
-          circle
-          size="small"
-          @click="sending ? $emit('stop') : $emit('send')"
-          class="send-btn spark-send-btn"
-          :class="{ 'is-working': sending }"
-          :aria-label="sending ? t('components.chatPanel.stop') : t('components.chatPanel.send')"
-        >
+        <div class="chat-input-bar">
+          <div class="chat-input-bar-left">
+            <slot name="input-prefix"></slot>
+          </div>
+          <div class="chat-input-bar-right">
+            <slot name="input-model"></slot>
+            <n-button
+              circle
+              size="small"
+              @click="sending ? $emit('stop') : $emit('send')"
+              class="send-btn spark-send-btn"
+              :class="{ 'is-working': sending }"
+              :aria-label="sending ? t('components.chatPanel.stop') : t('components.chatPanel.send')"
+            >
           <template #icon>
             <span class="send-icon-stage" aria-hidden="true">
               <svg class="send-glyph send-glyph--ready" viewBox="0 0 24 24" fill="none">
@@ -220,6 +223,8 @@
             </span>
           </template>
         </n-button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -234,7 +239,7 @@
  * 2. 状态驱动：通过 props 接收对话数据，通过 events 发出交互指令，本身不持有业务 Store。
  * 3. 高复用性：同时服务于 GlobalChatFloat（单例主入口）和 ExtraChatWindow（多实例窗口）。
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useSlots, watch, type CSSProperties, type PropType } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type CSSProperties, type PropType } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { NButton, NInput, NPopconfirm, NPopover, NTooltip } from 'naive-ui';
 import ChatMessageList from '@/components/chat/ChatMessageList.vue';
@@ -313,6 +318,10 @@ const props = defineProps({
   inputWrapperClass: { type: String, default: '' },
   /** 是否隐藏 header 闪电星标图标 */
   hideHeaderIcon: { type: Boolean, default: false },
+  /** 空态欢迎模式：隐藏标题栏（欢迎页自带问候与输入引导，不需要 Agent 切换条） */
+  hideHeaderWhenEmpty: { type: Boolean, default: false },
+  /** 空态欢迎模式：隐藏底部输入框（欢迎页自带大输入，避免一屏双输入框） */
+  hideInputWhenEmpty: { type: Boolean, default: false },
   /** 当前重试次数 */
   retryAttempt: { type: [Number, null], default: null },
   /** 重试来源 */
@@ -355,7 +364,6 @@ const emit = defineEmits([
 
 const { t } = useI18n();
 const { isMobile } = useMobile();
-const slots = useSlots();
 type ChatListExpose = { listRef?: HTMLElement | null };
 const chatListRef = ref<ChatListExpose | null>(null);
 const agentContentPending = ref(false);
@@ -365,6 +373,12 @@ const visibleStartIndex = ref(selectChatTailWindowStart(props.history, INITIAL_W
 const hasLoadedOlder = ref(false);
 const visibleHistory = computed(() => (
   agentContentPending.value ? [] : props.history.slice(visibleStartIndex.value)
+));
+// 空态判定与 ChatMessageList 的 empty-state 条件同源：无 loading、无历史、无错误。
+// 欢迎页模式下标题栏按此隐藏，有一条消息即恢复。
+const isEmptyState = computed(() => (
+  !props.loading && !agentContentPending.value
+  && (props.history || []).length === 0 && !props.lastError
 ));
 let pendingPickerAgentId = '';
 let listResizeObserver: ResizeObserver | null = null;
@@ -848,30 +862,28 @@ defineExpose({ listRef: chatListRef });
   transform: scale(0.88);
 }
 
-/* 输入区：默认 comfort 胶囊（圆角卡 + 呼吸感）；.compact 变体保留旧扁条以兼容抽屉紧凑场景 */
+/* 输入区：默认 comfort 胶囊（扁平、无浮雕）；.compact 变体保留旧扁条以兼容抽屉紧凑场景 */
 .chat-input-wrapper {
   position: relative;
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 10px 12px 12px;
+  flex-direction: column;
+  gap: 0;
+  padding: 10px 12px 10px;
   contain: layout style;
   flex: 0 0 auto;
 }
 
 .chat-input-wrapper.is-comfort {
   margin: 0 12px 12px;
-  padding: 10px 10px 8px 14px;
+  padding: 12px 12px 10px;
   background: var(--spark-panel-bg);
   border: 1px solid var(--spark-border);
   border-radius: var(--spark-radius-lg);
-  box-shadow: var(--spark-shadow-sm);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .chat-input-wrapper.is-comfort:focus-within {
   border-color: var(--spark-primary);
-  box-shadow: 0 0 0 3px var(--spark-primary-glow), var(--spark-shadow-sm);
 }
 
 .chat-input-wrapper.is-compact {
@@ -885,14 +897,38 @@ defineExpose({ listRef: chatListRef });
   flex-shrink: 0;
 }
 
+/* 输入框底部工具条：左附件 / 右模型+发送，同处一个气泡内 */
+.chat-input-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.chat-input-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chat-input-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .chat-input-wrapper .chat-textarea {
-  flex: 1;
+  flex: none;
+  width: 100%;
   min-width: 0;
 }
 
 .chat-input-wrapper .send-btn {
   flex-shrink: 0;
-  align-self: flex-end;
 }
 
 .spark-send-btn {
@@ -901,25 +937,13 @@ defineExpose({ listRef: chatListRef });
   height: var(--send-size) !important;
   min-width: var(--send-size) !important;
   color: var(--spark-text-inverse) !important;
-  border: 1px solid rgba(var(--spark-primary-rgb), 0.3) !important;
-  background:
-    radial-gradient(circle at 68% 28%, rgba(255, 255, 255, 0.48), transparent 18px),
-    linear-gradient(135deg, var(--spark-primary-light), var(--spark-primary)) !important;
-  box-shadow:
-    0 8px 18px rgba(var(--spark-primary-rgb), 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.22s ease,
-    background 0.22s ease,
-    border-color 0.22s ease;
+  background: var(--spark-primary) !important;
+  border: 1px solid var(--spark-primary) !important;
+  transition: transform 0.18s ease, background 0.22s ease, border-color 0.22s ease;
 }
 
 .spark-send-btn:hover {
   transform: translateY(-1px);
-  box-shadow:
-    0 10px 22px rgba(var(--spark-primary-rgb), 0.28),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 .spark-send-btn:active {
@@ -927,13 +951,8 @@ defineExpose({ listRef: chatListRef });
 }
 
 .spark-send-btn.is-working {
-  border-color: color-mix(in srgb, var(--spark-primary), #ff4d4f 38%) !important;
-  background:
-    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.38), transparent 18px),
-    linear-gradient(135deg, color-mix(in srgb, var(--spark-primary), #ff4d4f 28%), var(--spark-primary)) !important;
-  box-shadow:
-    0 0 0 4px rgba(var(--spark-primary-rgb), 0.1),
-    0 8px 20px rgba(var(--spark-primary-rgb), 0.28);
+  background: var(--spark-primary) !important;
+  border-color: var(--spark-primary) !important;
 }
 
 .send-icon-stage {
