@@ -7,7 +7,8 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 
-def test_sparkarc_handshake_header_is_fixed_and_outside_llm_payload() -> None:
+def test_sparkarc_handshake_header_is_fixed_and_outside_llm_payload(monkeypatch) -> None:
+    from llm import matchbox_adapter
     from llm.agen_matchbox.gateway import (
         ChatUniversal,
         apply_sdk_request_compat,
@@ -17,7 +18,12 @@ def test_sparkarc_handshake_header_is_fixed_and_outside_llm_payload() -> None:
         SPARKARC_HANDSHAKE_HEADER,
         SPARKARC_HANDSHAKE_VALUE,
         build_upstream_request_headers,
+        set_upstream_handshake,
     )
+
+    # 宿主行为：通过适配层显式配置握手标识（独立网关默认不注入）。
+    matchbox_adapter.configure_sparkarc_matchbox_environment()
+    set_upstream_handshake(SPARKARC_HANDSHAKE_HEADER, SPARKARC_HANDSHAKE_VALUE)
 
     original_headers = {
         "User-Agent": "SparkArc/1.0",
@@ -53,6 +59,7 @@ def test_sparkarc_handshake_header_is_fixed_and_outside_llm_payload() -> None:
 
 
 def test_gpt56_prompt_cache_key_is_stable_and_session_isolated() -> None:
+    from llm import matchbox_adapter
     from core.request_context import (
         current_project_name,
         current_user_id,
@@ -60,6 +67,12 @@ def test_gpt56_prompt_cache_key_is_stable_and_session_isolated() -> None:
         set_current_chat_session,
     )
     from llm.agen_matchbox.gateway import ChatUniversal
+
+    # 宿主行为：构造注入配置并初始化管理器，注册提示词缓存上下文读取器。
+    # （独立网关不自动注册，显式初始化后才生效。）
+    integrations, _engine_factory, _database_url = matchbox_adapter.build_sparkarc_matchbox_integrations()
+    from llm.agen_matchbox.integrations import set_prompt_cache_context_reader
+    set_prompt_cache_context_reader(integrations.prompt_cache_context_reader)
 
     class AgentCallback(BaseCallbackHandler):
         agent_name = "agent_director"
@@ -91,6 +104,9 @@ def test_gpt56_prompt_cache_key_is_stable_and_session_isolated() -> None:
         reset_current_chat_session(other_chat_tokens)
         current_project_name.reset(project_token)
         current_user_id.reset(user_token)
+
+    # 断言前缀由宿主环境变量保持 SparkArc 行为（独立网关默认 matchbox:v1）。
+    assert first["prompt_cache_key"].startswith("sparkarc:v1:")
 
 
 def test_prompt_cache_key_is_not_injected_into_other_compatible_models() -> None:
@@ -330,7 +346,9 @@ def test_gateway_rejects_incomplete_tool_history_before_upstream_request() -> No
 
 
 def test_usage_callback_notifies_host_after_usage_commit(monkeypatch) -> None:
+    """用量写入改为后台异步：调用返回后由后台线程收口，语义与原来一致。"""
     from llm.agen_matchbox.tracked_model import UsageTrackingCallback
+    from llm.agen_matchbox.usage_writer import BackgroundUsageWriter
 
     class FakeSession:
         def __enter__(self):
@@ -353,25 +371,31 @@ def test_usage_callback_notifies_host_after_usage_commit(monkeypatch) -> None:
         "llm.agen_matchbox.tracked_model.settle_usage_entry_credit",
         lambda *_args, **_kwargs: None,
     )
-    callback = UsageTrackingCallback(
-        user_id="u",
-        model_id=1,
-        platform_id=2,
-        model_name="offline-model",
-        platform_name="offline-provider",
-        session_maker=FakeSession,
-        agent_name="agent_director",
-        usage_recorded_handler=events.append,
-    )
+    writer = BackgroundUsageWriter()
+    try:
+        callback = UsageTrackingCallback(
+            user_id="u",
+            model_id=1,
+            platform_id=2,
+            model_name="offline-model",
+            platform_name="offline-provider",
+            session_maker=FakeSession,
+            agent_name="agent_director",
+            usage_recorded_handler=events.append,
+            usage_writer=writer,
+        )
 
-    callback._record_usage(
-        prompt_tokens=100,
-        completion_tokens=20,
-        cached_prompt_tokens=60,
-        cache_miss_prompt_tokens=40,
-        usage_source="upstream",
-        cache_source="provider",
-    )
+        callback._record_usage(
+            prompt_tokens=100,
+            completion_tokens=20,
+            cached_prompt_tokens=60,
+            cache_miss_prompt_tokens=40,
+            usage_source="upstream",
+            cache_source="provider",
+        )
+        writer._tasks.join()
+    finally:
+        writer.shutdown()
 
     assert events == [{
         "agent_name": "agent_director",
@@ -426,6 +450,20 @@ def test_usage_callback_falls_back_to_context_captured_at_creation(monkeypatch) 
     )
 
     current_context[0] = None
-    callback._record_usage(prompt_tokens=3, completion_tokens=1)
+    # 后台写入路径下，创建时刻的快照在后台线程解析；此处直接验证快照写法。
+    callback._write_usage_snapshot({
+        "user_id": "u",
+        "model_id": 1,
+        "prompt_tokens": 3,
+        "completion_tokens": 1,
+        "cached_prompt_tokens": 0,
+        "cache_miss_prompt_tokens": None,
+        "usage_source": None,
+        "cache_source": None,
+        "success": True,
+        "agent_name": None,
+        "context_key": None,
+        "quota_scope": None,
+    })
 
     assert events[0]["context_key"] == "batch-context"

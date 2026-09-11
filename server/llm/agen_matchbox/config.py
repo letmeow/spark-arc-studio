@@ -286,8 +286,10 @@ def reload_default_platform_configs() -> Dict[str, Any]:
     global DEFAULT_PLATFORM_CONFIGS
     new_configs = load_default_platform_configs()
     if isinstance(DEFAULT_PLATFORM_CONFIGS, dict):
+        # _LazyPlatformConfigs.clear() 会标记已加载，避免 clear 触发一次多余读盘。
         DEFAULT_PLATFORM_CONFIGS.clear()
-        DEFAULT_PLATFORM_CONFIGS.update(new_configs)
+        # dict.update 会触发 _ensure_loaded，但此时已是已加载状态，不会重复读盘。
+        dict.update(DEFAULT_PLATFORM_CONFIGS, new_configs)
     else:
         DEFAULT_PLATFORM_CONFIGS = new_configs
     return DEFAULT_PLATFORM_CONFIGS
@@ -345,6 +347,96 @@ def get_decrypted_api_key(
     return None
 
 
-# 模块加载时执行环境检查
+class _LazyPlatformConfigs(dict):
+    """延迟加载的系统后备平台配置。
+
+    ``import config`` 不再触碰文件系统；首次读取/写入时才解析
+    ``matchbox_cfg.yaml`` + ``matchbox_key.yaml`` + 环境变量。
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._loaded = False
+
+    def _ensure_loaded(self) -> None:
+        if self._loaded:
+            return
+        self._loaded = True
+        super().clear()
+        super().update(load_default_platform_configs())
+
+    def __getitem__(self, key):
+        self._ensure_loaded()
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        self._ensure_loaded()
+        return super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self._ensure_loaded()
+        return super().__delitem__(key)
+
+    def __iter__(self):
+        self._ensure_loaded()
+        return super().__iter__()
+
+    def __len__(self):
+        self._ensure_loaded()
+        return super().__len__()
+
+    def __contains__(self, key):
+        self._ensure_loaded()
+        return super().__contains__(key)
+
+    def __repr__(self):
+        if not self._loaded:
+            return "DEFAULT_PLATFORM_CONFIGS(<lazy, not loaded yet>)"
+        return super().__repr__()
+
+    def get(self, key, default=None):
+        self._ensure_loaded()
+        return super().get(key, default)
+
+    def keys(self):
+        self._ensure_loaded()
+        return super().keys()
+
+    def values(self):
+        self._ensure_loaded()
+        return super().values()
+
+    def items(self):
+        self._ensure_loaded()
+        return super().items()
+
+    def copy(self):
+        self._ensure_loaded()
+        return dict(super().copy())
+
+    def clear(self):
+        # reload 场景会 clear 后 update，此时视为已加载，避免重复读盘。
+        self._loaded = True
+        return super().clear()
+
+    def update(self, *args, **kwargs):
+        self._ensure_loaded()
+        return super().update(*args, **kwargs)
+
+    def setdefault(self, key, default=None):
+        self._ensure_loaded()
+        return super().setdefault(key, default)
+
+    def pop(self, key, *args):
+        self._ensure_loaded()
+        return super().pop(key, *args)
+
+    def popitem(self):
+        self._ensure_loaded()
+        return super().popitem()
+
+
+# 模块加载时只做环境检查，不读 YAML、不解密、不打印密钥提示。
+# 首次访问 DEFAULT_PLATFORM_CONFIGS 时才真正加载（见 _LazyPlatformConfigs）。
 _ensure_env_setup()
-DEFAULT_PLATFORM_CONFIGS = load_default_platform_configs()
+DEFAULT_PLATFORM_CONFIGS = _LazyPlatformConfigs()

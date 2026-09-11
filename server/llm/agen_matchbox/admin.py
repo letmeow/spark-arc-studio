@@ -414,8 +414,7 @@ class AdminMixin:
 
             # 刷新缓存
             if plat.is_sys:
-                with self._cache_lock:
-                    self._sys_platforms_cache = None
+                self._invalidate_sys_platforms_cache()
 
             return True
 
@@ -864,8 +863,7 @@ class AdminMixin:
                     self._set_model_disabled(existing_display, False)
                     session.commit()
                     if admin_mode:
-                        with self._cache_lock:
-                            self._sys_platforms_cache = None
+                        self._invalidate_sys_platforms_cache()
                     return existing_display
                 existing_plat = session.query(LLMPlatform).filter_by(id=existing_display.platform_id).first()
                 raise ValueError(f"模型显示名称 '{display_name}' 已存在于平台 '{existing_plat.name}'")
@@ -897,8 +895,7 @@ class AdminMixin:
             
             # 如果是系统平台模型，刷新缓存
             if admin_mode:
-                with self._cache_lock:
-                    self._sys_platforms_cache = None
+                self._invalidate_sys_platforms_cache()
             
             return m
 
@@ -1052,8 +1049,7 @@ class AdminMixin:
             
             # 如果是系统平台模型，刷新缓存
             if admin_mode:
-                with self._cache_lock:
-                    self._sys_platforms_cache = None
+                self._invalidate_sys_platforms_cache()
             
             return True
 
@@ -1132,8 +1128,7 @@ class AdminMixin:
             
             # 如果是系统平台 Embedding，刷新缓存
             if admin_mode:
-                with self._cache_lock:
-                    self._sys_platforms_cache = None
+                self._invalidate_sys_platforms_cache()
             
             return True
 
@@ -1167,8 +1162,7 @@ class AdminMixin:
 
             # 系统平台模型需刷新缓存
             if plat and plat.is_sys:
-                with self._cache_lock:
-                    self._sys_platforms_cache = None
+                self._invalidate_sys_platforms_cache()
 
             return True
 
@@ -1330,8 +1324,7 @@ class AdminMixin:
                 if api_key:
                     existing_key.api_key = SecurityManager.get_instance().encrypt(api_key)
                 session.commit()
-                with self._cache_lock:
-                    self._sys_platforms_cache = None
+                self._invalidate_sys_platforms_cache()
                 return existing_key
 
             # 活动平台名称全局唯一；活动记录优先于历史禁用记录。
@@ -1353,8 +1346,7 @@ class AdminMixin:
                     if api_key:
                         revived.api_key = SecurityManager.get_instance().encrypt(api_key)
                     session.commit()
-                    with self._cache_lock:
-                        self._sys_platforms_cache = None
+                    self._invalidate_sys_platforms_cache()
                     return revived
 
             # 相同 URL 允许对应多个平台。
@@ -1377,8 +1369,7 @@ class AdminMixin:
             session.commit()
             
             # 刷新缓存
-            with self._cache_lock:
-                self._sys_platforms_cache = None
+            self._invalidate_sys_platforms_cache()
             
             return plat
 
@@ -1424,8 +1415,7 @@ class AdminMixin:
             session.commit()
             
             # 刷新缓存
-            with self._cache_lock:
-                self._sys_platforms_cache = None
+            self._invalidate_sys_platforms_cache()
             
             return True
 
@@ -1451,8 +1441,7 @@ class AdminMixin:
             session.commit()
             
             # 刷新缓存
-            with self._cache_lock:
-                self._sys_platforms_cache = None
+            self._invalidate_sys_platforms_cache()
             
             return True
 
@@ -1489,8 +1478,7 @@ class AdminMixin:
             self._refresh_runtime_default_ids(session)
 
             # 刷新缓存
-            with self._cache_lock:
-                self._sys_platforms_cache = None
+            self._invalidate_sys_platforms_cache()
 
             return True
 
@@ -1508,8 +1496,7 @@ class AdminMixin:
 
             self._refresh_runtime_default_ids(session)
 
-            with self._cache_lock:
-                self._sys_platforms_cache = None
+            self._invalidate_sys_platforms_cache()
 
             return True
 
@@ -1529,8 +1516,7 @@ class AdminMixin:
 
             self._refresh_runtime_default_ids(session)
 
-            with self._cache_lock:
-                self._sys_platforms_cache = None
+            self._invalidate_sys_platforms_cache()
 
             return True
 
@@ -1699,8 +1685,7 @@ class AdminMixin:
 
             # 如果是系统平台，刷新缓存
             if plat.is_sys:
-                with self._cache_lock:
-                    self._sys_platforms_cache = None
+                self._invalidate_sys_platforms_cache()
 
             return True
 

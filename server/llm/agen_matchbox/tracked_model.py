@@ -102,6 +102,15 @@ class UsageTrackingCallback(BaseCallbackHandler):
     Token 统计优先级：
     1. API 返回的真实 usage 字段（标准 OpenAI 协议）
     2. 本地 estimate_tokens 估算（兜底，适用于国产模型/截断输出）
+
+    性能说明（重要）：
+    - 流式中断/失败的记账必须保留，因此用量写入设计为“后台线程异步落库”；
+    - ``on_llm_end``（含异步版本）只做内存计算 + 任务投递，不做 DB 同步写入；
+    - 同步调用路径（``invoke``）回调本身是同步的，只能做到“快速投递”，
+      真正耗时的 SQLite 写入与点数结算发生在 ``usage_writer`` 后台单线程；
+    - ``estimate_tokens`` 在有真实 usage 时完全不会触发，只有缺失 usage
+      （国产中转/中断/失败）时才做本地估算，且默认只用 tiktoken 本地编码器，
+      不触发任何 tokenizer 下载（除非宿主显式开启预热）。
     """
 
     def __init__(
@@ -117,6 +126,7 @@ class UsageTrackingCallback(BaseCallbackHandler):
         billing_enabled: bool = False,
         usage_context_provider=None,
         usage_recorded_handler=None,
+        usage_writer=None,
     ):
         super().__init__()
         self.user_id = user_id
@@ -130,6 +140,12 @@ class UsageTrackingCallback(BaseCallbackHandler):
         self._session_maker = session_maker
         self._usage_context_provider = usage_context_provider
         self._usage_recorded_handler = usage_recorded_handler
+        # 用量落库写入器：默认使用进程级后台单线程，保证“中断也记账”
+        # 的同时不阻塞模型响应返回。宿主可注入自己的写入器（例如复用
+        # 应用级线程池），但禁止在回调线程做同步 DB 写入之外的重操作。
+        from .usage_writer import get_default_usage_writer
+
+        self._usage_writer = usage_writer or get_default_usage_writer()
         self._usage_context_snapshot = None
         if usage_context_provider is not None:
             try:
@@ -268,7 +284,12 @@ class UsageTrackingCallback(BaseCallbackHandler):
         cache_source: Optional[str] = None,
         success: bool = True,
     ) -> None:
-        """写入用量日志到数据库"""
+        """把用量写入投递到后台线程，调用方永不阻塞。
+
+        时序保证：``usage_recorded_handler`` 只在 DB 提交成功后由后台线程
+        调用，因此宿主收到的永远是“已落库”事件，可直接用于实时推送；
+        调用线程返回时落库可能尚未完成，需要强一致读的场景请直接查 DB。
+        """
         if self._session_maker is None:
             return
         usage_context = None
@@ -279,50 +300,86 @@ class UsageTrackingCallback(BaseCallbackHandler):
                 usage_context = None
         if not usage_context:
             usage_context = self._usage_context_snapshot
-        total_tokens = prompt_tokens + completion_tokens
+
+        snapshot = {
+            "user_id": self.user_id,
+            "model_id": self.model_id,
+            "prompt_tokens": max(int(prompt_tokens or 0), 0),
+            "completion_tokens": max(int(completion_tokens or 0), 0),
+            "cached_prompt_tokens": max(int(cached_prompt_tokens or 0), 0),
+            "cache_miss_prompt_tokens": (
+                max(int(cache_miss_prompt_tokens), 0)
+                if cache_miss_prompt_tokens is not None
+                else None
+            ),
+            "usage_source": str(usage_source) if usage_source else None,
+            "cache_source": str(cache_source) if cache_source else None,
+            "success": bool(success),
+            "agent_name": self.agent_name,
+            # 快照优先级：调用时刻的 provider > 创建时刻的快照 > 显式传入。
+            # 注意：调用方可在 snapshot 中预置 context_key（例如单测），
+            # 此时不再用 provider 覆盖，保证可预测性。
+            "context_key": None,
+            "quota_scope": self.quota_scope,
+        }
+        if usage_context:
+            snapshot["context_key"] = str(usage_context)
+
+        def _do_record() -> Optional[Dict[str, Any]]:
+            return self._write_usage_snapshot(snapshot)
+
+        from .usage_writer import UsageWriteTask
+
+        self._usage_writer.submit(UsageWriteTask(record=_do_record))
+
+    def _write_usage_snapshot(self, snapshot: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """在后台线程执行真正的 DB 写入 + 点数结算 + 宿主通知。"""
+        total_tokens = int(snapshot["prompt_tokens"]) + int(snapshot["completion_tokens"])
+        # 允许调用方预置 context_key（例如单测）；否则按快照链解析。
+        context_key = snapshot.get("context_key")
+        if not context_key:
+            context_key = self._usage_context_snapshot
         with self._session_maker() as session:
             entry = UsageLogEntry(
-                user_id=self.user_id,
-                model_id=self.model_id,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
+                user_id=snapshot["user_id"],
+                model_id=snapshot["model_id"],
+                prompt_tokens=snapshot["prompt_tokens"],
+                completion_tokens=snapshot["completion_tokens"],
                 total_tokens=total_tokens,
-                cached_prompt_tokens=max(int(cached_prompt_tokens or 0), 0),
-                cache_miss_prompt_tokens=cache_miss_prompt_tokens,
-                usage_source=str(usage_source) if usage_source else None,
-                cache_source=str(cache_source) if cache_source else None,
-                success=1 if success else 0,
-                agent_name=self.agent_name,
-                context_key=str(usage_context) if usage_context else None,
-                quota_scope=self.quota_scope,
+                cached_prompt_tokens=snapshot["cached_prompt_tokens"],
+                cache_miss_prompt_tokens=snapshot["cache_miss_prompt_tokens"],
+                usage_source=snapshot["usage_source"],
+                cache_source=snapshot["cache_source"],
+                success=1 if snapshot["success"] else 0,
+                agent_name=snapshot["agent_name"],
+                context_key=str(context_key) if context_key else None,
+                quota_scope=snapshot["quota_scope"],
             )
             session.add(entry)
             session.flush()
             settle_usage_entry_credit(session, entry, billing_enabled=self.billing_enabled)
             session.commit()
+        summary = {
+            "agent_name": snapshot["agent_name"] or "unknown",
+            "model_name": self.model_name,
+            "platform_name": self.platform_name,
+            "prompt_tokens": snapshot["prompt_tokens"],
+            "completion_tokens": snapshot["completion_tokens"],
+            "total_tokens": total_tokens,
+            "cached_prompt_tokens": snapshot["cached_prompt_tokens"],
+            "cache_miss_prompt_tokens": snapshot["cache_miss_prompt_tokens"],
+            "usage_source": snapshot["usage_source"],
+            "cache_source": snapshot["cache_source"],
+            "success": snapshot["success"],
+            "context_key": str(context_key) if context_key else None,
+        }
         if self._usage_recorded_handler is not None:
             try:
-                self._usage_recorded_handler({
-                    "agent_name": self.agent_name or "unknown",
-                    "model_name": self.model_name,
-                    "platform_name": self.platform_name,
-                    "prompt_tokens": max(int(prompt_tokens or 0), 0),
-                    "completion_tokens": max(int(completion_tokens or 0), 0),
-                    "total_tokens": max(int(total_tokens or 0), 0),
-                    "cached_prompt_tokens": max(int(cached_prompt_tokens or 0), 0),
-                    "cache_miss_prompt_tokens": (
-                        max(int(cache_miss_prompt_tokens), 0)
-                        if cache_miss_prompt_tokens is not None
-                        else None
-                    ),
-                    "usage_source": str(usage_source) if usage_source else None,
-                    "cache_source": str(cache_source) if cache_source else None,
-                    "success": bool(success),
-                    "context_key": str(usage_context) if usage_context else None,
-                })
+                self._usage_recorded_handler(dict(summary))
             except Exception:
                 # 宿主通知属于观测能力，失败不能影响已经成功提交的用量与模型调用。
                 pass
+        return summary
 
     async def _arecord_usage(
         self,
@@ -334,9 +391,8 @@ class UsageTrackingCallback(BaseCallbackHandler):
         cache_source: Optional[str] = None,
         success: bool = True,
     ) -> None:
-        """异步写入用量日志（在异步上下文中调用，避免阻塞事件循环）"""
-        # SQLite 同步写入很快，直接调用同步版本即可
-        # 如果未来切换到异步数据库驱动，在此处替换为 await session.commit()
+        """异步上下文同样只投递后台任务，不在事件循环里做同步 DB 写入。"""
+        # 后台写入器是线程安全的，事件循环线程只做 submit()（非阻塞）。
         self._record_usage(
             prompt_tokens,
             completion_tokens,

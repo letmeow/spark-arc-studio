@@ -59,8 +59,11 @@ Although specialized external gateways (such as NewAPI, LiteLLM, etc.) are power
 ```
 .
 ├── __init__.py            # Package entry point, exporting initialize_matchbox / matchbox / create_matchbox
-├── manager.py             # Core AIManager class (composing all Mixins)
-├── config.py              # Configuration loading and global constants (USE_SYS_LLM_CONFIG, LLM_AUTO_KEY, etc.)
+├── database.py            # Standalone database Engine factory
+├── integrations.py        # Host integration callback contracts (usage slots/caller identity/usage context/key rotation/prompt-cache reader)
+├── manager.py             # Core AIManager class (composing all Mixins; seed-sync algorithm lives in seed_sync.py)
+├── seed_sync.py           # YAML seed→DB sync algorithm (spec expansion / 4-stage matching / write-back, unit-testable)
+├── config.py              # Configuration loading and global constants (USE_SYS_LLM_CONFIG, LLM_AUTO_KEY, etc.; lazy DEFAULT_PLATFORM_CONFIGS)
 ├── models.py              # SQLAlchemy database models
 ├── security.py            # Security and encryption (SecurityManager)
 ├── admin.py               # Platform and model management Mixin (AdminMixin)
@@ -68,11 +71,23 @@ Although specialized external gateways (such as NewAPI, LiteLLM, etc.) are power
 ├── user_services.py       # User services Mixin (UserServicesMixin)
 ├── quota_services.py      # Quota config/statistics/interception Mixin (QuotaServicesMixin)
 ├── usage_services.py      # Usage statistics Mixin (UsageServicesMixin)
+├── usage_writer.py        # Background usage writer (single-thread async persistence, interrupted streams still billed)
 ├── redeem_code_services.py # Redeem code management Mixin (RedeemCodeServicesMixin)
+├── retrying.py            # tenacity retry policy for probe/test requests (ops-side only, never wraps billed calls)
 ├── tracked_model.py       # LLMClient/LLMUsage/UsageTrackingCallback
 ├── estimate_tokens.py     # Token usage estimation utility
 ├── hf_mirror.py           # Hugging Face mirror discovery, region detection, and reachability probing
 ├── utils.py               # Utility functions (probe_platform_models, parse_extra_body, etc.)
+├── tests/                 # Standalone offline test suite (pytest tests -q)
+│   ├── conftest.py        # In-memory DB + isolated home fixtures
+│   ├── test_startup_contracts.py  # Light init / lazy loading / independence (subprocess probes)
+│   ├── test_openai_compat_gateway.py  # Handshake headers / tool schemas / usage callbacks
+│   ├── test_platform_identity.py  # Platform identity and duplicate URLs
+│   ├── test_sort_order.py # Sort persistence and fallback
+│   ├── test_redeem_and_credit_grants.py  # Redeem codes / grants / concurrent settlement
+│   ├── test_seed_sync.py  # Seed matching algorithm
+│   ├── test_retrying.py   # Probe retry policy
+│   └── ...                # paths/database/modalities/hf_mirror
 ├── matchbox_cfg.yaml       # System platform structure configuration (used for initialization/export only, runtime uses database)
 ├── matchbox_key.yaml       # System platform API keys (should be gitignored, do not commit)
 ├── matchbox_cfg_gui.pyw    # Graphical configuration management tool (double-clickable entry point, actual code is in gui/ subdirectory)
@@ -134,10 +149,11 @@ Understanding the runtime modes of this project is crucial, as they directly aff
 To balance stability, maintainability, and extensibility, the Matchbox gateway adopts a **two-phase initialization + dual-channel** standard design:
 
 1. **Management Channel (Default)**:
-  - **Phase 1 (Light Startup)**: At startup, explicitly invoke `initialize_matchbox(ensure_defaults=True)`. This only completes database engine initialization and default configuration synchronization. This phase **does not** load heavy runtime dependencies like `langchain_openai`.
+  - **Phase 1 (Light Startup)**: At startup, explicitly invoke `initialize_matchbox(ensure_defaults=True)`. This only completes database engine initialization and default configuration synchronization. This phase **does not** load heavy runtime dependencies like `langchain_openai`, nor does it touch YAML/decryption (`import config` has no filesystem side effects; configs are lazily loaded on first access).
   - **Phase 2 (Asynchronous Warmup)**: Immediately follow up by calling `warmup_matchbox_runtime(blocking=False)` to preload runtime modules like `ChatUniversal` and `LLMClient` in a background thread. This executes in parallel with application startup to avoid blocking the first incoming request.
   - During request-time, get the manager via `matchbox()` and then call `get_user_llm(...)` / `get_user_embedding(...)`.
   - Automatically handles user model selection, key priority, quota interception, and usage accounting.
+  - **Usage writes are asynchronous**: `on_llm_end` only computes in memory and submits to the `usage_writer` background thread; SQLite writes + credit settlement never block the model response. Interrupted/failed streams are still accounted.
 2. **Lightweight Channel (Bypass)**:
   - Quickly create clients via `create_quick_llm(...)` / `create_quick_embedding(...)`.
   - Bypasses the database, making it ideal for scripts, toolchains, temporary tasks, and external integrations.
@@ -266,9 +282,19 @@ The runtime interception logic is as follows:
 This repository currently provides Matchbox as a source component and does not include a `pyproject.toml`. Put the `agen_matchbox` directory on the host application's Python import path and declare versions in the host dependency file. For direct development, install the required dependencies explicitly:
 
 ```bash
-pip install langchain-core langchain-openai sqlalchemy tiktoken cryptography pyyaml requests python-dotenv
-# Optional: PostgreSQL / GUI / Alembic
+pip install langchain-core langchain-openai sqlalchemy tiktoken cryptography pyyaml requests python-dotenv tenacity
+# Optional: PostgreSQL / GUI / host-side Alembic (the gateway itself has no migration dependency)
 pip install "psycopg[binary]" "flet>=0.28.3,<0.29.0" alembic
+```
+
+### 1.1 Standalone Tests
+
+The gateway ships its own offline test suite (no host dependency, no real LLM calls, no external network):
+
+```bash
+cd server/llm/agen_matchbox && pytest tests -q
+# or from the host server directory
+pytest llm/agen_matchbox/tests -q
 ```
 
 ### 2. Configure Platforms and Models via GUI
@@ -695,10 +721,16 @@ Clicking "Test Model" in the GUI executes `test_platform_chat(..., return_json=T
 
 To ensure cross-platform compatibility and statistical consistency, the manager adopts a hybrid "**prefer API usage, fall back to local estimation**" strategy:
 
-1. **Prioritize API Usage**: If the response contains standard usage fields (`prompt_tokens`/`completion_tokens` or `input_tokens`/`output_tokens`), these values are preferred.
-2. **Fallback to Local Estimation**: If the platform returns no usage details (common in some streaming or non-standard APIs), `estimate_tokens` is used to estimate input and output texts.
+1. **Prioritize API Usage**: If the response contains standard usage fields (`prompt_tokens`/`completion_tokens` or `input_tokens`/`output_tokens`), these values are preferred. Local estimation never runs in this path (zero extra cost).
+2. **Fallback to Local Estimation**: If the platform returns no usage details (common in some streaming or non-standard APIs), `estimate_tokens` is used to estimate input and output texts. By default only local tiktoken encoders are used; no tokenizer downloads are triggered unless the host explicitly calls `warmup_tokenizers()`.
 3. **Reasoning Content Inclusion**: Accumulated `reasoning_content` (including third-party extensions) is included in completion estimation when no raw usage is returned.
-4. **Recording Counts & Success State**: Every call is stored with a `success=1/0` flag and token fields. Interrupted streams log the estimated output produced so far and are flagged as failed.
+4. **Recording Counts & Success State**: Every call is stored with a `success=1/0` flag and token fields. Interrupted streams log the estimated output produced so far and are flagged as failed. Persistence runs on the `usage_writer` background thread and never blocks the model response.
+
+### Interception Order & Database Migrations
+
+- **Pre-call interception order**: quota (`quota_services.enforce_user_quota`) → credit (`credit_services.enforce_user_credit`), executed sequentially in the same transaction by `builder.get_user_llm`.
+- **Upstream probe retries**: `probe_platform_models` / `test_platform_chat` retry network-layer errors (connection failures/timeouts) up to 3 times with exponential backoff; business errors like 401/400 are never retried. Disable via `AGENT_MATCHBOX_PROBE_RETRY_ENABLED=0`. Billed model calls are never auto-retried (retrying a billed request is a host orchestration decision).
+- **Database migrations**: the gateway itself only provides `ensure_schema()` (`Base.metadata.create_all`, no Alembic dependency, keeping zero external deps). Hosts referencing this gateway **should introduce migrations on the host side** (e.g. a host Alembic branch whose `load_metadata` reuses `agen_matchbox.models.Base.metadata`); do not nest another migration system inside the gateway.
 
 > Note: The built-in counters focus on tokens/requests/errors and do not output financial costs. If financial billing is required, convert tokens to currency at the application layer.
 

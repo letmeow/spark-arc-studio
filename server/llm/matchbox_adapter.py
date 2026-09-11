@@ -18,6 +18,8 @@ _LEGACY_ENV_MAP = {
     "SPARKARC_OPENAI_COMPAT_OVERRIDE_UA": "AGENT_MATCHBOX_OPENAI_COMPAT_OVERRIDE_UA",
     "SPARKARC_OPENAI_COMPAT_USER_AGENT": "AGENT_MATCHBOX_OPENAI_COMPAT_USER_AGENT",
     "SPARKARC_OPENAI_COMPAT_STREAM_USAGE": "AGENT_MATCHBOX_OPENAI_COMPAT_STREAM_USAGE",
+    "SPARKARC_UPSTREAM_HANDSHAKE_HEADER": "AGENT_MATCHBOX_UPSTREAM_HANDSHAKE_HEADER",
+    "SPARKARC_UPSTREAM_HANDSHAKE_VALUE": "AGENT_MATCHBOX_UPSTREAM_HANDSHAKE_VALUE",
 }
 
 
@@ -38,11 +40,23 @@ def configure_sparkarc_matchbox_environment() -> Path:
     ):
         os.environ["AGENT_MATCHBOX_DISABLED"] = "1"
 
-    # 保持 SparkArc 现有的请求头标识；独立 Matchbox 使用自己的通用默认值。
+    # 保持 SparkArc 现有的请求头标识；独立 Matchbox 默认不注入任何标识。
     user_agent_name = "AGENT_MATCHBOX_OPENAI_COMPAT_USER_AGENT"
     if user_agent_name not in os.environ:
         os.environ[user_agent_name] = "SparkArc/1.0"
         _adapter_defaulted_env_names.add(user_agent_name)
+    handshake_header = "AGENT_MATCHBOX_UPSTREAM_HANDSHAKE_HEADER"
+    handshake_value = "AGENT_MATCHBOX_UPSTREAM_HANDSHAKE_VALUE"
+    if handshake_header not in os.environ:
+        os.environ[handshake_header] = "X-SparkArc-Client"
+        _adapter_defaulted_env_names.add(handshake_header)
+    if handshake_value not in os.environ:
+        os.environ[handshake_value] = "sparkarc"
+        _adapter_defaulted_env_names.add(handshake_value)
+    cache_prefix = "AGENT_MATCHBOX_PROMPT_CACHE_KEY_PREFIX"
+    if cache_prefix not in os.environ:
+        os.environ[cache_prefix] = "sparkarc:v1"
+        _adapter_defaulted_env_names.add(cache_prefix)
     return component_home
 
 
@@ -95,6 +109,30 @@ def _usage_recorded(payload: dict) -> None:
         reporter(dict(payload))
 
 
+def _prompt_cache_context():
+    """为网关提供提示词缓存路由键所需的请求上下文快照。"""
+    from core.request_context import (
+        current_user_id,
+        get_current_chat_session,
+        get_current_project_name,
+    )
+
+    class _Reader:
+        @staticmethod
+        def user_id():
+            return current_user_id.get()
+
+        @staticmethod
+        def project_name():
+            return get_current_project_name()
+
+        @staticmethod
+        def chat_session():
+            return get_current_chat_session()
+
+    return _Reader()
+
+
 def build_sparkarc_matchbox_integrations():
     """构造 SparkArc 的 Matchbox 注入配置。"""
     configure_sparkarc_matchbox_environment()
@@ -111,6 +149,7 @@ def build_sparkarc_matchbox_integrations():
         usage_context_provider=_usage_context,
         usage_recorded_handler=_usage_recorded,
         secret_rotation_handler=matchbox_secret_rotation_handler,
+        prompt_cache_context_reader=_prompt_cache_context,
     ), create_configured_engine, get_database_url("llm")
 
 

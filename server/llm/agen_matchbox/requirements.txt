@@ -6,4 +6,5 @@ cryptography
 PyYAML
 requests
 python-dotenv
+tenacity
 flet>=0.28.3,<0.29.0

@@ -182,6 +182,13 @@ class QuotaServicesMixin:
             }
 
     def enforce_user_quota(self, session, user_id: str, quota_scope: Optional[str]) -> None:
+        """调用前配额拦截。
+
+        执行顺序（与点数拦截的关系）：
+        1. 配额（quota）先行：窗口/总量 token 与请求次数上限；
+        2. 点数（credit）随后：见 ``CreditServicesMixin.enforce_user_credit``，
+           由 ``builder.get_user_llm`` 在同一事务内按配额→点数顺序调用。
+        """
         normalized_scope = self._normalize_quota_scope(quota_scope)
         if normalized_scope is None:
             return

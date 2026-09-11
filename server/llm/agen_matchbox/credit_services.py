@@ -119,10 +119,20 @@ def _settle_usage_entry_credit(session, usage_entry: UsageLogEntry, *, billing_e
     )
     usage_entry.credit_cost = cost
 
-    account = session.query(UserCreditAccount).filter_by(
+    # 并发安全：用量写入已收敛到后台单线程（见 usage_writer），此处再叠加
+    # 行级锁，保证同一账户/平台在多进程部署下也不会丢扣。
+    # SQLite 不支持 SELECT ... FOR UPDATE，PG 下才加锁，行为按方言降级。
+    bind = session.get_bind()
+    dialect = getattr(getattr(bind, "dialect", None), "name", "")
+    account_query = session.query(UserCreditAccount).filter_by(
         user_id=str(usage_entry.user_id),
         billing_scope="sys_paid",
-    ).first()
+    )
+    platform_query = session.query(LLMPlatform).filter_by(id=model.platform_id)
+    if dialect == "postgresql":
+        account_query = account_query.with_for_update()
+        platform_query = platform_query.with_for_update()
+    account = account_query.first()
     if not account:
         account = UserCreditAccount(user_id=str(usage_entry.user_id), billing_scope="sys_paid")
         session.add(account)
@@ -131,8 +141,8 @@ def _settle_usage_entry_credit(session, usage_entry: UsageLogEntry, *, billing_e
     account.credit_balance = float(account.credit_balance or 0) - cost
     account.credit_total_used = float(account.credit_total_used or 0) + cost
 
-    platform = session.query(LLMPlatform).filter_by(id=model.platform_id).first()
-    if platform and platform.sys_credit_balance is not None:
+    platform = platform_query.first()
+    if platform is not None and platform.sys_credit_balance is not None:
         platform.sys_credit_balance = float(platform.sys_credit_balance or 0) - cost
 
     ledger = UserCreditLedger(
@@ -343,6 +353,7 @@ class CreditServicesMixin:
         model_id: int,
         billing_scope: Optional[str],
     ) -> None:
+        """调用前点数拦截（在配额拦截之后执行，见 enforce_user_quota）。"""
         if not getattr(self, "billing_enabled", False):
             return
 

@@ -219,14 +219,26 @@ def probe_platform_models(
     target_url = _build_endpoint(base_url, '/models')
     headers = build_upstream_request_headers({"Authorization": f"Bearer {api_key}"})
 
-    try:
-        resp = requests.get(target_url, headers=headers, timeout=timeout)
+    def _fetch_models():
+        from .retrying import run_with_probe_retry
+
+        def _do_get(url: str):
+            import requests
+
+            return requests.get(url, headers=headers, timeout=timeout)
+
+        # 只对网络层异常重试；HTTP 状态码由下文按业务语义处理，不重试。
+        resp = run_with_probe_retry(lambda: _do_get(target_url), operation="probe")
 
         # 404 时降级：去掉 /v1 再试（兼容部分无版本号端点）
         if resp.status_code == 404:
             fallback = normalize_base_url(base_url).rstrip('/v1').rstrip('/') + '/models'
             if fallback != target_url:
-                resp = requests.get(fallback, headers=headers, timeout=timeout)
+                resp = run_with_probe_retry(lambda: _do_get(fallback), operation="probe")
+        return resp
+
+    try:
+        resp = _fetch_models()
 
         if resp.status_code == 401:
             if raise_on_error:
@@ -299,7 +311,14 @@ def test_platform_chat(
         payload.update(extra_body)
 
     try:
-        resp = requests.post(target_url, headers=headers, json=payload, timeout=timeout)
+        from .retrying import run_with_probe_retry
+
+        def _do_post():
+            import requests
+
+            return requests.post(target_url, headers=headers, json=payload, timeout=timeout)
+
+        resp = run_with_probe_retry(_do_post, operation="chat-test")
 
         if not resp.ok:
             try:

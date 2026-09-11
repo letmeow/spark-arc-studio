@@ -28,8 +28,17 @@ def _prompt_cache_agent_name(callbacks: Any) -> str:
     return ""
 
 
-def build_prompt_cache_routing_key(llm: Any) -> str | None:
-    """为支持改进匹配的 OpenAI 模型生成隔离、稳定且不泄露身份的路由键。"""
+def build_prompt_cache_routing_key(
+    llm: Any,
+    *,
+    context_reader: Any = None,
+) -> str | None:
+    """为支持改进匹配的 OpenAI 模型生成隔离、稳定且不泄露身份的路由键。
+
+    ``context_reader`` 是宿主注入的上下文读取器，需提供 ``user_id``、
+    ``project_name``、``chat_session`` 三个无参可调用属性（缺失时按空处理）。
+    未注入时返回 ``None``，网关不会尝试导入任何宿主模块。
+    """
     model_name = str(
         getattr(llm, "model_name", "")
         or getattr(llm, "model", "")
@@ -39,15 +48,19 @@ def build_prompt_cache_routing_key(llm: Any) -> str | None:
         return None
 
     try:
-        from core.request_context import (
-            current_user_id,
-            get_current_chat_session,
-            get_current_project_name,
-        )
+        from . import integrations as integrations_module
 
-        user_id = str(current_user_id.get() or "").strip()
-        project_name = str(get_current_project_name() or "").strip()
-        room_agent_id, context_key = get_current_chat_session()
+        reader = context_reader
+        if reader is None:
+            provider = integrations_module.get_prompt_cache_context_reader()
+            reader = provider() if callable(provider) else None
+        if reader is None:
+            return None
+
+        user_id = str(reader.user_id() or "").strip() if hasattr(reader, "user_id") else ""
+        project_name = str(reader.project_name() or "").strip() if hasattr(reader, "project_name") else ""
+        session = reader.chat_session() if hasattr(reader, "chat_session") else (None, None)
+        room_agent_id, context_key = session if isinstance(session, (tuple, list)) else (None, None)
     except Exception:
         return None
 
@@ -70,7 +83,8 @@ def build_prompt_cache_routing_key(llm: Any) -> str | None:
         separators=(",", ":"),
     )
     digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:40]
-    return f"sparkarc:v1:{digest}"
+    key_prefix = get_env_var("AGENT_MATCHBOX_PROMPT_CACHE_KEY_PREFIX", "matchbox:v1") or "matchbox:v1"
+    return f"{key_prefix}:{digest}"
 
 
 def _normalize_openai_compat_json_schema(schema: Any) -> Any:

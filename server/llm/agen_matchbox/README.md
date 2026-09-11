@@ -60,9 +60,10 @@ Agent Matchbox 面向 Agent 开发而生，是一个可独立运行、可嵌入�
 .
 ├── __init__.py            # 包入口，导出 initialize_matchbox / matchbox / create_matchbox
 ├── database.py            # 独立数据库 Engine 工厂
-├── integrations.py        # 宿主集成回调契约
-├── manager.py             # AIManager 核心类（组合所有 Mixin）
-├── config.py              # 配置加载与全局常量 (USE_SYS_LLM_CONFIG, LLM_AUTO_KEY 等)
+├── integrations.py        # 宿主集成回调契约（默认用途/调用者身份/用量上下文/密钥轮换/提示词缓存读取器）
+├── manager.py             # AIManager 核心类（组合所有 Mixin；种子同步算法已抽离到 seed_sync.py）
+├── seed_sync.py           # YAML 种子→DB 同步算法（规格展开/四阶段匹配/写回，可独立单测）
+├── config.py              # 配置加载与全局常量 (USE_SYS_LLM_CONFIG, LLM_AUTO_KEY 等；DEFAULT_PLATFORM_CONFIGS 懒加载)
 ├── models.py              # SQLAlchemy 数据库模型
 ├── security.py            # 安全与加密 (SecurityManager)
 ├── admin.py               # 平台与模型管理 Mixin (AdminMixin)
@@ -70,11 +71,23 @@ Agent Matchbox 面向 Agent 开发而生，是一个可独立运行、可嵌入�
 ├── user_services.py       # 用户服务 Mixin (UserServicesMixin)
 ├── quota_services.py      # 配额配置/统计/拦截 Mixin (QuotaServicesMixin)
 ├── usage_services.py      # 用量统计 Mixin (UsageServicesMixin)
+├── usage_writer.py        # 用量后台写入器（单线程异步落库，中断也记账且不阻塞响应）
 ├── redeem_code_services.py # 兑换码管理 Mixin (RedeemCodeServicesMixin)
+├── retrying.py            # 探测/测试请求的 tenacity 重试策略（仅运维侧，不包业务调用）
 ├── tracked_model.py       # LLMClient/LLMUsage/UsageTrackingCallback
 ├── estimate_tokens.py     # Token 用量估算工具
 ├── hf_mirror.py           # Hugging Face 镜像发现、区域判断与可达性探测
 ├── utils.py               # 工具函数 (probe_platform_models, parse_extra_body 等)
+├── tests/                 # 网关独立测试套件（离线契约，pytest tests -q）
+│   ├── conftest.py        # 内存 DB + 隔离运行目录 fixture
+│   ├── test_startup_contracts.py  # 轻启动/懒加载/独立性（子进程探测）
+│   ├── test_openai_compat_gateway.py  # 握手头/工具 Schema/用量回调
+│   ├── test_platform_identity.py  # 平台身份与重复 URL
+│   ├── test_sort_order.py # 排序持久化与回退
+│   ├── test_redeem_and_credit_grants.py  # 兑换码/发放/并发结算
+│   ├── test_seed_sync.py  # 种子匹配算法
+│   ├── test_retrying.py   # 探测重试策略
+│   └── ...                # paths/database/modalities/hf_mirror
 ├── matchbox_cfg.yaml       # 系统平台结构配置（仅用于初始化/导出，运行时以数据库为准）
 ├── matchbox_key.yaml       # 系统平台 API Key（应被 git 忽略，禁止提交）
 ├── matchbox_cfg_gui.pyw    # 图形化配置管理工具（双击直接自启入口，实际代码在 gui/ 子目录）
@@ -136,10 +149,11 @@ Agent Matchbox 面向 Agent 开发而生，是一个可独立运行、可嵌入�
 为兼顾稳定性、可维护性和扩展自由度，火柴网关采用**两阶段初始化 + 双通道**标准设计：
 
 1. **管理通道（默认）**：
-  - **阶段一（轻启动）**：启动阶段显式调用 `initialize_matchbox(ensure_defaults=True)`，仅完成数据库引擎初始化和默认配置同步。此阶段**不会**加载 `langchain_openai` 等重运行时依赖。
+  - **阶段一（轻启动）**：启动阶段显式调用 `initialize_matchbox(ensure_defaults=True)`，仅完成数据库引擎初始化和默认配置同步。此阶段**不会**加载 `langchain_openai` 等重运行时依赖，也**不会**触碰 YAML/解密（`import config` 无文件副作用，首次访问配置时才懒加载）。
   - **阶段二（异步预热）**：紧接着调用 `warmup_matchbox_runtime(blocking=False)`，在后台线程中预加载 `ChatUniversal`、`LLMClient` 等运行时模块，与应用启动并行执行，避免首个请求阻塞。
   - 请求阶段统一通过 `matchbox()` 获取管理器，再调用 `get_user_llm(...)` / `get_user_embedding(...)`。
   - 自动处理用户选型、密钥优先级、配额拦截与用量统计。
+  - **用量落库是后台异步的**：`on_llm_end` 只做内存计算并投递到 `usage_writer` 后台单线程，SQLite 写入 + 点数结算不阻塞模型响应返回；流式中断/失败同样记账。
 2. **轻量通道（旁路）**：
   - 使用 `create_quick_llm(...)` / `create_quick_embedding(...)` 快速创建客户端。
   - 不依赖数据库，适合脚本、工具链、临时任务和外部接入。
@@ -267,9 +281,19 @@ for chunk in client.stream("继续扩展成三幕结构"):
 当前仓库按源码组件提供，不包含 `pyproject.toml`。请把 `agen_matchbox` 目录放入宿主项目的 Python 导入路径，并由宿主依赖文件统一声明版本。直接开发时可显式安装所需依赖：
 
 ```bash
-pip install langchain-core langchain-openai sqlalchemy tiktoken cryptography pyyaml requests python-dotenv
-# 按需：PostgreSQL / GUI / Alembic
+pip install langchain-core langchain-openai sqlalchemy tiktoken cryptography pyyaml requests python-dotenv tenacity
+# 按需：PostgreSQL / GUI / 宿主侧 Alembic（网关自身无迁移依赖）
 pip install "psycopg[binary]" "flet>=0.28.3,<0.29.0" alembic
+```
+
+### 1.1 独立测试
+
+网关自带离线测试套件（不依赖宿主、不调用真实 LLM、不连外部服务）：
+
+```bash
+cd server/llm/agen_matchbox && pytest tests -q
+# 或在主项目 server 目录
+pytest llm/agen_matchbox/tests -q
 ```
 
 ### 2. 通过 GUI 配置平台与模型
@@ -520,7 +544,11 @@ for chunk in client.stream(messages):
     print(chunk.content, end="")
 
 # 如果流式中断（客户端断开/取消），
-# 系统会按“已输出的 token”估算 completion_tokens 并立刻入库（success=0）
+# 系统会按“已输出的 token”估算 completion_tokens 并在后台入库（success=0）
+#
+# 时序说明：落库是后台异步的。`invoke/stream` 返回时写入可能尚未完成，
+# 需要强一致读的场景请直接查 DB；宿主通过 usage_recorded_handler 收到的
+# 永远是“已提交成功”事件，可直接用于实时推送。
 
 # 如需查询用量，使用 .usage 子对象
 usage_24h = client.usage.get_usage_last_24h()
@@ -696,11 +724,17 @@ status = matchbox().get_user_quota_status(user_id="user_123")
 
 为了保证跨平台兼容性和统计的一致性，管理器采用“**优先真实 usage，缺失时本地估算**”的混合策略：
 
-1. **优先使用 API 返回的 usage**：若响应包含标准字段（如 `prompt_tokens` / `completion_tokens`，或 `input_tokens` / `output_tokens`），优先使用真实值。
-2. **缺失时降级到本地估算**：若平台未返回 usage（常见于部分流式或非标准实现），使用 `estimate_tokens` 对输入与输出文本估算。
+1. **优先使用 API 返回的 usage**：若响应包含标准字段（如 `prompt_tokens` / `completion_tokens`，或 `input_tokens` / `output_tokens`），优先使用真实值。此时本地估算完全不会触发，零额外开销。
+2. **缺失时降级到本地估算**：若平台未返回 usage（常见于部分流式或非标准实现），使用 `estimate_tokens` 对输入与输出文本估算。默认只用 tiktoken 本地编码器，不触发任何 tokenizer 下载（除非宿主显式调用 `warmup_tokenizers()` 预热）。
 3. **推理内容参与估算**：流式回调会累积 `reasoning_content`（含部分第三方平台扩展），在无真实 usage 时计入 completion 估算，尽量减少低估。
 
-4. **按次与成功状态记录**：每次调用都会落库，包含 `success=1/0` 与 token 字段；流式中断会记录已产出的估算结果并标记失败。
+4. **按次与成功状态记录**：每次调用都会落库，包含 `success=1/0` 与 token 字段；流式中断会记录已产出的估算结果并标记失败。落库发生在 `usage_writer` 后台单线程，不阻塞模型响应返回。
+
+### 拦截顺序与数据库迁移说明
+
+- **调用前拦截顺序**：配额（`quota_services.enforce_user_quota`）→ 点数（`credit_services.enforce_user_credit`），由 `builder.get_user_llm` 在同一事务内依次执行。
+- **上游探测重试**：`probe_platform_models` / `test_platform_chat` 对网络层异常（连接失败/超时）默认最多重试 3 次、指数退避；401/400 等业务错误不重试。可通过 `AGENT_MATCHBOX_PROBE_RETRY_ENABLED=0` 关闭。业务模型调用本身不自动重试（重试计费请求属于宿主编排决策）。
+- **数据库迁移**：网关自身只提供 `ensure_schema()`（`Base.metadata.create_all`，无 Alembic 依赖，保持零外部依赖）。引用本网关的宿主**应在宿主侧引入迁移**（例如宿主 Alembic 分支 `load_metadata` 直接复用 `agen_matchbox.models.Base.metadata`），不要在网关内再套一层迁移系统。
 
 > 说明：当前内置统计聚焦 token/request/error 维度，不直接输出“金额”。如需金额计费，请按各平台单价在业务层做二次换算。
 
