@@ -791,7 +791,6 @@ const zhCN = {
       imageAdapters: {
         openaiImages: 'OpenAI Images / 兼容协议',
         openaiResponsesImage: 'OpenAI Responses 图片工具',
-        openaiChatImage: 'OpenAI Chat 图片 / 兼容网关',
         geminiGenerateContent: 'Gemini generateContent / Nano Banana',
         geminiImage: 'Gemini Interactions',
         grokImage: 'Grok Image',

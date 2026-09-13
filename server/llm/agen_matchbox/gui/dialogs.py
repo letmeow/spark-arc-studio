@@ -27,7 +27,6 @@ from ..models import (
 from ..image_adapters import (
     IMAGE_ADAPTER_GEMINI_GENERATE_CONTENT,
     IMAGE_ADAPTER_GEMINI_INTERACTIONS,
-    IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
     IMAGE_ADAPTER_OPENAI_IMAGES,
     IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE,
     IMAGE_ADAPTER_XAI_IMAGES,
@@ -42,7 +41,6 @@ class DialogsMixin:
     IMAGE_ADAPTER_OPTIONS = {
         "OpenAI Images / 兼容协议": IMAGE_ADAPTER_OPENAI_IMAGES,
         "OpenAI Responses 图片工具": IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE,
-        "OpenAI Chat 图片 / 兼容网关": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
         "Gemini generateContent / Nano Banana": IMAGE_ADAPTER_GEMINI_GENERATE_CONTENT,
         "Gemini Interactions": IMAGE_ADAPTER_GEMINI_INTERACTIONS,
         "Grok Image": IMAGE_ADAPTER_XAI_IMAGES,

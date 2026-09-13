@@ -791,7 +791,6 @@ const koKR = {
       imageAdapters: {
         openaiImages: 'OpenAI Images / 호환 프로토콜',
         openaiResponsesImage: 'OpenAI Responses 이미지 도구',
-        openaiChatImage: 'OpenAI Chat 이미지 / 호환 게이트웨이',
         geminiGenerateContent: 'Gemini generateContent / Nano Banana',
         geminiImage: 'Gemini Interactions',
         grokImage: 'Grok Image',

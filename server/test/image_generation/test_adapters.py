@@ -16,7 +16,6 @@ from llm.agen_matchbox.image_generation import (
     _generate_gemini_generate_content_image,
     _generate_gemini_interactions_image,
     _gemini_generate_content_endpoint,
-    _generate_openai_chat_image,
     _generate_openai_compatible_image,
     _generate_openai_responses_image,
     _generate_xai_image,
@@ -83,11 +82,12 @@ def test_image_adapter_selection_keeps_supported_provider_names_explicit() -> No
         "image_generation_adapter": "gemini_generate_content",
         "extra_body": {},
     }) == "gemini_generate_content"
+    # 已彻底删除的 openai_chat_image：未知值回落默认 openai_images。
     assert _select_adapter({
         "base_url": "https://ai.1dea.top/v1",
         "image_generation_adapter": "openai_chat_image",
         "extra_body": {},
-    }) == "openai_chat_image"
+    }) == "openai_images"
     assert _select_adapter({
         "base_url": "https://api.openai.com/v1",
         "image_generation_adapter": "openai_responses_image",
@@ -215,43 +215,6 @@ def test_openai_responses_image_adapter_uses_ephemeral_data_urls_and_parses_tool
     assert content[1]["type"] == "input_image"
     assert content[1]["image_url"].startswith("data:image/png;base64,")
     assert "files" not in call
-
-
-def test_openai_chat_image_adapter_preserves_model_name_and_parses_markdown_data_image(monkeypatch) -> None:
-    fake = _FakeRequests({
-        "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": f"![Generated Image](data:image/jpeg;base64,{_png_b64()})",
-                }
-            }
-        ]
-    })
-    monkeypatch.setitem(sys.modules, "requests", fake)
-
-    result = _generate_openai_chat_image(
-        {
-            "base_url": "https://ai.1dea.top/v1",
-            "api_key": "sk-test",
-            "model_name": "gemini-3.1-flash-lite-image-fake",
-            "extra_body": {
-                "chat_endpoint": "https://ai.1dea.top/v1/chat/completions",
-                "temperature": 0.1,
-            },
-        },
-        SparkImageRequest(prompt="横版雨夜书店", size="1536x1024"),
-    )
-
-    assert result.provider == "openai_chat_image"
-    assert result.model_name == "gemini-3.1-flash-lite-image-fake"
-    assert result.mime_type == "image/jpeg"
-    call = fake.calls[0]
-    assert call["url"] == "https://ai.1dea.top/v1/chat/completions"
-    assert call["json"]["model"] == "gemini-3.1-flash-lite-image-fake"
-    assert call["json"]["temperature"] == 0.1
-    assert call["json"]["stream"] is False
-    assert "chat_endpoint" not in call["json"]
 
 
 def test_xai_grok_adapter_is_openai_compatible_but_keeps_provider_identity(monkeypatch) -> None:
@@ -415,15 +378,6 @@ def test_gemini_generate_content_adapter_keeps_gateway_path_prefix() -> None:
         ),
         (
             _generate_openai_responses_image,
-            {
-                "base_url": "https://ai.example.test/v1",
-                "api_key": "test-key",
-                "model_name": "image-model",
-                "extra_body": {},
-            },
-        ),
-        (
-            _generate_openai_chat_image,
             {
                 "base_url": "https://ai.example.test/v1",
                 "api_key": "test-key",

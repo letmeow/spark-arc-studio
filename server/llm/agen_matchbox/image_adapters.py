@@ -7,7 +7,6 @@ from typing import Any, Optional
 
 IMAGE_ADAPTER_OPENAI_IMAGES = "openai_images"
 IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE = "openai_responses_image"
-IMAGE_ADAPTER_OPENAI_CHAT_IMAGE = "openai_chat_image"
 IMAGE_ADAPTER_XAI_IMAGES = "xai_images"
 IMAGE_ADAPTER_GEMINI_INTERACTIONS = "gemini_interactions"
 IMAGE_ADAPTER_GEMINI_GENERATE_CONTENT = "gemini_generate_content"
@@ -17,7 +16,6 @@ DEFAULT_IMAGE_GENERATION_ADAPTER = IMAGE_ADAPTER_OPENAI_IMAGES
 IMAGE_GENERATION_ADAPTERS = {
     IMAGE_ADAPTER_OPENAI_IMAGES,
     IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE,
-    IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
     IMAGE_ADAPTER_XAI_IMAGES,
     IMAGE_ADAPTER_GEMINI_INTERACTIONS,
     IMAGE_ADAPTER_GEMINI_GENERATE_CONTENT,
@@ -36,12 +34,6 @@ _ADAPTER_ALIASES = {
     "responses": IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE,
     "responses_image": IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE,
     "responses_image_generation": IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE,
-    "openai_chat": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
-    "openai_chat_image": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
-    "openai_chat_completions": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
-    "chat_completions": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
-    "chat_image": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
-    "compatible_chat_image": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
     "xai": IMAGE_ADAPTER_XAI_IMAGES,
     "xai_images": IMAGE_ADAPTER_XAI_IMAGES,
     "grok": IMAGE_ADAPTER_XAI_IMAGES,
@@ -59,7 +51,7 @@ _ADAPTER_ALIASES = {
 
 
 def normalize_image_generation_adapter(value: Any) -> Optional[str]:
-    """规范化生图协议适配器；无法识别时返回 None。"""
+    """规范化生图协议适配器；无法识别时返回 None，由调用方回落默认。"""
     text = str(value or "").strip().lower()
     if not text:
         return None

@@ -354,7 +354,6 @@ models:
 |---|---|---|---|
 | `openai_images` | `/images/generations` and `/images/edits` | GPT Image or a compatible image model | multipart `image[]` |
 | `openai_responses_image` | `/responses` with the `image_generation` tool | A mainline text model that supports the tool | `input_image` data URLs in the one request; no persistent Files API upload |
-| `openai_chat_image` | A compatible `/chat/completions` gateway | The image-model name exposed by that gateway | data URLs in multimodal message content; parses Markdown/data-URI image results |
 | `gemini_generate_content` | Gemini `models/*:generateContent` | A Gemini / Nano Banana model | `inline_data` |
 | `gemini_interactions` | Gemini Interactions | A Gemini / Nano Banana model | image parts in `input` |
 | `xai_images` | xAI `/images/generations` and `/images/edits` | A Grok Image model | JSON data URLs, with at most three references for editing |

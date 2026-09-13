@@ -10,7 +10,6 @@ describe('生图协议镜像', () => {
     expect(IMAGE_GENERATION_ADAPTER_KEYS).toEqual([
       'openai_images',
       'openai_responses_image',
-      'openai_chat_image',
       'gemini_generate_content',
       'gemini_interactions',
       'xai_images',
@@ -24,5 +23,10 @@ describe('生图协议镜像', () => {
 
   it('未知协议回落到 OpenAI Images', () => {
     expect(normalizeImageGenerationAdapter('unknown')).toBe('openai_images');
+  });
+
+  it('已彻底删除的 chat 协议按未知值回落', () => {
+    expect(normalizeImageGenerationAdapter('openai_chat_image')).toBe('openai_images');
+    expect(normalizeImageGenerationAdapter('chat_completions')).toBe('openai_images');
   });
 });

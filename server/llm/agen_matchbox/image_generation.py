@@ -13,7 +13,6 @@ from .image_adapters import (
     DEFAULT_IMAGE_GENERATION_ADAPTER,
     IMAGE_ADAPTER_GEMINI_GENERATE_CONTENT,
     IMAGE_ADAPTER_GEMINI_INTERACTIONS,
-    IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
     IMAGE_ADAPTER_OPENAI_IMAGES,
     IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE,
     IMAGE_ADAPTER_XAI_IMAGES,
@@ -217,29 +216,9 @@ def _allowed_openai_extra(extra: dict[str, Any]) -> dict[str, Any]:
         "timeout",
         "image_generation",
         "endpoint",
-        "chat_endpoint",
         "generation_endpoint",
         "edit_endpoint",
         "reference_mode",
-    }
-    return {key: value for key, value in extra.items() if key not in blocked}
-
-
-def _allowed_openai_chat_image_extra(extra: dict[str, Any]) -> dict[str, Any]:
-    blocked = {
-        "adapter",
-        "provider",
-        "timeout",
-        "image_generation",
-        "endpoint",
-        "chat_endpoint",
-        "generation_endpoint",
-        "edit_endpoint",
-        "reference_mode",
-        "model",
-        "messages",
-        "prompt",
-        "stream",
     }
     return {key: value for key, value in extra.items() if key not in blocked}
 
@@ -296,96 +275,6 @@ def _reference_to_data_uri(reference: ImageReference) -> str:
     mime_type = reference.mime_type or "image/png"
     payload = base64.b64encode(reference.data).decode("ascii")
     return f"data:{mime_type};base64,{payload}"
-
-
-def _collect_data_uri_images(value: Any) -> list[tuple[str, str]]:
-    found: list[tuple[str, str]] = []
-    if isinstance(value, str):
-        for match in re.finditer(r"data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\r\n]+)", value):
-            found.append((match.group(2), match.group(1)))
-    elif isinstance(value, dict):
-        b64_json = value.get("b64_json")
-        if isinstance(b64_json, str) and b64_json.strip():
-            found.append((b64_json, str(value.get("mime_type") or value.get("mimeType") or "image/png")))
-
-        image_url = value.get("image_url") or value.get("imageUrl")
-        if isinstance(image_url, dict):
-            url = image_url.get("url")
-            if isinstance(url, str) and url.startswith("data:"):
-                found.extend(_collect_data_uri_images(url))
-        elif isinstance(image_url, str) and image_url.startswith("data:"):
-            found.extend(_collect_data_uri_images(image_url))
-
-        url = value.get("url")
-        if isinstance(url, str) and url.startswith("data:"):
-            found.extend(_collect_data_uri_images(url))
-
-        for child in value.values():
-            if child is image_url or child is url:
-                continue
-            found.extend(_collect_data_uri_images(child))
-    elif isinstance(value, list):
-        for item in value:
-            found.extend(_collect_data_uri_images(item))
-    return found
-
-
-def _collect_image_urls(value: Any) -> list[str]:
-    found: list[str] = []
-    if isinstance(value, str):
-        found.extend(match.group(1) for match in re.finditer(r"!\[[^\]]*\]\((https?://[^)\s]+)\)", value))
-    elif isinstance(value, dict):
-        image_url = value.get("image_url") or value.get("imageUrl")
-        if isinstance(image_url, dict):
-            url = image_url.get("url")
-            if isinstance(url, str) and url.startswith(("http://", "https://")):
-                found.append(url)
-        elif isinstance(image_url, str) and image_url.startswith(("http://", "https://")):
-            found.append(image_url)
-        url = value.get("url")
-        if isinstance(url, str) and url.startswith(("http://", "https://")):
-            found.append(url)
-        for child in value.values():
-            found.extend(_collect_image_urls(child))
-    elif isinstance(value, list):
-        for item in value:
-            found.extend(_collect_image_urls(item))
-    return found
-
-
-def _parse_openai_chat_image_response(data: dict[str, Any], *, timeout: float) -> tuple[bytes, str, str]:
-    choices = data.get("choices") if isinstance(data, dict) else None
-    if not isinstance(choices, list) or not choices:
-        raise ImageGenerationError("Chat 生图接口没有返回 choices")
-
-    message = choices[0].get("message") if isinstance(choices[0], dict) else None
-    if not isinstance(message, dict):
-        raise ImageGenerationError("Chat 生图接口返回格式无法识别")
-
-    images = _collect_data_uri_images(message)
-    if images:
-        image, mime_type = _decode_b64_image(images[0][0], images[0][1])
-        return image, mime_type, str(message.get("revised_prompt") or "")
-
-    inline_images = _collect_inline_images(message)
-    if inline_images:
-        image, mime_type = _decode_b64_image(inline_images[0][0], inline_images[0][1])
-        return image, mime_type, str(message.get("revised_prompt") or "")
-
-    urls = _collect_image_urls(message)
-    if urls:
-        image, mime_type = _download_image_url(urls[0], timeout=timeout)
-        return image, mime_type, str(message.get("revised_prompt") or "")
-
-    raise ImageGenerationError("Chat 生图接口没有返回可解析的图片")
-
-
-def _chat_image_prompt(request: SparkImageRequest) -> str:
-    return (
-        f"{request.prompt}\n\n"
-        f"请生成一张适合 {request.size} 的图片。"
-        "如果接口支持内联图片结果，请直接返回图片，不要只返回文字说明。"
-    )
 
 
 def _generate_openai_compatible_image(
@@ -560,71 +449,6 @@ def _generate_openai_responses_image(config: dict[str, Any], request: SparkImage
         platform_id=config.get("platform_id"),
         revised_prompt=revised_prompt,
         raw={"response_shape": IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE},
-    )
-
-
-def _generate_openai_chat_image(config: dict[str, Any], request: SparkImageRequest) -> SparkImageResult:
-    try:
-        import requests
-    except ImportError as exc:
-        raise ImageGenerationError("缺少 requests 库，无法调用 Chat 生图接口") from exc
-
-    timeout = _request_timeout(config)
-    extra = _image_extra(config)
-    model_name = str(config["model_name"])
-    endpoint = str(extra.get("chat_endpoint") or extra.get("endpoint") or "").strip() or _build_endpoint(
-        config["base_url"],
-        "/chat/completions",
-    )
-
-    content: str | list[dict[str, Any]]
-    if request.references:
-        _ensure_reference_input_supported(config)
-        content = [{"type": "text", "text": _chat_image_prompt(request)}]
-        content.extend(
-            {
-                "type": "image_url",
-                "image_url": {"url": _reference_to_data_uri(reference)},
-            }
-            for reference in request.references
-        )
-    else:
-        content = _chat_image_prompt(request)
-
-    payload: dict[str, Any] = {
-        "model": model_name,
-        "messages": [{"role": "user", "content": content}],
-        "stream": False,
-    }
-    payload.update(_allowed_openai_chat_image_extra(extra))
-
-    response = requests.post(
-        endpoint,
-        headers=build_upstream_request_headers({
-            "Authorization": f"Bearer {config['api_key']}",
-            "Content-Type": "application/json",
-        }),
-        json=payload,
-        timeout=timeout,
-    )
-    if not response.ok:
-        _raise_upstream_error(response, "Chat 生图接口调用失败")
-
-    try:
-        data = response.json()
-    except Exception as exc:
-        raise ImageGenerationError("Chat 生图接口返回的不是 JSON") from exc
-
-    image, mime_type, revised_prompt = _parse_openai_chat_image_response(data, timeout=timeout)
-    return SparkImageResult(
-        image=image,
-        mime_type=mime_type,
-        provider=IMAGE_ADAPTER_OPENAI_CHAT_IMAGE,
-        model_name=model_name,
-        model_id=config.get("model_id"),
-        platform_id=config.get("platform_id"),
-        revised_prompt=revised_prompt,
-        raw={"response_shape": IMAGE_ADAPTER_OPENAI_CHAT_IMAGE},
     )
 
 
@@ -957,8 +781,6 @@ def generate_image_for_user(
         return _generate_gemini_image(config, request, adapter=adapter)
     if adapter == IMAGE_ADAPTER_XAI_IMAGES:
         return _generate_xai_image(config, request)
-    if adapter == IMAGE_ADAPTER_OPENAI_CHAT_IMAGE:
-        return _generate_openai_chat_image(config, request)
     if adapter == IMAGE_ADAPTER_OPENAI_RESPONSES_IMAGE:
         return _generate_openai_responses_image(config, request)
     return _generate_openai_compatible_image(config, request, provider=IMAGE_ADAPTER_OPENAI_IMAGES)

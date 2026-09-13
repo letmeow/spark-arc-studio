@@ -793,7 +793,6 @@ const jaJP = {
       imageAdapters: {
         openaiImages: 'OpenAI Images / 互換プロトコル',
         openaiResponsesImage: 'OpenAI Responses 画像ツール',
-        openaiChatImage: 'OpenAI Chat 画像 / 互換ゲートウェイ',
         geminiGenerateContent: 'Gemini generateContent / Nano Banana',
         geminiImage: 'Gemini Interactions',
         grokImage: 'Grok Image',

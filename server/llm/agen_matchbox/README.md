@@ -353,7 +353,6 @@ models:
 |---|---|---|---|
 | `openai_images` | `/images/generations`、`/images/edits` | GPT Image 或兼容生图模型 | multipart `image[]` |
 | `openai_responses_image` | `/responses` 的 `image_generation` 工具 | 支持该工具的主线文本模型 | 单次请求内的 `input_image` data URL，不经 Files API 持久上传 |
-| `openai_chat_image` | `/chat/completions` 兼容网关 | 网关暴露的生图模型名 | 多模态消息中的 data URL；兼容 Markdown/data URI 图片结果 |
 | `gemini_generate_content` | Gemini `models/*:generateContent` | Gemini / Nano Banana 模型 | `inline_data` |
 | `gemini_interactions` | Gemini Interactions | Gemini / Nano Banana 模型 | `input` 图片 part |
 | `xai_images` | xAI `/images/generations`、`/images/edits` | Grok Image 模型 | JSON data URL，编辑最多 3 张参考图 |

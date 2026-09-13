@@ -793,7 +793,6 @@ const enUS = {
       imageAdapters: {
         openaiImages: 'OpenAI Images / compatible',
         openaiResponsesImage: 'OpenAI Responses image tool',
-        openaiChatImage: 'OpenAI Chat image / proxy',
         geminiGenerateContent: 'Gemini generateContent / Nano Banana',
         geminiImage: 'Gemini Interactions',
         grokImage: 'Grok Image',
