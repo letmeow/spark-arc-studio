@@ -557,6 +557,15 @@ onBeforeUnmount(() => {
   align-items: center;
   vertical-align: middle;
   height: 100%;
+  line-height: 1;
+}
+
+/* 聊天输入栏内：外层 section 是 block，会比 pill 高出约 0.4px
+   把 pill 顶上去；强制 flex 居中，消除这 0.4px 错位。 */
+.chat-input-bar-right .right-panel-section.compact-mode {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
 }
 
 .compact-popover-content {
@@ -685,7 +694,8 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-/* 模型名 pill：聊天输入框气泡内右下角，扁平无浮雕，与主题同色系 */
+/* 模型名 pill：聊天输入框气泡内右下角，扁平无浮雕，与主题同色系。
+   高度由 ChatPanel 侧按发送键尺寸统一钉住（默认 28px，聊天输入栏内为发送键等高）。 */
 .model-name-pill {
   display: inline-flex;
   align-items: center;
@@ -696,6 +706,7 @@ onBeforeUnmount(() => {
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
+  box-shadow: none;
   color: var(--spark-text-muted);
   font-size: var(--spark-fs-xs);
   font-family: inherit;

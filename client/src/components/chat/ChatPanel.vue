@@ -184,7 +184,7 @@
           :value="draft"
           type="textarea"
           :size="inputWrapperClass.includes('is-compact') ? 'small' : undefined"
-          :autosize="inputWrapperClass.includes('is-compact') ? { minRows: 1, maxRows: 5 } : { minRows: 2, maxRows: 6 }"
+          :autosize="inputWrapperClass.includes('is-compact') ? { minRows: 1, maxRows: 5 } : { minRows: 1, maxRows: 6 }"
           :placeholder="placeholder || t('components.chatPanel.inputPlaceholder')"
           @update:value="$emit('update:draft', $event)"
           @keydown="$emit('draft-keydown', $event)"
@@ -875,7 +875,7 @@ defineExpose({ listRef: chatListRef });
 
 .chat-input-wrapper.is-comfort {
   margin: 0 12px 12px;
-  padding: 12px 12px 10px;
+  padding: 10px 12px 6px;
   background: var(--spark-panel-bg);
   border: 1px solid var(--spark-border);
   border-radius: var(--spark-radius-lg);
@@ -897,13 +897,17 @@ defineExpose({ listRef: chatListRef });
   flex-shrink: 0;
 }
 
-/* 输入框底部工具条：左附件 / 右模型+发送，同处一个气泡内 */
+/* 输入框底部工具条：左附件 / 右模型+发送，同处一个气泡内。
+   下层高度 32px，发送键 / pill / 附件按钮统一跟随 --send-size。
+   输入区下沉：工具条 margin-top 收到 0，输入区 padding-bottom 吃掉，
+   把工具条上方的无内容空白还给输入区，输入框视觉下移贴近工具条。 */
 .chat-input-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 0;
+  min-height: var(--send-size, 32px);
 }
 
 .chat-input-bar-left {
@@ -919,6 +923,41 @@ defineExpose({ listRef: chatListRef });
   gap: 8px;
   margin-left: auto;
   flex-shrink: 0;
+  align-self: stretch;
+}
+
+/* 右侧模型 pill 与发送键对齐：三层包裹（section/wrapper/pill）
+   高度全部钉死到发送键，margin 全部清零，pill 自身垂直居中。
+   根因：AiSettingsPanel 的 section 是 block 且带 margin-bottom:12px，
+   translateY 只能掩盖不能根治。 */
+.chat-input-bar-right :deep(.right-panel-section),
+.chat-input-bar-right :deep(.compact-wrapper) {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: var(--send-size, 32px) !important;
+  min-height: var(--send-size, 32px) !important;
+  max-height: var(--send-size, 32px) !important;
+  display: flex !important;
+  align-items: center !important;
+  align-self: center !important;
+  line-height: 1 !important;
+}
+
+.chat-input-bar-right :deep(.model-name-pill) {
+  height: var(--send-size, 32px);
+  line-height: 1;
+  padding: 0 12px;
+  margin: 0 !important;
+  font-size: 15px;
+  box-sizing: border-box;
+  transform: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+}
+
+.chat-input-bar-right :deep(.model-name-pill-text) {
+  line-height: 1.4;
 }
 
 .chat-input-wrapper .chat-textarea {
@@ -927,27 +966,106 @@ defineExpose({ listRef: chatListRef });
   min-width: 0;
 }
 
+/* 去内圈：边框只画在外层容器上，n-input 自身的描边全部去掉，
+   底色改铺外层大筐同款 panel-bg，视觉上一体化。
+   注意 n-input 的圆角背景层（n-input-wrapper）也要同色，
+   否则深色主题下会透出色差块，看着像独立文本框。
+   正文 15px（base 14px +1），输入区视觉更舒展。 */
+.chat-input-wrapper .chat-textarea :deep(.n-input) {
+  background: var(--spark-panel-bg) !important;
+  background-color: var(--spark-panel-bg) !important;
+  border: none !important;
+  border-radius: var(--spark-radius-sm) !important;
+  box-shadow: none !important;
+  --n-border: transparent !important;
+  --n-border-hover: transparent !important;
+  --n-border-focus: transparent !important;
+  --n-box-shadow-focus: none !important;
+  --n-color: var(--spark-panel-bg) !important;
+  --n-color-focus: var(--spark-panel-bg) !important;
+  --n-color-disabled: var(--spark-panel-bg) !important;
+  --n-font-size: 15px !important;
+  --n-line-height-textarea: 1.5 !important;
+  --n-border-radius: var(--spark-radius-sm) !important;
+}
+
+.chat-input-wrapper .chat-textarea :deep(.n-input-wrapper) {
+  background: var(--spark-panel-bg) !important;
+  background-color: var(--spark-panel-bg) !important;
+  border-radius: var(--spark-radius-sm) !important;
+  padding: 0 !important;
+}
+
+.chat-input-wrapper .chat-textarea :deep(.n-input__border),
+.chat-input-wrapper .chat-textarea :deep(.n-input__state-border) {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.chat-input-wrapper .chat-textarea :deep(.n-input__textarea-el) {
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 10px 2px 2px;
+}
+
+/* 单行时镜像高度与文本行高对齐，避免 n-input 内部留出第二行空位
+   造成“字挤左上、底下大片空白”。 */
+.chat-input-wrapper .chat-textarea :deep(.n-input__textarea-mirror) {
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 10px 2px 2px;
+}
+
+.chat-input-wrapper .chat-textarea :deep(.n-input__placeholder) {
+  font-size: 15px;
+}
+
 .chat-input-wrapper .send-btn {
   flex-shrink: 0;
+  align-self: center;
+}
+
+/* 输入栏内的圆形小按钮（附件等）：扁平无浮雕，hover 只变色不变形，
+   避免廉价 3D 感；尺寸跟随下层高度（32px），与发送键视觉对齐。 */
+.chat-input-bar :deep(.n-button.n-button--quaternary-type) {
+  box-shadow: none !important;
+  --n-height: 32px !important;
+  --n-width: 32px !important;
+  --n-icon-size: 16px !important;
+  --n-font-size: 16px !important;
+}
+
+.chat-input-bar :deep(.n-button.n-button--quaternary-type:hover) {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.chat-input-bar :deep(.n-button.n-button--quaternary-type:active) {
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .spark-send-btn {
-  --send-size: 34px;
+  --send-size: 32px;
   width: var(--send-size) !important;
   height: var(--send-size) !important;
   min-width: var(--send-size) !important;
   color: var(--spark-text-inverse) !important;
   background: var(--spark-primary) !important;
   border: 1px solid var(--spark-primary) !important;
+  box-shadow: none !important;
   transition: transform 0.18s ease, background 0.22s ease, border-color 0.22s ease;
 }
 
 .spark-send-btn:hover {
   transform: translateY(-1px);
+  box-shadow: none !important;
 }
 
 .spark-send-btn:active {
   transform: translateY(0) scale(0.94);
+  box-shadow: none !important;
 }
 
 .spark-send-btn.is-working {
@@ -959,14 +1077,14 @@ defineExpose({ listRef: chatListRef });
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .send-glyph {
   grid-area: 1 / 1;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   overflow: visible;
   color: currentColor;
   transform-origin: center;

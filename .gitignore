@@ -31,6 +31,8 @@ node_modules/
 client/src-tauri/target/
 client/src-tauri/gen/
 /.tmp/
+# DeltaScope / 浏览器调试产物（本地录制截图与时间线采样，禁止提交）
+/.artifacts/
 .zcode/
 /!spark-pen/
 
