@@ -52,8 +52,13 @@
         </div>
       </div>
 
-      <!-- 最近两列：项目 + 灵感草稿 -->
-      <div class="welcome-recents">
+      <!-- 最近两列：项目 + 灵感草稿（compact 模式默认折叠，窄屏首屏只留问候+输入） -->
+      <div class="welcome-recents" :class="{ 'is-collapsed': !recentsOpen }">
+        <button class="welcome-fold-bar" type="button" :aria-expanded="recentsOpen" @click="recentsOpen = !recentsOpen">
+          <span>{{ t('views.home.recentProjects') }} / {{ t('views.home.recentMuses') }}</span>
+          <span class="welcome-fold-chevron" :class="{ 'is-open': recentsOpen }">›</span>
+        </button>
+        <div v-show="recentsOpen" class="welcome-recents-grid">
         <section class="welcome-recent-card">
           <header>
             <span>{{ t('views.home.recentProjects') }}</span>
@@ -89,10 +94,16 @@
           </div>
           <n-empty v-if="recentMuses.length === 0" size="small" :description="t('views.world.history.emptyDrafts')" />
         </section>
+        </div>
       </div>
 
-      <!-- 引导：快速开始 + 字字斟酌（原欢迎页文案，扁平无浮雕） -->
-      <div class="welcome-tips">
+      <!-- 引导：快速开始 + 字字斟酌（原欢迎页文案，扁平无浮雕；compact 模式默认折叠） -->
+      <div class="welcome-tips" :class="{ 'is-collapsed': !tipsOpen }">
+        <button class="welcome-fold-bar" type="button" :aria-expanded="tipsOpen" @click="tipsOpen = !tipsOpen">
+          <span>{{ t('components.chatWelcome.quickStart') }} / {{ t('components.chatWelcome.proWorkflow') }}</span>
+          <span class="welcome-fold-chevron" :class="{ 'is-open': tipsOpen }">›</span>
+        </button>
+        <div v-show="tipsOpen" class="welcome-tips-body">
         <div class="tip-section">
           <div class="tip-section-header">
             <span class="tip-section-title">{{ t('components.chatWelcome.quickStart') }}</span>
@@ -118,6 +129,7 @@
             </li>
           </ul>
         </div>
+        </div>
       </div>
 
       <div class="welcome-footer">
@@ -128,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { NButton, NEmpty, NIcon, NInput, NTooltip } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import { ArrowUp, BookOpen, Clapperboard, Plus, Sparkles } from '@lucide/vue';
@@ -144,10 +156,21 @@ const { t } = useI18n();
 const projectStore = useProjectStore();
 const viewStore = useViewStore();
 
+const props = withDefaults(defineProps<{
+  /** 紧凑分段模式：最近/引导默认折叠（移动首页首屏用），桌面默认全量展开 */
+  compactSections?: boolean;
+}>(), {
+  compactSections: false,
+});
+
 const emit = defineEmits<{
   /** 请求聊天页发送：携带欢迎页输入文本（父级写入其 draft 后经统一收口发送） */
   (e: 'send', text: string): void;
 }>();
+
+// 分段折叠：默认展开；compact 模式默认折叠，用户点条展开（状态常驻本组件实例）。
+const recentsOpen = ref(!props.compactSections);
+const tipsOpen = ref(!props.compactSections);
 
 const {
   draft,
@@ -406,11 +429,51 @@ async function adoptMuse(item: InspirationEntry) {
 
 .welcome-recents {
   width: 100%;
+  margin-top: 26px;
+  text-align: left;
+}
+
+.welcome-recents-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 26px;
-  text-align: left;
+}
+
+/* 分段折叠条：透明底 + 1px 边框，与欢迎页扁平风格一致 */
+.welcome-fold-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--spark-border);
+  border-radius: var(--spark-radius);
+  background: transparent;
+  color: var(--spark-text-muted);
+  font-size: var(--spark-fs-xs);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.welcome-fold-bar:hover {
+  color: var(--spark-text);
+  border-color: var(--spark-primary);
+}
+
+.welcome-fold-chevron {
+  margin-left: auto;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.welcome-fold-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.welcome-recents-grid,
+.welcome-tips-body {
+  margin-top: 12px;
 }
 
 .welcome-recent-card {
@@ -548,12 +611,15 @@ async function adoptMuse(item: InspirationEntry) {
 
 /* ===== 引导区（原欢迎页文案回归）：扁平卡，无浮雕/3D 特效，与主题同色系 ===== */
 .welcome-tips {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   width: 100%;
   margin-top: 26px;
   text-align: left;
+}
+
+.welcome-tips-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .tip-section {
@@ -652,7 +718,7 @@ async function adoptMuse(item: InspirationEntry) {
 }
 
 @media (max-width: 640px) {
-  .welcome-recents {
+  .welcome-recents-grid {
     grid-template-columns: 1fr;
   }
   .welcome-min {

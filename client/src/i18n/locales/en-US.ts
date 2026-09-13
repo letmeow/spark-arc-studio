@@ -148,6 +148,7 @@ const enUS = {
       projectIO: 'Project Import/Export',
     },
     steps: {
+      home: 'Home',
       muse: 'Inspiration',
       world: 'World',
       characters: 'Characters',

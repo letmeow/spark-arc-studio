@@ -148,6 +148,7 @@ const jaJP = {
       projectIO: 'プロジェクトのインポート/エクスポート',
     },
     steps: {
+      home: 'ホーム',
       muse: '着想',
       world: '世界',
       characters: 'キャラクター',

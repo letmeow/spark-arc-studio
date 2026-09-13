@@ -19,12 +19,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, markRaw, type PropType } from 'vue';
 import { NIcon } from 'naive-ui';
-import { Activity, Globe2, Lightbulb, List, Map as MapIcon, SquarePen } from '@lucide/vue';
+import { Activity, Globe2, House, Lightbulb, List, Map as MapIcon, SquarePen } from '@lucide/vue';
 
 // 图标映射
 const iconMap = {
+  'home': House,              // 首页 - 小屋
   'muse': Lightbulb,          // 灵感 - 灯泡
   'lorebook': Globe2,    // 世界观 - 星球 (移动端独立页面)
+  'characters': Globe2,  // 角色 - 复用星球（与世界观同源设定）
   'synopsis': Activity,     // 梗概 - 脉冲
   'structure': List,     // 大纲 - 列表
   'production': SquarePen,  // 创作 - 铅笔

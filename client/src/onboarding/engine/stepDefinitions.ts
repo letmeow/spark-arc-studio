@@ -493,8 +493,18 @@ export const mobileWorkspaceSteps: OnboardingStep[] = [
     spotlight: true,
     spotlightPadding: 4,
   },
-  // ── FlowCard 创作流程（6步） ──
-  // 3. 灵感
+  // ── FlowCard 创作流程（首页 + 7 步；Step0 首页复用欢迎页，其余顺延 +1）──
+  // 3. 首页（问候 + 大输入，复用桌面空态欢迎页；目标锚到 Step0 欢迎输入框）
+  {
+    id: 'mw-home',
+    target: '#step-0 .chat-welcome .welcome-composer',
+    placement: 'bottom',
+    titleKey: 'onboarding.mobile.flow.homeTitle',
+    descKey: 'onboarding.mobile.flow.homeDesc',
+    spotlight: true,
+    beforeEnter: scrollMobileStep(0),
+  },
+  // 4. 灵感
   {
     id: 'mw-muse',
     target: '#step-1 .world-mobile-flow .flow-section:first-child',
@@ -504,7 +514,7 @@ export const mobileWorkspaceSteps: OnboardingStep[] = [
     spotlight: true,
     beforeEnter: scrollMobileStep(1),
   },
-  // 4. 世界观
+  // 5. 世界观
   {
     id: 'mw-world',
     target: '#step-2 .lorebook-mobile-flow .flow-section:first-child',
@@ -514,45 +524,55 @@ export const mobileWorkspaceSteps: OnboardingStep[] = [
     spotlight: true,
     beforeEnter: scrollMobileStep(2),
   },
-  // 5. 故事梗概
+  // 6. 角色设定（复用世界观设定流内的角色区）
+  {
+    id: 'mw-characters',
+    target: '#step-3 .lorebook-mobile-flow .flow-section:nth-child(2)',
+    placement: 'bottom',
+    titleKey: 'onboarding.mobile.flow.worldTitle',
+    descKey: 'onboarding.mobile.flow.worldDesc',
+    spotlight: true,
+    beforeEnter: scrollMobileStep(3),
+  },
+  // 7. 故事梗概
   {
     id: 'mw-synopsis',
-    target: '#step-3 .synopsis-mobile-flow .flow-section:first-child',
+    target: '#step-4 .synopsis-mobile-flow .flow-section:first-child',
     placement: 'bottom',
     titleKey: 'onboarding.mobile.flow.synopsisTitle',
     descKey: 'onboarding.mobile.flow.synopsisDesc',
     spotlight: true,
-    beforeEnter: scrollMobileStep(3),
+    beforeEnter: scrollMobileStep(4),
   },
-  // 6. 大纲编排
+  // 8. 大纲编排
   {
     id: 'mw-structure',
-    target: '#step-4 .structure-mobile-flow .control-section',
+    target: '#step-5 .structure-mobile-flow .control-section',
     placement: 'top',
     titleKey: 'onboarding.mobile.flow.structureTitle',
     descKey: 'onboarding.mobile.flow.structureDesc',
     spotlight: true,
-    beforeEnter: scrollMobileStep(4),
+    beforeEnter: scrollMobileStep(5),
   },
-  // 7. 剧本创作
+  // 9. 剧本创作
   {
     id: 'mw-production',
-    target: '#step-5 .production-mobile .workbench-context-bar',
+    target: '#step-6 .production-mobile .workbench-context-bar',
     placement: 'bottom',
     titleKey: 'onboarding.mobile.flow.productionTitle',
     descKey: 'onboarding.mobile.flow.productionDesc',
     spotlight: true,
-    beforeEnter: scrollMobileStep(5),
+    beforeEnter: scrollMobileStep(6),
   },
-  // 8. 故事蓝图
+  // 10. 故事蓝图
   {
     id: 'mw-blueprint',
-    target: '#step-6 .relation-checker-mobile .relation-control-bar',
+    target: '#step-7 .relation-checker-mobile .relation-control-bar',
     placement: 'bottom',
     titleKey: 'onboarding.mobile.flow.blueprintTitle',
     descKey: 'onboarding.mobile.flow.blueprintDesc',
     spotlight: true,
-    beforeEnter: scrollMobileStep(6),
+    beforeEnter: scrollMobileStep(7),
   },
   // ── AI 聊天浮窗 ──
   // 9. AI 导演浮窗按钮
@@ -593,8 +613,10 @@ export const mobileWorkspaceSteps: OnboardingStep[] = [
 /**
  * 移动端标题会随当前创作卡片变化，因此为每张卡片注册独立的页面教程。
  * 完整工作台教程仍复用 mobileWorkspaceSteps，不与页面重看入口混用。
+ * 注意：首页 Step0 无独立后端视图键，page-mobile-home 仅用于顶部标题栏的帮助按钮场景定位。
  */
 export const mobilePageSceneIds = [
+  'page-mobile-home',
   'page-mobile-muse',
   'page-mobile-world',
   'page-mobile-synopsis',
@@ -604,6 +626,7 @@ export const mobilePageSceneIds = [
 ] as const;
 
 const mobilePageStepIds = [
+  'mw-home',
   'mw-muse',
   'mw-world',
   'mw-synopsis',

@@ -146,6 +146,7 @@ const zhCN = {
       projectIO: '项目导入/导出',
     },
     steps: {
+      home: '首页',
       muse: '灵感',
       world: '世界',
       characters: '角色',

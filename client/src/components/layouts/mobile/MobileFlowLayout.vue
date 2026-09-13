@@ -63,73 +63,83 @@
     
     <!-- 滚动容器 -->
     <main class="flow-container" ref="containerRef">
-      <!-- Step 0: 灵感 -->
+      <!-- Step 0: 首页（问候 + 项目胶囊 + 大输入 + 最近/引导折叠段，复用桌面空态欢迎页） -->
       <FlowCard
         :step="0"
+        :title="t('mobileFlow.steps.home')"
+        :subtitle="t('views.home.tagline')"
+        :is-active="currentStep === 0"
+      >
+        <ChatWelcomeScreen compact-sections @send="onWelcomeSend" />
+      </FlowCard>
+
+      <!-- Step 1: 灵感 -->
+      <FlowCard
+        :step="1"
         :title="t('mobileFlow.cards.inspireTitle')"
         :subtitle="t('mobileFlow.cards.inspireSubtitle')"
-        :is-active="currentStep === 0"
+        :is-active="currentStep === 1"
       >
         <WorldMobile />
       </FlowCard>
 
-      <!-- Step 1: 世界观 -->
+      <!-- Step 2: 世界观 -->
       <FlowCard
-        :step="1"
+        :step="2"
         :title="t('mobileFlow.cards.worldTitle')"
         :subtitle="t('mobileFlow.cards.worldSubtitle')"
-        :is-active="currentStep === 1"
+        :is-active="currentStep === 2"
       >
         <LorebookMobile :world-only="true" />
       </FlowCard>
 
-      <!-- Step 2: 角色设定 -->
+      <!-- Step 3: 角色设定 -->
       <FlowCard
-        :step="2"
+        :step="3"
         :title="t('mobileFlow.cards.charactersTitle')"
         :subtitle="t('mobileFlow.cards.charactersSubtitle')"
-        :is-active="currentStep === 2"
+        :is-active="currentStep === 3"
       >
         <CharactersMobile />
       </FlowCard>
 
-      <!-- Step 3: 故事梗概 -->
+      <!-- Step 4: 故事梗概 -->
       <FlowCard
-        :step="3"
+        :step="4"
         :title="t('mobileFlow.cards.synopsisTitle')"
         :subtitle="t('mobileFlow.cards.synopsisSubtitle')"
-        :is-active="currentStep === 3"
+        :is-active="currentStep === 4"
       >
         <SynopsisMobile />
       </FlowCard>
 
-      <!-- Step 4: 大纲编排 -->
+      <!-- Step 5: 大纲编排 -->
       <FlowCard
-        :step="4"
+        :step="5"
         :title="t('mobileFlow.cards.structureTitle')"
         :subtitle="t('mobileFlow.cards.structureSubtitle')"
-        :is-active="currentStep === 4"
+        :is-active="currentStep === 5"
       >
         <StructureMobile />
       </FlowCard>
 
-      <!-- Step 5: 剧本创作 -->
+      <!-- Step 6: 剧本创作 -->
       <FlowCard
-        :step="5"
+        :step="6"
         :title="t('mobileFlow.cards.productionTitle')"
         :subtitle="t('mobileFlow.cards.productionSubtitle')"
-        :is-active="currentStep === 5"
+        :is-active="currentStep === 6"
         :show-next-button="false"
       >
         <ProductionMobile />
       </FlowCard>
 
-      <!-- Step 6: 故事蓝图 -->
+      <!-- Step 7: 故事蓝图 -->
       <FlowCard
-        :step="6"
+        :step="7"
         :title="t('mobileFlow.cards.blueprintTitle')"
         :subtitle="t('mobileFlow.cards.blueprintSubtitleNew')"
-        :is-active="currentStep === 6"
+        :is-active="currentStep === 7"
         :show-next-button="false"
       >
         <BlueprintIndex />
@@ -202,6 +212,7 @@ import FlowCard from './FlowCard.vue';
 import OnboardingHelpButton from '../../../onboarding/components/OnboardingHelpButton.vue';
 import StepIndicator from './StepIndicator.vue';
 import GlobalChatFloat from '../../chat/GlobalChatFloat.vue';
+import ChatWelcomeScreen from '../../chat/ChatWelcomeScreen.vue';
 
 // 核心工作流视图
 import WorldMobile from '../../../views/World/WorldIndex.vue';
@@ -219,6 +230,7 @@ import EngineMobile from '../../../views/Engine/EngineIndex.vue';
 import DashboardMobile from '../../../views/Dashboard/DashboardIndex.vue';
 
 import { useProjectStore } from '../../stores/projectStore';
+import { useChatStore } from '../../stores/chatStore';
 import { useViewStore, type AppViewKey } from '../../stores/viewStore';
 import { useSceneStore } from '../../stores/sceneStore';
 import { useFileStore } from '../../stores/fileStore';
@@ -235,6 +247,7 @@ import StoryTagsPanel from '../../share/StoryTagsPanel.vue';
 import { closeDeferredBrowserTab, navigateDeferredBrowserTab, openDeferredBrowserTab } from '../../../utils/deferredBrowserTab';
 
 const projectStore = useProjectStore();
+const chat = useChatStore();
 const viewStore = useViewStore();
 const sceneStore = useSceneStore();
 const fileStore = useFileStore();
@@ -256,6 +269,7 @@ const workspaceMode = computed(() => sceneStore.workspaceMode || 'script');
 provide('projectId', computed(() => projectStore.currentProject));
 
 const flowSteps = computed(() => [
+  { id: 'home', label: t('mobileFlow.steps.home') },
   { id: 'muse', label: t('mobileFlow.steps.muse') },
   { id: 'lorebook', label: t('mobileFlow.steps.world') },
   { id: 'characters', label: t('mobileFlow.steps.characters') },
@@ -270,16 +284,34 @@ const currentStepLabel = computed(() => {
 });
 
 const currentTutorialSceneId = computed(() => (
-  ['page-mobile-muse', 'page-mobile-muse', 'page-mobile-world', 'page-mobile-world', 'page-mobile-synopsis', 'page-mobile-structure', 'page-mobile-production', 'page-mobile-blueprint'][currentStep.value] || mobilePageSceneIds[0]
+  ['page-mobile-home', 'page-mobile-muse', 'page-mobile-world', 'page-mobile-world', 'page-mobile-synopsis', 'page-mobile-structure', 'page-mobile-production', 'page-mobile-blueprint'][currentStep.value] || mobilePageSceneIds[0]
 ));
 
-const stepViewMap: AppViewKey[] = ['world', 'lorebook', 'characters', 'synopsis', 'structure', 'production', 'blueprint'];
+// 首页 Step0 无独立后端视图键（home 已删除）：滑到首页时切到 chat 视图挂载欢迎页所需上下文，
+// 其余步骤沿用原有世界/设定/梗概/大纲/创作/蓝图映射。
+const stepViewMap: AppViewKey[] = ['chat', 'world', 'lorebook', 'characters', 'synopsis', 'structure', 'production', 'blueprint'];
 watch(currentStep, (idx) => {
-  const view = stepViewMap[idx] || 'world';
+  const view = stepViewMap[idx] || 'chat';
   if (viewStore.currentView !== view) {
     viewStore.setView(view);
   }
 }, { immediate: true });
+
+// 移动首页发送：欢迎页已做无项目拦截与文本清洗；这里直接经 chatStore 统一收口发送，
+// 成功后展开抽屉展示流式结果。chatStore.send 抛错（如未选项目/网络失败）时 toast 并停留原地。
+async function onWelcomeSend(text: string) {
+  const cleanText = String(text || '').trim();
+  if (!cleanText || chat.sending) return;
+  chat.setAgent('agent_director');
+  try {
+    await chat.send(cleanText);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e || '');
+    bus.emit('toast', { type: 'error', message: msg || t('common.selectProjectFirst') });
+    return;
+  }
+  chat.setExpanded(true);
+}
 
 function openSettings() {
   settingsDrawerVisible.value = true;

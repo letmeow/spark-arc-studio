@@ -146,6 +146,7 @@ const koKR = {
       projectIO: '프로젝트 가져오기/내보내기',
     },
     steps: {
+      home: '홈',
       muse: '영감',
       world: '세계관',
       characters: '캐릭터',

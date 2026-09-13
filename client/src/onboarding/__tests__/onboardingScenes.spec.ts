@@ -58,6 +58,7 @@ describe('onboarding 场景契约', () => {
   it('移动端标题按钮的每个场景只包含当前页面教程', () => {
     expect(mobilePageScenes.map(scene => scene.id)).toEqual([...mobilePageSceneIds]);
     expect(mobilePageScenes.map(scene => scene.steps.map(step => step.id))).toEqual([
+      ['mw-home'],
       ['mw-muse'],
       ['mw-world'],
       ['mw-synopsis'],
