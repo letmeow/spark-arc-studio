@@ -109,11 +109,11 @@ SparkArc 现有架构已经有清晰收口层。新增功能必须先判断是�
 - SparkBaseAgent（通讯与聊天能力）
 - SparkAgentExecutor（build_context -> execute -> write_result 执行协议）
 
-参考文件：
+参考文件（只指模块，不点名易变实现细节）：
 
-- server/agents/setup_agents.py
-- server/agents/communication.py
-- server/agents/agent_utils.py
+- server/agents/communication.py（通讯与聊天能力）
+- server/agents/agent_utils.py（执行协议与 prompt 装配）
+- 各 Agent 实现文件（如 `agent_lorebook.py`、`agent_showrunner.py`、`agent_scriptwriter.py`，以目录实况为准）
 
 强约束：
 
@@ -124,10 +124,11 @@ SparkArc 现有架构已经有清晰收口层。新增功能必须先判断是�
 
  后端必须更新：
 
- 1. server/agents/registry.py（Agent 元数据）
- 2. server/agents/routes/runtime.py（若涉及信标/号角/锁定策略）
- 3. server/agents/agent_tools.py（统一门面导出）+ server/agents/tools/registry.py（工具分组 / 绑定真相源）
- 4. server/agents/director_graph.py（若需要被 Director 委派）
+  1. server/agents/registry.py（Agent 元数据）
+  2. server/agents/routes/runtime.py（若涉及信标/号角/锁定策略）
+  3. server/agents/agent_tools.py（统一门面导出）+ server/agents/tools/registry.py（工具分组 / 绑定真相源）
+  4. server/agents/director_graph.py（若需要被 Director 委派）
+
 
 ### 4.3 工具扩展必须走工具门面
 
@@ -166,9 +167,9 @@ SparkArc 的每个专家 Agent 必须实现且仅实现三种调用模态，分�
 
 运行态逻辑（禁止绕过）：
 
-- 模式选择收口在 `server/agents/communication.py` 的 `chat_stream()` / `chat()` 里：`skip_tool_confirmation=True` 时优先取 `pipeline_system`；为 `False` 时优先取 `chat_system`；两者都缺才回落到 `system`。
-- 导演委派时 `normalize_handoff_payload` 会强制把 `user_confirmation_state` 提升为 `not_required`，从而保证子 Agent 一定走 `pipeline_system`。
-- 对应测试：`server/test/test_director_skip_confirmation.py`、`server/test/test_director_handoff_protocol.py`。
+- 模式选择收口在 `server/agents/communication.py` 的 `chat_stream()` / `chat()` 里：委派模式（`skip_tool_confirmation=True`）优先取 `pipeline_system`，回落顺序为 `chat_system` → `system`；普通聊天模式优先取 `chat_system`，缺失时回落到 `system`。
+- 导演委派时 `normalize_handoff_payload` 会把 `delegated_by == director` 的交接提升为 `not_required`，从而保证导演委派的子 Agent 走 `pipeline_system`；非导演来源的交接仍走常规确认状态机。
+- 对应回归：`server/test/director/`（委派与免确认策略）与 `server/test/architecture/`（三模态契约）。
 
 **`pipeline_system` 写法硬约束**：
 
@@ -321,7 +322,7 @@ Auto-Write 每个场景 exactly 一次 `run_autonomous_scriptwriter_creation` �
  6. 对应 `SparkAgentExecutor` 的 `build_context` / `execute` / `write_result` 协议完整实现。
  7. `server/agents/tools/*` 中，该 Agent 落盘相关工具（如 `rewrite_xxx`）已按域实现，并在 `server/agents/tools/registry.py` 注册；`server/agents/agent_tools.py` 继续作为唯一公共导出与 `get_tools_for_agent` 门面。
  8. 若希望被导演委派，需在 `server/agents/prompts/director.yaml` 的"专家分工"速查表中列入。
- 9. 新增测试覆盖三模态分别命中，对齐 `server/test/test_director_skip_confirmation.py` 的做法。
+  9. 新增回归覆盖三模态分别命中，放入所属领域目录（导演委派类放入 `server/test/director/`）；只有能抽象为跨模块稳定协议时才可升格进 `server/test/architecture/`。
 
 ## 5. 前端扩展规则
 
@@ -371,7 +372,7 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 
 新增 Agent 时，除了后端注册，还需要检查以下前端映射点是否需要更新：
 
-1. 视图默认 Agent 分配：client/src/components/share/GlobalChatFloat.vue（viewAgentMap）
+1. 视图默认 Agent 分配：client/src/components/chat/GlobalChatFloat.vue（viewAgentMap）
 2. 聊天气泡显示名/颜色/图标：后端 `server/agents/registry.py` 的 `name` / `icon` / `color` 是真相源，前端 `client/src/composables/useAgentRegistry.ts` 只负责读取与兜底。
 3. Agent 流程蓝图布局与默认连线：client/src/components/lorebook/AgentFlowBlueprint.vue
 4. 运行态 mock 数据（如保留）：client/src/components/stores/agentRuntimeStore.ts
@@ -411,10 +412,10 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 
 ## 7. 迁移与数据红线（强制）
 
-数据库结构变更必须遵循：
+数据库结构变更必须遵循（模型定义以 `server/core/models.py` 为主，火柴网关自有模型见 `server/llm/agen_matchbox/models.py`，两者迁移链独立）：
 
-1. 修改模型定义：server/core/models.py
-2. 生成迁移：server/gen_migration.py
+1. 修改模型定义
+2. 生成迁移：`server/gen_migration.py`（多 DB：按 `get_db_spec` / `iter_db_names` 选择目标库，不默认只生成 users 库）
 3. 启动时自动迁移：server/core/auto_migrate.py + server/app.py 生命周期
 
 严禁：
@@ -434,7 +435,7 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 优先做法：
 
 1. 先判断能否作为已有 Agent 的新工具。
-2. 在 agent_tools.py 增加工具 schema + 实现。
+2. schema 与实现按域落在 `server/agents/tools/*`，统一在 `server/agents/tools/registry.py` 注册，再由 `agent_tools.py` 对外导出（禁止直接在门面文件写实现）。
 3. 让 Director 通过 delegate_task 或工具调用触发该能力。
 4. 在 communication/chatStore 保持工具事件可视化一致。
 
@@ -443,7 +444,7 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 优先做法：
 
 1. 在 server/agents/routes 下新增或复用业务路由模块。
-2. 使用 iterate_sync_iterable_in_thread 桥接同步生成器。
+2. 使用 iterate_sync_iterable_in_thread 桥接同步生成器；注意区分 `stop_event`（桥接器收尾停止信号）与 `cancelled_event`（客户端真正断开），保存逻辑以 `cancelled_event` 为准（见 `routes/lorebook.py` / `routes/muse.py` 的双事件模式）。
 3. 统一发送 onXxx 语义帧与 cancelled/error 终态。
 4. 前端通过 createStreamingTask + consumeSSEReader 接入。
 
@@ -457,7 +458,7 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 4. 在聊天与业务流之间混用事件协议，导致消费器耦合。正确方式：聊天流和独立业务流的协议边界隔离，聊天侧统一用 `chatStore` 消费 NDJSON，业务侧由 `streamingRuntime` 的 SSE 读取器消费语义帧。
 5. 在 Agent 内直接写文件路径与 IO 细节，绕过 write_result 统一出口。正确方式：Agent 执行协议必须完整实现 `build_context` -> `execute` -> `write_result` 并统一进行文件落盘。
 6. 为赶进度创建“临时入口”而不接入 registry/director_graph/tools 门面。正确方式：新增 Agent/流程/工具后，必须同步在 `registry.py` 等四大收口点完成注册并走门面导出。
-7. 修改数据模型后不走迁移生成流程。正确方式：修改模型定义后必须通过 `python server/gen_migration.py` 自动派生 Alembic 迁移脚本，由系统启动生命周期自动执行升级。
+7. 修改数据模型后不走迁移生成流程。正确方式：修改模型定义后必须通过 `server/gen_migration.py` 自动派生 Alembic 迁移脚本（多 DB 按目标库生成），由系统启动生命周期自动执行升级。
 8. 把测试运行过程中生成的缓存、索引、向量库、图谱、中间文件、导出结果直接写入被 Git 跟踪的测试目录（如 `server/test/`、`client/**/__tests__/` 或人工维护的 fixture / baseline 目录），导致版本库被运行产物污染。正确方式：测试或调试产生的中间临时产物必须强制写入根目录下的 `/.tmp/`，禁止污染 Git 库。
 9. 在实现临时测试、调试脚本或一次性验证脚本时，默认把脚本或输出放入正式测试目录，验证后又遗留在仓库中。正确方式：临时脚本及其输出统一放入项目根 `/.tmp/tests/<本次任务>/`，验证完成后在当前任务结束前全部删除；值得长期保留的场景应重写为所属领域的正式回归测试。
 10. 自行编写正则表达式或 `.replace()` 方式进行文本的定位和局部替换。正确方式：凡涉及在已有文本中定位并替换的逻辑，必须复用 `server/agents/tools/common.py` 的 `_apply_patch` 统一底层。
@@ -468,7 +469,7 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 
 ## 10. 最小回归测试清单
 
-涉及聊天链路、工具事件、多 Agent 委派、流式语义时，必须执行回归测试。测试文件可能会随架构演进而动态变化，贡献者应遵循以下测试指导原则：
+涉及聊天链路、工具事件、多 Agent 委派、流式语义时，必须执行回归测试。测试文件可能会随架构演进而动态变化，贡献者应遵循以下测试指导原则（本文件只指目录，不点名文件）：
 
 ### 10.0 基础建筑测试（长期护栏）
 
@@ -482,30 +483,13 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 - 测试目标是“统一管线是否仍成立”：Agent 三模态、工具注册真相源、Chat NDJSON 时序、业务流桥接、前端 reader、工具 UI 绑定、公共 patch / chunk / migration 基建。
 - 这类测试应保持低维护成本。新增 Agent 或工具时可以小幅扩展白名单/断言；不得把易变 prompt 文案或真实生成内容写成脆弱快照。
 
-**当前基础建筑测试位置**：
+**当前基础建筑测试位置（只指目录，不点名文件）**：
 
-- 后端：`server/test/architecture/`
-  - `test_agent_prompt_contracts.py`：Agent 三模态、pipeline 受众声明、tool reference 契约。
-  - `test_tool_registry_contracts.py`：工具注册表、工具门面、后端工具 UI 元数据。
-  - `test_chat_stream_contracts.py`：ChatTaskEntry / accumulator / observer / retry 契约。
-  - `test_streaming_bridge_contracts.py`：同步生成器到异步流桥接、业务语义帧。
-  - `test_common_infrastructure_contracts.py`：`_apply_patch`、`TokenTextSplitter`、迁移路径规格。
-  - `test_matchbox_startup_contracts.py`：火柴 Agent 网关启动期懒加载契约。
-- 其他后端业务/功能回归目录：
-  - `server/test/agents/`、`server/test/agent_skills/`：Agent 默认行为与 AgentSkills 功能回归。
-  - `server/test/auth/`、`server/test/projects/`：账号、权限、数据归属与项目生命周期回归。
-  - `server/test/chat/`、`server/test/context_budget/`：聊天功能与上下文预算策略回归。
-  - `server/test/attachments/`：聊天附件切分、超窗清单降级、附件 GC 回归。
-  - `server/test/longread/`：长文档滑窗底座（地图稳定、线索账本、带线索折叠、世界观转滑窗）回归。
-  - `server/test/director/`：导演调度、委派边界、自动写作触发等业务护栏。
-  - `server/test/graphrag/`：知识图谱、语义分块、项目文件收集等检索能力回归。
-  - `server/test/image_generation/`、`server/test/web_search/`：外部能力适配器与供应商配置回归。
-  - `server/test/matchbox/`、`server/test/llm/`：模型配置、模态与兼容网关回归。
-  - `server/test/mcp/`：MCP 服务、工具暴露与工单行为回归。
-  - `server/test/story_context/`：大纲场景契约、生产上下文包、Scriptwriter 交接上下文。
-  - `server/test/story_memory/`：StoryMemory 状态吸收、任务包、显式吸收接口、自动写作记忆回写。
-  - `server/test/style/`：文风档案格式化、风格注入、风格相关生成路径。
-- 说明：`server/test/architecture/` 只放长期契约与基础建筑护栏测试；普通业务回归、页面/接口功能回归或具体 bug 回归必须放入所属领域目录。只为当前任务提供证据的一次性验证属于临时测试，应放入 `/.tmp/tests/` 并用完删除。测试名称里已经出现明确业务对象（如 StoryMemory、GraphRAG、风格、导演委派）时，优先放入对应业务目录，除非它真的在守护全局基础协议。
+- 后端长期护栏：`server/test/architecture/`（守护对象见 `server/test/README.md`“目录边界”一节：三模态与 tool reference、工具注册表与门面、Chat 时序与回放、流式桥接与语义帧、公共 patch / chunk / migration 基建、网关启动期懒加载）。
+- 后端领域回归：`server/test/` 下按业务能力分目录（如 `chat/`、`director/`、`story_memory/`、`longread/`、`mcp/` 等，以目录实况为准）。测试名称里已经出现明确业务对象（如 StoryMemory、GraphRAG、风格、导演委派）时，优先放入对应业务目录，除非它真的在守护全局基础协议。
+- 前端回归：`client/src/utils/__tests__/`、`client/src/components/stores/__tests__/`、`client/src/components/stores/chat/__tests__/` 三个目录（以目录实况为准）。
+- 说明：`server/test/architecture/` 只放长期契约与基础建筑护栏测试；普通业务回归、页面/接口功能回归或具体 bug 回归必须放入所属领域目录。只为当前任务提供证据的一次性验证属于临时测试，应放入 `/.tmp/tests/` 并用完删除。
+- 文件名随重构调整，本文件不点名任何 `test_*.py` / `*.spec.ts` 文件名；确需定位时以 `server/test/README.md` 与目录实况为准。
 
 **测试放置决策（新增测试前必须逐项执行）**：
 
@@ -516,10 +500,6 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 5. 主要断言具体提示词措辞、供应商参数、单个接口结果、README / Dockerfile / 源码字符串或某次补丁实现细节的测试，禁止放入 `architecture/`；应改为行为测试、放入领域目录，或在价值不足时删除。
 6. 文件命名使用 `test_<能力>.py`；不要用 `contracts`、`architecture` 等后缀给普通功能测试伪装层级。测试函数命名应表达“条件 + 预期行为”，不要使用缺陷编号或“临时测试”。
 7. 新增目录或无法判断层级时，先阅读 `server/test/README.md`；评审时必须把测试位置本身作为审查项。
-- 前端：
-  - `client/src/utils/__tests__/streamingRuntime.architecture.spec.ts`
-  - `client/src/components/stores/chat/__tests__/toolUi.architecture.spec.ts`
-  - `client/src/components/stores/__tests__/chatStore.stream.architecture.spec.ts`
 
 ### 10.0.1 临时测试生命周期（强制）
 
@@ -586,50 +566,35 @@ AI 新增或修改测试时必须遵守：
    - 任何涉及流式任务托管、取消、统计的改动，必须回归 `streamingRuntime` 单元测试。
    - 任何涉及全局加载遮罩、聊天气泡渲染的改动，必须回归对应组件的挂载与事件测试。
 
-### 10.2 推荐测试命令（按需裁剪）
-- **后端测试**：进入 `server` 目录，使用 `pytest` 运行 `test/` 目录下对应的测试脚本。例如：
+### 10.2 推荐测试命令（按需裁剪，只指目录不点名文件）
+- **后端测试**：进入 `server` 目录，使用 `pytest` 运行 `test/` 下对应领域目录。例如：
   ```bash
   cd server
   # 运行基础建筑测试（不调用真实大模型或外部鉴权）
   pytest test/architecture
 
   # 运行聊天与工具事件相关测试
-  pytest test/architecture/test_chat_stream_contracts.py test/architecture/test_tool_registry_contracts.py test/chat
+  pytest test/architecture test/chat
   # 运行导演调度与委派协议相关测试
   pytest test/director
   # 运行流式语义相关测试
-  pytest test/architecture/test_streaming_bridge_contracts.py
+  pytest test/architecture
   ```
-- **前端测试**：进入 `client` 目录，使用 `npm run test` 运行对应的 `.spec.ts` 测试。例如：
+- **前端测试**：进入 `client` 目录，使用 `npm run test` 运行对应目录下的 `.spec.ts` 测试。例如：
   ```bash
   cd client
   # 运行基础建筑测试（reader / toolUi / chatStore 最小流消费）
-  npm run test -- src/utils/__tests__/streamingRuntime.architecture.spec.ts src/components/stores/chat/__tests__/toolUi.architecture.spec.ts src/components/stores/__tests__/chatStore.stream.architecture.spec.ts
+  npm run test -- src/utils/__tests__ src/components/stores/chat/__tests__ src/components/stores/__tests__
 
   # 运行 Store 与工具类测试
-  npm run test -- src/components/stores/__tests__/chatStore.spec.ts src/utils/__tests__/streamingRuntime.spec.ts
+  npm run test -- src/components/stores/__tests__ src/utils/__tests__
   # 运行全局 UI 组件测试
-  npm run test -- src/components/share/__tests__/GlobalLoading.spec.ts src/components/share/__tests__/ChatMessageList.spec.ts
+  npm run test -- src/components/share/__tests__
   ```
+- 说明：`server/test/architecture/` 只放长期契约与基础建筑护栏测试；普通业务回归、页面/接口功能回归或具体 bug 回归必须放入所属领域目录。只为当前任务提供证据的一次性验证属于临时测试，应放入 `/.tmp/tests/` 并用完删除。测试名称里已经出现明确业务对象（如 StoryMemory、GraphRAG、风格、导演委派）时，优先放入对应业务目录，除非它真的在守护全局基础协议。
 
 ---
-
-## 11. 提交前自检
-
-提交前请逐项确认：
-
-1. 新能力是否接入了既有统一收口层。
-2. 是否避免了页面层/路由层重复状态机。
-3. 后端与前端的工具 UI 映射是否双端一致。
-4. 数据变更是否遵守迁移流程。
-5. 是否补齐了对应回归测试并确保通过。
-6. 新增临时测试、调试脚本或一次性验证逻辑时，是否将脚本和输出都放入 `/.tmp/tests/<本次任务>/`，并已在汇报完成前全部删除；需要长期保留的场景是否已重写为所属领域的正式测试。
-7. 新增的长耗时物理任务是否显式配备了并发写锁保护，且前端消费重连流时是否遵循了 clientId 校验规约。
-8. 公共服务或工具类是否完全独立，无任何指向路由层的反向依赖。
-
-如果以上任一项答案为“否”，先修正架构再提交。
-
-## 12.AI权限安全红线
+## 11.AI权限安全红线
 【FORBIDDEN】未经用户明确语言要求的情况下，AI助手仅允许使用【只读型】git命令！
 考虑到相当一部分**用户默认开启了自动批准请求**，你必须小心再小心，对于git写入操作不能依赖于自动批准。你要明确用户的主观意图。**禁止把自动批准当成用户的主观行为**。
 严禁执行任何git的提交、推送或者其他可能导致写入的行为！！！

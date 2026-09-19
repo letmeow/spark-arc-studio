@@ -226,11 +226,6 @@ SparkArc 与编程 Agent 的差异在于：代码 Agent 更强调文件、命令
 
 ## 11. 测试护栏
 
-相关测试全部离线，不得调用真实模型或第三方 API：
-
-- `server/test/architecture/test_chat_context_checkpoint_contracts.py`
-- `server/test/architecture/test_chat_stream_contracts.py`
-- `server/test/architecture/test_tool_registry_contracts.py`
-- `client/src/components/stores/__tests__/chatStore.stream.architecture.spec.ts`
+相关测试全部离线，不得调用真实模型或第三方 API，位置见 `server/test/architecture/`（聊天时序与回放契约）与前端 `chatStore` 所在 `__tests__/` 目录（以目录实况为准，本文件不点名具体文件名）：
 
 必须覆盖：自动触发、实时 started 事件、失败不丢历史、短窗口不可重试、成功后落盘、房间隔离、编辑失效、正则超时、前端动画与本地化错误。

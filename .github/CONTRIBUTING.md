@@ -170,7 +170,7 @@ python -m pytest test/architecture
 
 ```bash
 cd client
-npm run test -- src/utils/__tests__/streamingRuntime.architecture.spec.ts src/components/stores/chat/__tests__/toolUi.architecture.spec.ts src/components/stores/__tests__/chatStore.stream.architecture.spec.ts
+npm run test -- src/utils/__tests__ src/components/stores/chat/__tests__ src/components/stores/__tests__
 ```
 
 ### Frontend baseline
