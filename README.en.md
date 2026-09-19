@@ -4,7 +4,7 @@
 
 > 📢 **Support & Star**: If this project inspires or helps you, please give us a **Star** (bookmark the project to avoid losing it) and **Watch** (select Custom -> Releases to subscribe to new version updates). As an independent open-source project, every Star and Watch significantly increases our visibility in the community, which is crucial for the continuous iteration and long-term development of the project. Thank you very much for your support!
 > 
-> 🤝 **Co-Authors**: Special thanks to [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) for his dedication to design and publicity. Without these key works, this project would not have been released. This project is iterated and managed in the community by [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai), and [<img src="https://github.com/1deaaa.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @1deaaa](https://github.com/1deaaa) will continue to provide technical support.
+> 🤝 **Co-Authors**: Thanks to [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) for his work on publicity. Without these key contributions, this project could never have been released.
 
 **SparkArc Studio** is a creative platform driven by an autonomous agent cluster. It is designed to expand a spark of inspiration into a complete story world through a professional creative pipeline, author novels and scripts, and drive exquisite web performances or Unity engine shows.
 It connects the entire chain of **Inspiration — Lore/Settings — Beat Sheet — Outline — Writing — Validation — Publishing — Sharing — Performance**, providing a powerful set of productivity tools for creators.
@@ -92,7 +92,7 @@ The architecture of SparkArc is designed strictly according to the standard work
 | **2. Lore / Setting** | Story Bible / World Guide | **Lorebook Expert** | Establish physical laws, magic systems, geopolitics, and core character bios to ensure subsequent logical consistency. |
 | **3. Beat / Structure** | Beat Sheet / Treatment | **Showrunner** | "Save the Cat!" or "Hero's Journey"? Establish the story skeleton at this stage, divide the act structure, and generate precise beat sheets. |
 | **4. Writing** | Screenplay / Script | **Scriptwriter** | The final "pen". Fills flesh into the structural framework, handling scene descriptions, action directions, and character dialogue. Supports dual-mode output: `.arc` interactive script and pure novel format. |
-| **5. Quality Assurance** | Script Doctor / Coverage | **Critic & Style Cloning** | Critic simulates a harsh editor to provide professional feedback on conflicts or plot holes; Style Cloning eliminates AI-flavor high-frequency words through target style constraints. The GraphRAG fact constraint tool is production-ready and can be enabled as a canary rollout to enhance cross-chapter consistency. |
+| **5. Quality Assurance** | Script Doctor / Coverage | **Critic & Style Cloning** | Critic simulates a harsh editor to provide professional feedback on conflicts or plot holes; Style Cloning eliminates AI-flavor high-frequency words through target style constraints. GraphRAG provides read-only graph queries (`query` / `status`), routed together with semantic search and the Story Memory Pool by question complexity to strengthen cross-chapter causal and long-term structural consistency. |
 | **6. Publishing / Show** | Implementation / Assets | **Web Show / Unity SDK** | Script assetization. Compiles the script into a high-performance runtime to drive in-game dialogue systems, performance scheduling, and quest triggers. |
 
 ## Creator's One-Map Workflow
@@ -335,7 +335,7 @@ Description:
 * You can also save the Turnstile configuration directly in the Admin Panel. The backend writes this into the runtime `.env` in the server's persisted data directory, which won't be lost after Docker rebuilds.
 * `SPARKARC_TURNSTILE_SECRET_KEY` is the private key used only on the backend and will not be returned to the frontend.
 * **If site key or secret key is not configured, registration verification is disabled by default**, which won't affect self-deployed developers registering for the first time.
-* If you want to switch to other verification platforms like Google or Tencent Cloud later, keep the registration routes unchanged and extend the provider in [verification.py](file:///d:/Desktop/sparkarc/server/core/verification.py).
+* If you want to switch to other verification platforms like Google or Tencent Cloud later, keep the registration routes unchanged and extend the provider in [verification.py](server/core/verification.py).
 
 ### How to Access Self-Deployed Instances: Browser & Client
 
@@ -367,7 +367,7 @@ After signing in, open **MCP Connection Service** from the desktop dashboard or 
 
 SparkArc does not rely on a single large model, but builds an agent cluster with clear division of labor. Each Agent has its own independent persona, prompt engineering, and model configuration.
 
-> 💡 **Internationalization**: The Agent registry ([registry.py](file:///d:/Desktop/sparkarc/server/agents/registry.py)) natively supports four languages: `zh-CN` / `en-US` / `ja-JP` / `ko-KR`. The frontend uses i18n mapping, and the backend extracts the corresponding fields via `resolve_agent_i18n_field()` based on the request locale. Adding a new language only requires adding a set of translations in each Agent entry.
+> 💡 **Internationalization**: The Agent registry ([registry.py](server/agents/registry.py)) natively supports four languages: `zh-CN` / `en-US` / `ja-JP` / `ko-KR`. The frontend uses i18n mapping, and the backend extracts the corresponding fields via `resolve_agent_i18n_field()` based on the request locale. Adding a new language only requires adding a set of translations in each Agent entry.
 
 #### A. Dispatcher
 
@@ -396,16 +396,16 @@ SparkArc does not rely on a single large model, but builds an agent cluster with
   * **Work Mode**: Can operate either through natural language dialog in the chat panel, or be triggered manually as a structured review in the right panel of the ScriptWriter.
   * **Output Protocol**: Uses a five-grade system of **S / A / B / C / D** instead of numeric scores; simultaneously outputs original text evidence, hit issues, and `fix_ticket` style modification orders to facilitate subsequent revisions.
   * **Model Strategy**: Prioritizes leveraging the discriminative and attribution capabilities of large models, treating them as an **LLM Judge / Editor** rather than training a proprietary classifier that only gives probability scores.
-* **GraphRAG Tool (Fact Constraint, Optional Canary)**:
-  * **Responsibility**: Converts the world view, characters, outlines, and script fragments in the project into a searchable relationship graph, returning actionable fact constraints during writing or review.
-  * **Current State**: Operational, but **no Agent is bound by default**. It can be enabled gradually. Once enabled, graph building is fixed on the Fast slot, and query-phase configurations follow the calling Agent's model configuration.
+* **GraphRAG Tool (Read-Only Graph Queries)**:
+  * **Responsibility**: Converts the world view, characters, outlines, and script fragments in the project into a searchable relationship graph, returning actionable fact constraints and source evidence during writing or review.
+  * **Current State**: The Agent-facing side keeps only the read-only `query` / `status` operations; graph building and rebuilding are triggered manually from Settings. It ships bound to Director / Scriptwriter / Critic / Showrunner (continuity toolset). Simple factual questions prefer semantic search, recent-state questions prefer the Story Memory Pool, and only cross-chapter causality, relationship evolution, knowledge boundaries, and long-term threads enter GraphRAG.
   * **Quality Value**: Focuses on enhancing cross-chapter consistency, character relationship stability, and setting retrieval capability, reducing "retconning" (eating settings) in long narratives.
 
 #### Critic Review Mechanism
 
 The Critic does not answer "is this written by AI?", but rather "**where in this text will the reader feel like a model is completing a task**". It outputs `S/A/B/C/D` grades + source text evidence + `fix_ticket` revision sheets, and by default, does not modify the text directly, preserving the creator's autonomy.
 
-> 📗 For the complete four core mechanisms and the rationale for using LLM over ML models, please refer to [Architecture Document §6](file:///d:/Desktop/sparkarc/docs/project/architecture.md#6-critic-审核机制完整版).
+> 📗 For the complete four core mechanisms and the rationale for using LLM over ML models, please refer to [Architecture Document §6](docs/project/architecture.md#6-critic-审核机制完整版).
 
 #### Collaborative Data Flow
 
@@ -432,8 +432,8 @@ graph TD
     
     subgraph "Phase 3: Script Realization"
         Outline -.-> Scriptwriter[Scriptwriter Agent]
-        Scriptwriter -. "Optional Canary" .-> GraphRAG[GraphRAG Fact Constraint Tool]
-        GraphRAG --> FactGuard[Fact Constraint List]
+        Scriptwriter -. "Read-Only Query" .-> GraphRAG[GraphRAG Read-Only Graph Queries]
+        GraphRAG --> FactGuard[Fact Constraints & Evidence Pack]
         
         Scriptwriter -- "Write Draft" --> Draft[.arc / Novel Draft]
         Draft --> Critic[Critic Agent]
@@ -459,7 +459,7 @@ Each expert Agent's prompt strictly distinguishes three calling modes, carried b
 | **User Interaction** | `chat_system` | Natural conversation, open-ended, format not forced. |
 | **Director Delegation** | `pipeline_system` | Strictly structured + tool saving + briefing the Director. |
 
-> 📗 For complete runtime logic, `pipeline_system` writing constraints, tool reference mechanisms, and new Agent self-checklists, please refer to [Architecture Document §2](file:///d:/Desktop/sparkarc/docs/project/architecture.md#2-agent-三模态调用协议完整版) and [AGENTS.md §4.5](file:///d:/Desktop/sparkarc/AGENTS.md).
+> 📗 For complete runtime logic, `pipeline_system` writing constraints, tool reference mechanisms, and new Agent self-checklists, please refer to [Architecture Document §2](docs/project/architecture.md#2-agent-三模态调用协议完整版) and [AGENTS.md §4.5](AGENTS.md).
 
 #### Style Cloning Cluster
 
@@ -500,7 +500,7 @@ graph TD
     end
 ```
 
-> 📗 For full descriptions of serial analysis details and negative constraint mechanisms, please refer to [Architecture Document §7](file:///d:/Desktop/sparkarc/docs/project/architecture.md#7-风格克隆集群完整版).
+> 📗 For full descriptions of serial analysis details and negative constraint mechanisms, please refer to [Architecture Document §7](docs/project/architecture.md#7-风格克隆集群完整版).
 
 ---
 
@@ -531,11 +531,11 @@ This is **persisted short-term chat context**, not a cross-project user profile 
 * **Context Concatenation**: `communication.py` constructs the stable system prefix, `prompt_layout.py` puts the current editing area, attachment scene, and the current user request into the back segment, and `context_budget.py` handles historical budgets, compression, and tool loop re-budgeting.
 * **Unified Execution Protocol**: Typical expert Agents reuse `SparkBaseAgent` and `SparkAgentExecutor`, using `build_context -> execute -> write_result` to unify business entries; chat and director delegations go through `chat_stream(skip_tool_confirmation)`.
 * **Long-Context Handling**: Long documents that exceed a single model window (attachments, oversized worldviews) go through a unified sliding-window base — chunked persistence + global map + dual-retrieval locating (both semantic and regex search accept `scope=["attachment"]` to scope to attachments and jump straight to chunks) + on-demand window reading + clue ledger (read one window, note one entry, persisted across turns). The model only ever sees "map + ledger + one current window"; rooms without attachments are unaffected. See [Long-Context Handling](docs/project/long-context.zh-CN.md) and [Threshold Reference](docs/project/longread-thresholds.zh-CN.md).
-* **Unified Tool Ecosystem**: All tools are grouped and registered in [registry.py](file:///d:/Desktop/sparkarc/server/agents/tools/registry.py) and exported through `agent_tools.py` as a public facade. Local replacements of scripts, outlines, and settings all reuse `_apply_patch`; token splitting and semantic chunking also reuse the public base.
+* **Unified Tool Ecosystem**: All tools are grouped and registered in [registry.py](server/agents/tools/registry.py) and exported through `agent_tools.py` as a public facade. Local replacements of scripts, outlines, and settings all reuse `_apply_patch`; token splitting and semantic chunking also reuse the public base.
 * **AgentSkills & MCP**: AgentSkills are read on demand through `search_skills` / `read_skill` / `read_skill_reference` and do not automatically pollute the system prefix. MCP is unified at `/api/mcp/`: inspiration tools keep their original names, while control tools use the `control_` prefix. `/api/mcp/control/` remains only as a compatibility endpoint for existing clients; writes still run through the existing Agent tool pipeline.
-* **Frontend Mapping**: Agent names, descriptions, icons, and theme colors use [registry.py](file:///d:/Desktop/sparkarc/server/agents/registry.py) as the source of truth; tool-calling UI metadata is injected by the backend's `build_tool_stream_event` and consumed and rendered uniformly by the frontend's `chatStore`.
+* **Frontend Mapping**: Agent names, descriptions, icons, and theme colors use [registry.py](server/agents/registry.py) as the source of truth; tool-calling UI metadata is injected by the backend's `build_tool_stream_event` and consumed and rendered uniformly by the frontend's `chatStore`.
 
-> 📗 For more complete details on context structure, cache hit displays, Agent responsibility tables, AgentSkills/MCP boundaries, and tool registration, please refer to [Architecture Document §2-§3](file:///d:/Desktop/sparkarc/docs/project/architecture.md#2-agent-统一调用管线).
+> 📗 For more complete details on context structure, cache hit displays, Agent responsibility tables, AgentSkills/MCP boundaries, and tool registration, please refer to [Architecture Document §2-§3](docs/project/architecture.md#2-agent-统一调用管线).
 
 ### 3. Beacon Bus Communication Mechanism
 
@@ -574,7 +574,7 @@ graph TB
     AgentB -- No Horn: Cannot initiate --x Bus
 ```
 
-> 📗 For complete triad definitions and application scenarios, please refer to [Architecture Document §8](file:///d:/Desktop/sparkarc/docs/project/architecture.md#8-信标总线核心机制完整版).
+> 📗 For complete triad definitions and application scenarios, please refer to [Architecture Document §8](docs/project/architecture.md#8-信标总线核心机制完整版).
 
 #### Director Orchestration vs Beacon Collaboration (Vertical & Horizontal Collaboration)
 
@@ -582,7 +582,7 @@ SparkArc contains **two independent communication mechanisms with different resp
 * **Director Orchestration** (Vertical): The Director autonomously dispatches tasks based on LangGraph multi-turn tool calling. It is not limited by beacons and can directly instantiate and call Agents.
 * **Beacon Collaboration** (Horizontal): Autonomous communication between Agents is constrained by beacons, horns, and batons to prevent broadcast storms and infinite loops.
 
-> 📗 For comparison tables, interaction mode diagrams, and design rationales, please refer to [Architecture Document §1](file:///d:/Desktop/sparkarc/docs/project/architecture.md#1-导演调度-vs-信标协作双系统对比).
+> 📗 For comparison tables, interaction mode diagrams, and design rationales, please refer to [Architecture Document §1](docs/project/architecture.md#1-导演调度-vs-信标协作双系统对比).
 
 ---
 
@@ -626,7 +626,7 @@ Grandpa... Candy...
 This format is eventually compiled into a high-performance, zero-error database to drive performances.
 By default, we do not give AI the permission to write function nodes, ensuring AI focuses on creation. **Once model capabilities improve, we will gradually open this up.**
 
-> 📗 For parsing strategy details, please refer to [Architecture Document §9](file:///d:/Desktop/sparkarc/docs/project/architecture.md#9-arc-格式解析策略).
+> 📗 For parsing strategy details, please refer to [Architecture Document §9](docs/project/architecture.md#9-arc-格式解析策略).
 
 ### Story Memory Pool
 
@@ -665,7 +665,7 @@ Core Capabilities:
 * **Precise Token Estimation**: Based on `tiktoken` + dynamic CJK correction coefficients, ensuring billing accuracy.
 * **Multi-Purpose Slots**: Fast / Reason / Main, routing models based on task complexity.
 
-> 📗 For complete documentation on the dual-channel design, access links, slot configurations, and reasoning stream compatibility, please refer to the [Matchbox Agent Gateway Guide](file:///d:/Desktop/sparkarc/server/llm/agen_matchbox/README.md).
+> 📗 For complete documentation on the dual-channel design, access links, slot configurations, and reasoning stream compatibility, please refer to the [Matchbox Agent Gateway Guide](server/llm/agen_matchbox/README.md).
 
 ### 2. Database Management & Auto-Migration
 
@@ -696,7 +696,7 @@ Please copy out the models defining the table structures and the erroneous datab
 6. **Legacy Version Self-Healing**: When the migration chain is broken, it conservatively patches missing tables/columns and aligns version numbers, defaulting not to delete extra structures.
 7. **Version Drift Protection**: Throws errors when the version number is already head but fields are missing, preventing silent swallowing of migrations that should be submitted.
 
-> 📗 For the developer workflow, migration integration guide, and instructions for clearing historical risks, please refer to the [Database Auto-Migration Guide](file:///d:/Desktop/sparkarc/docs/project/database-migration.md).
+> 📗 For the developer workflow, migration integration guide, and instructions for clearing historical risks, please refer to the [Database Auto-Migration Guide](docs/project/database-migration.md).
 
 ### 3. Multi-Tenant SaaS
 
@@ -736,7 +736,7 @@ SparkArc has a built-in CI/CD pipeline, supporting **fully automated image build
 It supports Gitea Actions and GitLab CI, and Gitea Actions workflows can be migrated to GitHub Actions at low cost.
 Pipeline Stages: **Checkout Code → Build Image → Test (Reserved) → Deploy → Cleanup**
 
-> 📗 For complete Runner configurations, CI Secrets, and GitHub Actions migration instructions, please refer to the [CI/CD Automated Deployment Guide](file:///d:/Desktop/sparkarc/docs/project/cicd-deployment.md).
+> 📗 For complete Runner configurations, CI Secrets, and GitHub Actions migration instructions, please refer to the [CI/CD Automated Deployment Guide](docs/project/cicd-deployment.md).
 
 ---
 
@@ -759,7 +759,7 @@ To achieve a seamless **five-minute subway** experience, SparkArc uses a decoupl
 
 ### Tauri 2 Cross-Platform Builds
 
-The frontend is integrated with Tauri 2. For the complete "idiot-proof" build guide for Windows / Linux / macOS / Android / iOS, please see [doc/tauri/tauri2-all.md](file:///d:/Desktop/sparkarc/doc/tauri/tauri2-all.md).
+The frontend is integrated with Tauri 2. For the complete "idiot-proof" build guide for Windows / Linux / macOS / Android / iOS, please see [docs/tauri/tauri2-all.md](docs/tauri/tauri2-all.md).
 
 Quick Release Guide (enter project root directory, then `cd client`):
 1. Install dependencies: `npm install`
@@ -805,8 +805,8 @@ Frontend Contribution Specification: Avoid hardcoding user-visible text; use Vue
 ## Repository Guide
 
 * Main Contribution Guide: `.github/CONTRIBUTING.md` (English)
-* Agent Constraints & Architectural Specifications: [AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md)
-* Agent Language Policy & Development Specifications: [AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md)
+* Agent Constraints & Architectural Specifications: [AGENTS.md](AGENTS.md)
+* Agent Language Policy & Development Specifications: [AGENTS.md](AGENTS.md)
 
 ---
 
@@ -814,32 +814,36 @@ Frontend Contribution Specification: Avoid hardcoding user-visible text; use Vue
 
 | Document | Content |
 | :--- | :--- |
-| [Architecture Deep Dive](file:///d:/Desktop/sparkarc/docs/project/architecture.md) | Director Orchestration vs Beacon Collaboration, Agent Three-Mode Protocol, Critic Review Mechanism, Style Cloning Sub-Cluster, Beacon Bus, ARC Parsing Strategy, Tool Registry, Streaming Infrastructure. |
+| [Architecture Deep Dive](docs/project/architecture.md) | Director Orchestration vs Beacon Collaboration, Agent Three-Mode Protocol, Critic Review Mechanism, Style Cloning Sub-Cluster, Beacon Bus, ARC Parsing Strategy, Tool Registry, Streaming Infrastructure, stable-prefix contract, frontend recovery contract, MCP mount order. |
 | [Chat Context Management](docs/project/context-management.zh-CN.md) | Adaptive budgets, automatic compaction, original-history persistence, checkpoint transactions, on-demand retrieval, and the StoryMemory boundary. |
 | [Long-Context Handling](docs/project/long-context.zh-CN.md) | Sliding-window base for attachments and oversized worldviews: chunked persistence, global map, dual-retrieval locating, on-demand window reading, clue ledger, prefix-cache layout. |
 | [Sliding-Window Thresholds](docs/project/longread-thresholds.zh-CN.md) | Definition sites, defaults, and scopes of all long-text thresholds. |
-| [Matchbox Agent Gateway Guide](file:///d:/Desktop/sparkarc/server/llm/agen_matchbox/README.md) | Dual-channel design, access links, slot configurations, reasoning stream compatibility. |
-| [Database Auto-Migration Guide](file:///d:/Desktop/sparkarc/docs/project/database-migration.md) | Developer workflow, migration integration, historical risk cleanup. |
-| [CI/CD Deployment Guide](file:///d:/Desktop/sparkarc/docs/project/cicd-deployment.md) | Runner configurations, CI Secrets, GitHub Actions migration. |
-| [AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md) | Agent development specifications, new Agent self-checklists, prompt protocols. |
+| [Narrative GraphRAG Positioning & Roadmap (2026, Chinese)](docs/project/narrative-graphrag-optimization-2026.zh-CN.md) | GraphRAG scope, read-only runtime, hybrid recall with query routing, narrative-graph upgrade and incremental build roadmap. |
+| [Context Compaction Comparison (Chinese)](docs/project/context-compaction-comparison.zh-CN.md) | Source-level comparison of context compaction strategies across Codex, OpenCode, and SparkArc. |
+| [Client Runtime Update Strategy (Chinese)](docs/project/client-runtime-update-strategy.zh-CN.md) | Independent frontend releases and shell upgrade strategy for browser and Tauri clients. |
+| [Local Deployment Manager (Chinese)](docs/project/local-deployment-manager.zh-CN.md) | Release Launcher managed `main`, system Git/Node boundaries, network fallback, data protection, and update flow. |
+| [Matchbox Agent Gateway Guide](server/llm/agen_matchbox/README.md) | Dual-channel design, access links, slot configurations, reasoning stream compatibility. |
+| [Database Auto-Migration Guide](docs/project/database-migration.md) | Developer workflow, migration integration, historical risk cleanup. |
+| [CI/CD Deployment Guide](docs/project/cicd-deployment.md) | Runner configurations, CI Secrets, GitHub Actions migration. |
+| [AGENTS.md](AGENTS.md) | Agent development specifications, new Agent self-checklists, prompt protocols. |
 | [Semantic Search Engine](#4-semantic-search-engine) | Dual-mode retrieval, project-level toggles, lazy builds + hash increments, LanceDB vector storage. |
-| [LEGAL/README.md](file:///d:/Desktop/sparkarc/LEGAL/README.md) | Unified entry for legal and operational policies. |
+| [LEGAL/README.md](LEGAL/README.md) | Unified entry for legal and operational policies. |
 
 ---
 
 ## Legal & Operational Policies
 
-To facilitate explanations regarding official instances, third-party deployments, content governance, privacy handling, and intellectual property boundaries, a new [`LEGAL/README.md`](file:///d:/Desktop/sparkarc/LEGAL/README.md) has been added to the repository root directory as a unified entry point.
+To facilitate explanations regarding official instances, third-party deployments, content governance, privacy handling, and intellectual property boundaries, a new [`LEGAL/README.md`](LEGAL/README.md) has been added to the repository root directory as a unified entry point.
 
 Current Chinese legal and operational documents include:
-* [`LEGAL/LicensePolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/LicensePolicy.zh-CN.md)
-* [`LEGAL/TrademarkPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/TrademarkPolicy.zh-CN.md)
-* [`LEGAL/TermsOfService.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/TermsOfService.zh-CN.md)
-* [`LEGAL/PrivacyPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/PrivacyPolicy.zh-CN.md)
-* [`LEGAL/OfficialInstancePolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/OfficialInstancePolicy.zh-CN.md)
-* [`LEGAL/ThirdPartyOperatorNotice.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/ThirdPartyOperatorNotice.zh-CN.md)
-* [`LEGAL/ContentPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/ContentPolicy.zh-CN.md)
-* [`LEGAL/EvidenceAndIPCompliance.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/EvidenceAndIPCompliance.zh-CN.md)
+* [`LEGAL/LicensePolicy.zh-CN.md`](LEGAL/LicensePolicy.zh-CN.md)
+* [`LEGAL/TrademarkPolicy.zh-CN.md`](LEGAL/TrademarkPolicy.zh-CN.md)
+* [`LEGAL/TermsOfService.zh-CN.md`](LEGAL/TermsOfService.zh-CN.md)
+* [`LEGAL/PrivacyPolicy.zh-CN.md`](LEGAL/PrivacyPolicy.zh-CN.md)
+* [`LEGAL/OfficialInstancePolicy.zh-CN.md`](LEGAL/OfficialInstancePolicy.zh-CN.md)
+* [`LEGAL/ThirdPartyOperatorNotice.zh-CN.md`](LEGAL/ThirdPartyOperatorNotice.zh-CN.md)
+* [`LEGAL/ContentPolicy.zh-CN.md`](LEGAL/ContentPolicy.zh-CN.md)
+* [`LEGAL/EvidenceAndIPCompliance.zh-CN.md`](LEGAL/EvidenceAndIPCompliance.zh-CN.md)
 
 Description:
 * Repository-level legal documents are used for public evidence, site reuse, and third-party deployment references.

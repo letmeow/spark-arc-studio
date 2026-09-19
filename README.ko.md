@@ -4,7 +4,7 @@
 
 > 📢 **지원 및 스타(Star) 요청**: 본 프로젝트가 창작 활동에 영감을 주거나 도움이 되었다면, 화면 우측 상단의 **Star**(프로젝트 즐겨찾기 추가로 잊지 않고 다시 찾기)와 **Watch**(Custom -> Releases를 선택하여 신규 버전 업데이트 구독)를 부탁드립니다! 독립적인 오픈소스 프로젝트로서, 여러분이 눌러주시는 Star와 Watch 하나하나가 커뮤니티 내 노출도를 높이고, 프로젝트의 지속적인 개선과 장기적인 발전에 매우 중요한 원동력이 됩니다. 아낌없는 성원에 감사드립니다!
 > 
-> 🤝 **공동 저자**: 디자인 및 홍보 측면에서 헌신해 주신 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 님께 특별한 감사를 드립니다. 이러한 핵심 기여가 없었다면 본 프로젝트는 세상에 나올 수 없었을 것입니다. 본 프로젝트의 지속적인 업데이트와 커뮤니티 관리는 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 님이 주도하며, [<img src="https://github.com/1deaaa.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @1deaaa](https://github.com/1deaaa) 님 역시 기술 지원을 지속적으로 제공할 예정입니다.
+> 🤝 **공동 저자**: 홍보 분야의 헌신에 대해 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 님께 감사드립니다. 이러한 핵심 기여가 없었다면 본 프로젝트는 세상에 나올 수 없었을 것입니다.
 
 **SparkArc Studio**는 자율형 멀티 에이전트(Agent) 그룹이 구동하는 창작 플랫폼입니다. 전문적인 창작 파이프라인을 통해 한 줄기 영감의 불씨를 온전한 스토리 세계관으로 확장하고, 소설이나 시나리오를 집필하며, 나아가 미려한 웹(WEB) 연출 및 Unity 엔진 연출 제어까지 일련의 과정을 유기적으로 연결하도록 설계되었습니다.
 이 플랫폼은 **영감 → 설정 → 템포(비트) → 프로트 대강(아웃라인) → 집필 → 검증 → 배포 → 공유 → 연출**에 이르는 모든 라이프사이클을 관통하여 창작자에게 강력한 생산성 도구 세트를 제공합니다.
@@ -92,7 +92,7 @@ SparkArc의 아키텍처는 문학, 게임, 영화·영상 업계의 표준적�
 | **2. 세계관·설정** | 설정 자료집 (Story Bible) | **설정 전문가** | 물리 법칙, 마법 체계, 지리·정치적 배경 및 캐릭터 상세 프로필을 확립하여 이후 창작 단계에서의 논리적 일관성을 담보합니다. |
 | **3. 구성·템포** | 비트 시트 / 트리트먼트 | **쇼러너** | 「고양이 구하기」나 「영웅의 여정」 중 어느 쪽을 따를 것인가? 이 단계에서 이야기의 뼈대를 결정하고 막(아웃라인)을 분할하여 상세한 비트 시트를 생성합니다. |
 | **4. 집필** | 시나리오 / 스크립트 | **시나리오 라이터** | 최종적인 '필체'입니다. 구성의 프레임워크에 살을 붙여 씬 묘사, 액션 지시, 캐릭터 대사를 처리합니다. `.arc` 인터랙티브 스크립트 형식과 소설 형식 양측 모두로 출력을 지원합니다. |
-| **5. 품질 보증** | 시나리오 닥터 / 감수 | **로직 감사역 ＆ 문체 클론** | 로직 감사역은 까다로운 편집자처럼 작동하여 모순점이나 프로트의 구멍에 대한 피드백을 제공합니다. 문체 클론은 목표 문체 제약을 통해 AI 특유의 정형화된 단어 사용을 배제합니다. GraphRAG 사실 제약 도구는 프로덕션 환경에 바로 사용 가능하며, 크로스 챕터의 일관성을 높이기 위해 카나리 형태로 활성화할 수 있습니다. |
+| **5. 품질 보증** | 시나리오 닥터 / 감수 | **로직 감사역 ＆ 문체 클론** | 로직 감사역은 까다로운 편집자처럼 작동하여 모순점이나 프로트의 구멍에 대한 피드백을 제공합니다. 문체 클론은 목표 문체 제약을 통해 AI 특유의 정형화된 단어 사용을 배제합니다. GraphRAG는 읽기 전용 그래프 조회 기능(`query` / `status`)으로, 시맨틱 검색·작품 메모리 풀과 질문 복잡도에 따라 라우팅되어 크로스 챕터 인과 및 장기 구조 일관성을 높입니다. |
 | **6. 배포·연출** | 구현 / 아셋화 | **웹 연출 / Unity SDK** | 시나리오의 아셋화. 스크립트를 경량 런타임용 데이터베이스로 컴파일하여 게임 내 대화 시스템, 연출 제어, 퀘스트 플래그 처리 등을 구동합니다. |
 
 ## 크리에이터의 원맵 워크플로우
@@ -335,7 +335,7 @@ SPARKARC_TURNSTILE_SECRET_KEY=발급받은 Turnstile Secret Key
 * 관리자 콘솔 화면에서 직접 Turnstile의 환경 설정을 기입할 수도 있습니다. 이 데이터는 백엔드가 영속 보관하는 데이터 디렉토리 속의 `.env` 파일에 기록되어 Docker 컨테이너 재생성 시에도 정보가 보존됩니다.
 * `SPARKARC_TURNSTILE_SECRET_KEY`는 서버 내에서만 사용되는 비밀키로, 화면으로 유출되지 않습니다.
 * **이 값들이 선언되지 않은 환경에서는 회원가입 인증 프로세스가 무력화(비활성화) 상태로 기본 설정**되므로, 개인 배포 환경에서 초기 관리자 계정을 만들 때는 이 기능의 부재로 인한 제약을 받지 않습니다.
-* 추후 Google reCAPTCHA나 텐센트 클라우드 등의 타 보안 인증 플랫폼으로 이식을 원하시는 경우 가입 라우터 구조는 유지한 상태로 [verification.py](file:///d:/Desktop/sparkarc/server/core/verification.py)의 검증 프로바이더 부분만 확장 선언해 주시면 됩니다.
+* 추후 Google reCAPTCHA나 텐센트 클라우드 등의 타 보안 인증 플랫폼으로 이식을 원하시는 경우 가입 라우터 구조는 유지한 상태로 [verification.py](server/core/verification.py)의 검증 프로바이더 부분만 확장 선언해 주시면 됩니다.
 
 ### 독립적 배포 시 접근 방법: 브라우저와 클라이언트
 
@@ -367,7 +367,7 @@ GitHub Releases의 데스크톱 클라이언트는 먼저 로컬 백엔드(`6688
 
 SparkArc는 한 개 모델의 성능에 기대는 구조가 아닌, 명확한 임무 중심의 멀티 에이전트 집단을 형성해 문제를 처리합니다. 각 에이전트는 독립된 페르소나 설정, 프롬프트 엔지니어링 규칙, 전용 모델 할당 정보를 가집니다.
 
-> 💡 **다국어 대응 (i18n)**: 에이전트 등록 관리 테이블([registry.py](file:///d:/Desktop/sparkarc/server/agents/registry.py))은 `zh-CN` / `en-US` / `ja-JP` / `ko-KR` 4개 언어를 기본적으로 지원합니다. 화면은 i18n 번역 맵을 사용하고, 백엔드는 접속자의 로케일(Locale) 요청에 부합되게 `resolve_agent_i18n_field()` 함수를 대조 추출하여 응답합니다. 새로운 국가 언어를 추가하려면 단지 각 에이전트 정의 줄에 번역 묶음을 더해 주면 동작합니다.
+> 💡 **다국어 대응 (i18n)**: 에이전트 등록 관리 테이블([registry.py](server/agents/registry.py))은 `zh-CN` / `en-US` / `ja-JP` / `ko-KR` 4개 언어를 기본적으로 지원합니다. 화면은 i18n 번역 맵을 사용하고, 백엔드는 접속자의 로케일(Locale) 요청에 부합되게 `resolve_agent_i18n_field()` 함수를 대조 추출하여 응답합니다. 새로운 국가 언어를 추가하려면 단지 각 에이전트 정의 줄에 번역 묶음을 더해 주면 동작합니다.
 
 #### A. 조율 및 분배자
 
@@ -396,16 +396,16 @@ SparkArc는 한 개 모델의 성능에 기대는 구조가 아닌, 명확한 �
   * **작동 형태**: 채팅 탭에서의 자연어 문답을 기본 지원하는 동시에, 시나리오 에디터 우측 전용 패널을 눌러 구조화된 정밀 서면 비평을 받아볼 수도 있습니다.
   * **결과 포맷**: 단순 숫자 점수가 아닌 **S / A / B / C / D** 5단계 등급 평가 체계를 고수합니다. 문제가 감지된 원문 근거 목록, 구체적 충돌 사항, 그리고 후속 수정을 돕기 위한 수정 지령서 `fix_ticket`을 동시에 내려주어 수월한 퇴고를 돕습니다.
   * **모델 할당 전략**: 모델의 논리 판정 및 근거 귀인 능력을 적극 활용하도록 구성되어, 기계 학습 분류기처럼 동작하지 않고 오직 **LLM Judge / Editor** 형태로 성능을 극대화합니다.
-* **GraphRAG Tool** (사실 제약, 선택적 카나리 기능):
-  * **임무**: 현재 프로젝트 내부의 세계관 문서, 인물 설정집, 아웃라인 및 작성된 스크립트 본문 조각들을 서로 연결된 관계 그래프망으로 정교화하여, 집필 및 교정 시점의 모델에 실시간 사실적 제약 규칙들을 내려보냅니다.
-  * **현 상태**: 완벽히 연동되나 **사용의 안전성을 위해 기본 설정상 어떤 에이전트에게도 바인딩되지 않은 채 제공됩니다**. 원하시는 경우 개별 활성화가 가능하며, 사용 시 인덱싱은 Fast 영역으로 가동되고 탐색은 해당 시점 에이전트의 모델 구성을 추종합니다.
+* **GraphRAG Tool** (읽기 전용 그래프 조회):
+  * **임무**: 현재 프로젝트 내부의 세계관 문서, 인물 설정집, 아웃라인 및 작성된 스크립트 본문 조각들을 서로 연결된 관계 그래프망으로 정교화하여, 집필 및 교정 시점의 모델에 실시간 사실적 제약 규칙과 원문 근거를 내려보냅니다.
+  * **현 상태**: AI 측은 읽기 전용 `query` / `status` 연산만 유지하며, 그래프 빌드·재빌드는 설정 화면에서 수동으로 실행합니다. Director / Scriptwriter / Critic / Showrunner(연속성 도구군)에 기본 바인딩됩니다. 단순 사실 확인은 시맨틱 검색, 최신 상태 확인은 작품 메모리 풀을 우선하고, 크로스 챕터 인과·관계 변화·지식 경계·장기 스레드에만 GraphRAG를 사용합니다.
   * **품질상 장점**: 장편 서사 창작 시 작가가 가장 저지르기 쉬운 실수인 설정 붕괴(앞뒤 설정 뒤엉킴)를 원천 차단하고, 화수 간의 내러티브 영속성과 등장인물 관계망을 엄격하게 관리해 줍니다.
 
 #### 크리틱 로직 검증 구조
 
 크리틱 에이전트는 단순히 "이 글이 기계가 쓴 것인가"를 판별하지 않고, **"이 글의 어느 파트가 독자에게 모델이 무성의하게 과제를 작성하는 듯한 인상을 심어주는가"**를 조망합니다. `S/A/B/C/D` 성적표와 함께 짚어낸 원문 위치 및 수정 지령 `fix_ticket`을 함께 돌려받으며, 원본을 마음대로 훼손하지 않기에 창작자는 이야기 제어의 절대적 권한을 지켜낼 수 있습니다.
 
-> 📗 4개 핵심 검증 방식과 분류기가 아닌 LLM을 심판관으로 쓰는 타당성 논거는 [아키텍처 문서 §6](file:///d:/Desktop/sparkarc/docs/project/architecture.md#6-critic-审核机制完整版)을 참고해 주십시오.
+> 📗 4개 핵심 검증 방식과 분류기가 아닌 LLM을 심판관으로 쓰는 타당성 논거는 [아키텍처 문서 §6](docs/project/architecture.md#6-critic-审核机制完整版)을 참고해 주십시오.
 
 #### 협업 데이터 파이프라인
 
@@ -432,8 +432,8 @@ graph TD
     
     subgraph "Phase 3: 시나리오 구체화"
         Outline -.-> Scriptwriter[시나리오 라이터 에이전트]
-        Scriptwriter -. "선택적 카나리 활성화" .-> GraphRAG[GraphRAG 사실 제약 도구]
-        GraphRAG --> FactGuard[사실적 제약 규칙 목록]
+        Scriptwriter -. "읽기 전용 조회" .-> GraphRAG[GraphRAG 읽기 전용 조회]
+        GraphRAG --> FactGuard[사실 제약 및 근거 팩]
         
         Scriptwriter -- "초안 집필" --> Draft[.arc / 소설 초안 원고]
         Draft --> Critic[크리틱 에이전트]
@@ -459,7 +459,7 @@ graph TD
 | **채팅 가동 모드** | `chat_system` | 자연스러운 일상적 문체로 반응합니다. 틀을 강제하지 않고 아이디어를 확산시키는 대화 위주입니다. |
 | **감독 위임 모드** | `pipeline_system` | 정해진 출력 규격을 준수하고 툴을 활용한 내부 보존 및 디렉터 앞 요약 보고를 실행합니다. |
 
-> 📗 실행 시점 할당 조건, `pipeline_system` 선언 규약, 도구 참조 자동 임베딩 원리, 신규 에이전트 기입용 셀프 체크리스트는 [아키텍처 문서 §2](file:///d:/Desktop/sparkarc/docs/project/architecture.md#2-agent-三模态调用协议完整版) 및 [AGENTS.md §4.5](file:///d:/Desktop/sparkarc/AGENTS.md)를 참고해 주십시오.
+> 📗 실행 시점 할당 조건, `pipeline_system` 선언 규약, 도구 참조 자동 임베딩 원리, 신규 에이전트 기입용 셀프 체크리스트는 [아키텍처 문서 §2](docs/project/architecture.md#2-agent-三模态调用协议完整版) 및 [AGENTS.md §4.5](AGENTS.md)를 참고해 주십시오.
 
 #### 문체 클론 클러스터
 
@@ -500,7 +500,7 @@ graph TD
     end
 ```
 
-> 📗 직렬식 분석 규칙과 네거티브 제약 조건 연동 원리에 관한 상세 정보는 [아키텍처 문서 §7](file:///d:/Desktop/sparkarc/docs/project/architecture.md#7-风格克隆集群完整版)을 참고해 주십시오.
+> 📗 직렬식 분석 규칙과 네거티브 제약 조건 연동 원리에 관한 상세 정보는 [아키텍처 문서 §7](docs/project/architecture.md#7-风格克隆集群完整版)을 참고해 주십시오.
 
 ---
 
@@ -527,11 +527,11 @@ flowchart LR
 * **콘텍스트 빌더**: `communication.py` 파일이 안정적인 전반부 뼈대를 형성하며, `prompt_layout.py`가 실시간 편집 중인 텍스트 영역 정보와 전송된 질문을 맨 뒷단에 조화롭게 이어 붙여줍니다. `context_budget.py`는 대화 내역의 한계 토큰을 산정하고 대화 기록 압축 및 툴 가동 시 가용한 한계량을 재산출해 줍니다.
 * **통합 실행 규약**: 모든 전문가 에이전트는 `SparkBaseAgent`와 `SparkAgentExecutor`를 상속해 `build_context -> execute -> write_result` 순으로 비즈니스 프로세스 흐름을 일체화 관리합니다. 일반 대화 및 위임 태스크들은 모두 `chat_stream(skip_tool_confirmation)` 창구를 경유하여 실행됩니다.
 * **장문 컨텍스트 처리**: 단일 모델 윈도우에 들어가지 않는 장문 문서(첨부 파일, 초과 분량 세계관 등)는 통합 슬라이딩 윈도우 베이스로 처리합니다——분할 저장＋전체 지도＋이중 검색 위치 특정(시맨틱 검색·정규식 검색 모두 `scope=["attachment"]`로 첨부에 한정해 청크로 직접 점프)＋온디맨드 읽기＋단서 장부(1윈도우 읽기마다 1건 기록, 턴을 넘어 유지). 모델이 보는 것은 항상 「지도＋장부＋현재 1윈도우」뿐이며 첨부 없는 방에는 영향이 없습니다. 자세한 내용은 [장문 컨텍스트 처리](docs/project/long-context.zh-CN.md), 임계값은 [임계값 일람](docs/project/longread-thresholds.zh-CN.md)을 참고해 주십시오.
-* **통합 도구 체계**: 연동 툴들은 [registry.py](file:///d:/Desktop/sparkarc/server/agents/tools/registry.py) 파일에 분류 기입되어 등록되며 `agent_tools.py` 창구를 거쳐 외부에 정식 노출됩니다. 시나리오, 아웃라인 및 설정을 교체·치환할 때는 언제나 `_apply_patch` 공통 라이브러리를 사용하며, 토큰 슬라이서와 세맨틱 덩어리 분석기도 공통 베이스 모듈을 공유합니다.
+* **통합 도구 체계**: 연동 툴들은 [registry.py](server/agents/tools/registry.py) 파일에 분류 기입되어 등록되며 `agent_tools.py` 창구를 거쳐 외부에 정식 노출됩니다. 시나리오, 아웃라인 및 설정을 교체·치환할 때는 언제나 `_apply_patch` 공통 라이브러리를 사용하며, 토큰 슬라이서와 세맨틱 덩어리 분석기도 공통 베이스 모듈을 공유합니다.
 * **스킬 및 MCP의 연동 경계**: AgentSkills는 `search_skills` / `read_skill` / `read_skill_reference`를 통해 필요할 때만 읽습니다. MCP는 `/api/mcp/`에 통합되며, 영감 도구는 기존 이름을 유지하고 제어 도구에는 `control_` 접두사를 사용합니다. `/api/mcp/control/`은 기존 클라이언트를 위한 호환 입구로만 유지되며, 쓰기 작업은 기존 Agent 도구 파이프라인을 거쳐 실행됩니다.
-* **화면 연동 규칙**: 에이전트 표기명, 소개글, 아이콘 및 고유 색상값 정보는 [registry.py](file:///d:/Desktop/sparkarc/server/agents/registry.py) 데이터를 유일한 소스 정보로 바라봅니다. 툴 호출과 관련된 연동 메타데이터는 백엔드의 `build_tool_stream_event` 라이브러리가 실시간으로 스트림에 주입하며, 화면의 `chatStore` 모듈이 통합 소비하여 화면에 맞게 뿌려줍니다.
+* **화면 연동 규칙**: 에이전트 표기명, 소개글, 아이콘 및 고유 색상값 정보는 [registry.py](server/agents/registry.py) 데이터를 유일한 소스 정보로 바라봅니다. 툴 호출과 관련된 연동 메타데이터는 백엔드의 `build_tool_stream_event` 라이브러리가 실시간으로 스트림에 주입하며, 화면의 `chatStore` 모듈이 통합 소비하여 화면에 맞게 뿌려줍니다.
 
-> 📗 콘텍스트의 상세 구성 형태, 캐시 적중률 기입 상세, 에이전트 역할 상세 정의, 스킬 및 MCP 연동 사양은 [아키텍처 문서 §2-§3](file:///d:/Desktop/sparkarc/docs/project/architecture.md#2-agent-统一调用管线)을 참고해 주십시오.
+> 📗 콘텍스트의 상세 구성 형태, 캐시 적중률 기입 상세, 에이전트 역할 상세 정의, 스킬 및 MCP 연동 사양은 [아키텍처 문서 §2-§3](docs/project/architecture.md#2-agent-统一调用管线)을 참고해 주십시오.
 
 ### 3. 비콘 버스 통신 메커니즘
 
@@ -570,7 +570,7 @@ graph TB
     AgentB -- 호른 없음: 의견 제시 권한 없음 --x Bus
 ```
 
-> 📗 3가지 통신 상태 값의 논리적 상세와 가용 시나리오 정보는 [아키텍처 문서 §8](file:///d:/Desktop/sparkarc/docs/project/architecture.md#8-信标总线核心机制完整版)을 참고해 주십시오.
+> 📗 3가지 통신 상태 값의 논리적 상세와 가용 시나리오 정보는 [아키텍처 문서 §8](docs/project/architecture.md#8-信标总线核心机制完整版)을 참고해 주십시오.
 
 #### 감독 통제 vs 비콘 조율 (수직형 지시와 수평형 조율)
 
@@ -578,7 +578,7 @@ SparkArc 시스템 내부에는 **동작 메커니즘과 목적이 완벽히 다
 * **디렉터(감독) 통제** (수직 지휘형): 감독 에이전트가 LangGraph 플롯 룰을 바탕으로 각 자식 에이전트들을 인스턴스화하고 직접 명령을 조율해 할당합니다. 비콘 버스의 물리적 통제를 받지 않습니다.
 * **비콘 버스 조율** (수평 의사형): 에이전트 간에 직접 대화하는 소통 라인으로, 대화의 무한 루프나 네트워크 폭주를 막기 위해 상호 비콘 정보 규칙의 제약을 따릅니다.
 
-> 📗 두 시스템의 핵심 요약 대조표, 연동 차이 및 설계 의도는 [아키텍처 문서 §1](file:///d:/Desktop/sparkarc/docs/project/architecture.md#1-导演调度-vs-信标协作双系统对比)을 참고해 주십시오.
+> 📗 두 시스템의 핵심 요약 대조표, 연동 차이 및 설계 의도는 [아키텍처 문서 §1](docs/project/architecture.md#1-导演调度-vs-信标协作双系统对比)을 참고해 주십시오.
 
 ---
 
@@ -622,7 +622,7 @@ SparkArc는 **AI를 활용한 문학적·각본적 결과물의 극대화**를 �
 이 양식은 최종적으로 오류율 제로의 런타임용 경량 데이터베이스로 변환되어 게임 혹은 웹의 실시간 연출을 부드럽게 가동합니다.
 다만, 시나리오 모델이 임의로 행동 코드나 게임 함수를 직접 변조하여 작성하는 일은 안전상의 이유로 사전 비활성화되어 있으며 오직 순수한 텍스트 창작만 보조합니다. **이 권한은 거대 모델들의 코드 해석 및 작성 능력이 비약적으로 발전하는 시점에 맞추어 단계적으로 개방할 예정입니다.**
 
-> 📗 스크립트 텍스트 파싱 전략 상세 내역은 [아키텍처 문서 §9](file:///d:/Desktop/sparkarc/docs/project/architecture.md#9-arc-格式解析策略)를 참고해 주십시오.
+> 📗 스크립트 텍스트 파싱 전략 상세 내역은 [아키텍처 문서 §9](docs/project/architecture.md#9-arc-格式解析策略)를 참고해 주십시오.
 
 ### 작품 메모리 풀
 
@@ -661,7 +661,7 @@ SparkArc는 **AI를 활용한 문학적·각본적 결과물의 극대화**를 �
 * **정밀한 토큰 산정**: `tiktoken` 연산 외에도 한글, 중국어, 일본어(CJK) 본문이 가질 수 있는 독자 토큰 소모 가중치를 적용한 보정 공식을 결합하여 오차 없는 비용 계산을 행합니다.
 * **용도별 모델 맵핑**: 고속 연산(Fast), 추론용(Reason), 기본 가동(Main) 3가지 모델 할당 슬롯을 선언하여 태스크 난이도와 자원 효율을 조율합니다.
 
-> 💡 이중 통신 채널 구조 및 API 슬롯 설정 방법, 실시간 스트림 파싱 상세는 [Matchbox Agent Gateway 가이드](file:///d:/Desktop/sparkarc/server/llm/agen_matchbox/README.md)를 참고해 주십시오.
+> 💡 이중 통신 채널 구조 및 API 슬롯 설정 방법, 실시간 스트림 파싱 상세는 [Matchbox Agent Gateway 가이드](server/llm/agen_matchbox/README.md)를 참고해 주십시오.
 
 ### 2. 데이터베이스 관리와 자동 마이그레이션
 
@@ -692,7 +692,7 @@ SparkArc 내부에는 **서비스 부팅 시점 데이터베이스 변경 사항
 6. **버전 깨짐 자가 치유**: 마이그레이션 버전 꼬임에 의해 부팅이 막히는 경우, 시스템 구동 안정성을 위해 부재중인 테이블이나 필드들만 안전하게 보충 기입한 뒤 버전 값을 강제 합치시킵니다 (기존 데이터가 들어 있는 다른 필드는 삭제하지 않고 보존합니다).
 7. **버전 불일치 방지 경고**: 버전 테이블상 최신 코드로 명시되어 있음에도 실제 스키마 필드가 부재중인 경우 부팅 시점에 즉각적인 경고 오류를 내보내어, 깃(Git) 커밋 시점에 갱신 생성 스크립트 작성을 누락한 실수 등을 조기에 밝혀내 줍니다.
 
-> 💡 신규 테이블 스키마 작성 요령 및 버전 관리 갱신에 관한 개발 가이드는 [데이터베이스 마이그레이션 안내서](file:///d:/Desktop/sparkarc/docs/project/database-migration.md)를 참고해 주십시오.
+> 💡 신규 테이블 스키마 작성 요령 및 버전 관리 갱신에 관한 개발 가이드는 [데이터베이스 마이그레이션 안내서](docs/project/database-migration.md)를 참고해 주십시오.
 
 ### 3. 다중 사용자 시스템 (SaaS)
 
@@ -732,7 +732,7 @@ SparkArc는 리포지토리의 소스 코드가 업데이트되면 **자동으�
 Gitea Actions 및 GitLab CI 빌드 사양을 정식 지원하며 Gitea Actions 용도로 선언된 빌드 스크립트는 GitHub Actions 환경으로도 적은 수공만으로 즉시 이식 가능합니다.
 파이프라인 단계: **코드 체크아웃 → 컨테이너 이미지 빌드 → 유닛 테스트(선언됨) → 서비스 롤링 배포 → 빌드 자원 정리**
 
-> 💡 빌드 러너 사양 설정 및 GitHub Actions 이식 규칙 상세 등은 [자동 배포 가이드](file:///d:/Desktop/sparkarc/docs/project/cicd-deployment.md)를 참고해 주십시오.
+> 💡 빌드 러너 사양 설정 및 GitHub Actions 이식 규칙 상세 등은 [자동 배포 가이드](docs/project/cicd-deployment.md)를 참고해 주십시오.
 
 ---
 
@@ -755,7 +755,7 @@ Gitea Actions 및 GitLab CI 빌드 사양을 정식 지원하며 Gitea Actions �
 
 ### Tauri 2 프레임워크 기반 멀티 빌드
 
-화면 코드는 Tauri 2 프레임워크 연동을 마쳤습니다. Windows, Linux, macOS, Android 및 iOS 기기용 빌드 요령은 [doc/tauri/tauri2-all.md](file:///d:/Desktop/sparkarc/doc/tauri/tauri2-all.md)를 참고해 주십시오.
+화면 코드는 Tauri 2 프레임워크 연동을 마쳤습니다. Windows, Linux, macOS, Android 및 iOS 기기용 빌드 요령은 [docs/tauri/tauri2-all.md](docs/tauri/tauri2-all.md)를 참고해 주십시오.
 
 수동 릴리즈 빌드 퀵 리스트 (루트에서 `cd client`로 진입한 후 실행):
 1. 의존성 모듈 설치: `npm install`
@@ -801,8 +801,8 @@ Gitea Actions 및 GitLab CI 빌드 사양을 정식 지원하며 Gitea Actions �
 ## 프로젝트 개발 안내 가이드
 
 * 주요 오픈소스 개발 참여 규칙: `.github/CONTRIBUTING.md` (영어 기재)
-* 에이전트 개발 시의 엄격한 제약과 설계 준수 사항: [AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md)
-* 에이전트 언어 설정 사양: [AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md)
+* 에이전트 개발 시의 엄격한 제약과 설계 준수 사항: [AGENTS.md](AGENTS.md)
+* 에이전트 언어 설정 사양: [AGENTS.md](AGENTS.md)
 
 ---
 
@@ -810,31 +810,36 @@ Gitea Actions 및 GitLab CI 빌드 사양을 정식 지원하며 Gitea Actions �
 
 | 문서 분류 | 세부 기술 정보 사항 |
 | :--- | :--- |
-| [아키텍처 상세 설명서](file:///d:/Desktop/sparkarc/docs/project/architecture.md) | 디렉터와 비콘 버스의 수평/수직 제어 차이, 3가지 가동 페르소나 모드 규칙, 크리틱 비평 작동 규칙, 문체 클론 심층 정보, 비콘 규약 상세, ARC 구문 해석 전략, 툴 등록 상세, 스트리밍 인프라 사양. |
+| [아키텍처 상세 설명서](docs/project/architecture.md) | 디렉터와 비콘 버스의 수평/수직 제어 차이, 3가지 가동 페르소나 모드 규칙, 크리틱 비평 작동 규칙, 문체 클론 심층 정보, 비콘 규약 상세, ARC 구문 해석 전략, 툴 등록 상세, 스트리밍 인프라 사양, 안정 프리픽스 계약, 프론트 복구 계약, MCP 마운트 순서. |
+| [채팅 컨텍스트 관리(중국어)](docs/project/context-management.zh-CN.md) | 적응형 예산, 자동 압축, 원문 이력 영속화, 체크포인트, 필요시 원문 조회와 StoryMemory 경계. |
 | [장문 컨텍스트 처리](docs/project/long-context.zh-CN.md) | 첨부 파일·초과 분량 세계관용 슬라이딩 윈도우 베이스: 분할 저장, 전체 지도, 이중 검색 위치 특정, 온디맨드 읽기, 단서 장부, 프리픽스 캐시 배치. |
 | [슬라이딩 윈도우 임계값 일람](docs/project/longread-thresholds.zh-CN.md) | 장문 관련 전체 임계값의 정의 위치·기본값·적용 범위. |
-| [Matchbox Agent Gateway 가이드](file:///d:/Desktop/sparkarc/server/llm/agen_matchbox/README.md) | 이중 채널 구조 상세, 설치 요령, 용도별 API 할당 규칙, 추론용 Reasoning 스트림 대응 상세. |
-| [데이터베이스 마이그레이션 안내서](file:///d:/Desktop/sparkarc/docs/project/database-migration.md) | 데이터베이스 스키마 수정 절차, 마이그레이션 자동 빌드 가이드 및 이력 관리 요령. |
-| [CI/CD 자동 배포 가이드](file:///d:/Desktop/sparkarc/docs/project/cicd-deployment.md) | 빌드 러너 환경 기입, 시크릿 변수 관리 및 GitHub Actions 전환 방법. |
-| [AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md) | 에이전트 설계 규약서, 추가 등록 체크리스트, 프롬프트 전개 방식. |
+| [장편 GraphRAG 포지셔닝 및 개선안(2026·중국어)](docs/project/narrative-graphrag-optimization-2026.zh-CN.md) | GraphRAG 적용 범위, 읽기 전용 운영, 하이브리드 검색과 질의 라우팅, 내러티브 그래프 개선 로드맵. |
+| [컨텍스트 압축 전략 비교(중국어)](docs/project/context-compaction-comparison.zh-CN.md) | Codex·OpenCode·SparkArc 컨텍스트 압축 전략의 소스 레벨 비교. |
+| [클라이언트 런타임 업데이트 전략(중국어)](docs/project/client-runtime-update-strategy.zh-CN.md) | 브라우저·Tauri 클라이언트의 프론트 독립 배포와 셸 업데이트 전략. |
+| [로컬 배포 매니저(중국어)](docs/project/local-deployment-manager.zh-CN.md) | Release Launcher 관리형 `main`, Git/Node 경계, 네트워크 폴백, 데이터 보호 및 업데이트 흐름. |
+| [Matchbox Agent Gateway 가이드](server/llm/agen_matchbox/README.md) | 이중 채널 구조 상세, 설치 요령, 용도별 API 할당 규칙, 추론용 Reasoning 스트림 대응 상세. |
+| [데이터베이스 마이그레이션 안내서](docs/project/database-migration.md) | 데이터베이스 스키마 수정 절차, 마이그레이션 자동 빌드 가이드 및 이력 관리 요령. |
+| [CI/CD 자동 배포 가이드](docs/project/cicd-deployment.md) | 빌드 러너 환경 기입, 시크릿 변수 관리 및 GitHub Actions 전환 방법. |
+| [AGENTS.md](AGENTS.md) | 에이전트 설계 규약서, 추가 등록 체크리스트, 프롬프트 전개 방식. |
 | [시맨틱 검색 엔진](#4-시맨틱-검색-엔진) | 정규식 매칭 및 의미 기반 탐색, 인덱스 자동 해시 비교 갱신, LanceDB 벡터 구조. |
-| [LEGAL/README.md](file:///d:/Desktop/sparkarc/LEGAL/README.md) | 라이선스 정책, 상표권 범위, 약관 및 권리 문서 포털. |
+| [LEGAL/README.md](LEGAL/README.md) | 라이선스 정책, 상표권 범위, 약관 및 권리 문서 포털. |
 
 ---
 
 ## 이용 약관 및 운영에 관한 법적 책임 한계
 
-오피셜 서비스 인스턴스, 외부 제3자의 전용 구축 서버, 컨텐츠 정책, 개인 정보 취급 및 지적 재산권 한계 범위를 명확히 알리고자 리포지토리 루트에 [`LEGAL/README.md`](file:///d:/Desktop/sparkarc/LEGAL/README.md) 문서를 개설해 포털 대조 창구로 선언했습니다.
+오피셜 서비스 인스턴스, 외부 제3자의 전용 구축 서버, 컨텐츠 정책, 개인 정보 취급 및 지적 재산권 한계 범위를 명확히 알리고자 리포지토리 루트에 [`LEGAL/README.md`](LEGAL/README.md) 문서를 개설해 포털 대조 창구로 선언했습니다.
 
 현재 배포 중인 권리 관계 문서 일람 (중국어 기본 기재):
-* [`LEGAL/LicensePolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/LicensePolicy.zh-CN.md)
-* [`LEGAL/TrademarkPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/TrademarkPolicy.zh-CN.md)
-* [`LEGAL/TermsOfService.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/TermsOfService.zh-CN.md)
-* [`LEGAL/PrivacyPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/PrivacyPolicy.zh-CN.md)
-* [`LEGAL/OfficialInstancePolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/OfficialInstancePolicy.zh-CN.md)
-* [`LEGAL/ThirdPartyOperatorNotice.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/ThirdPartyOperatorNotice.zh-CN.md)
-* [`LEGAL/ContentPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/ContentPolicy.zh-CN.md)
-* [`LEGAL/EvidenceAndIPCompliance.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/EvidenceAndIPCompliance.zh-CN.md)
+* [`LEGAL/LicensePolicy.zh-CN.md`](LEGAL/LicensePolicy.zh-CN.md)
+* [`LEGAL/TrademarkPolicy.zh-CN.md`](LEGAL/TrademarkPolicy.zh-CN.md)
+* [`LEGAL/TermsOfService.zh-CN.md`](LEGAL/TermsOfService.zh-CN.md)
+* [`LEGAL/PrivacyPolicy.zh-CN.md`](LEGAL/PrivacyPolicy.zh-CN.md)
+* [`LEGAL/OfficialInstancePolicy.zh-CN.md`](LEGAL/OfficialInstancePolicy.zh-CN.md)
+* [`LEGAL/ThirdPartyOperatorNotice.zh-CN.md`](LEGAL/ThirdPartyOperatorNotice.zh-CN.md)
+* [`LEGAL/ContentPolicy.zh-CN.md`](LEGAL/ContentPolicy.zh-CN.md)
+* [`LEGAL/EvidenceAndIPCompliance.zh-CN.md`](LEGAL/EvidenceAndIPCompliance.zh-CN.md)
 
 운영 권리 사항 요약:
 * 이 정보들은 권리 관계 증명 및 제3자가 프로젝트를 직접 배포해 활용할 때 쓸 수 있는 가이드 템플릿 문서들입니다.

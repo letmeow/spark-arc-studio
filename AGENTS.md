@@ -42,7 +42,7 @@ SparkArc 现有架构已经有清晰收口层。新增功能必须先判断是�
  - 公共工厂 / 服务层：server/agents/agent_factory.py + server/agents/project_content.py + server/agents/auto_write_service.py
  - 多 Agent 调度层：server/agents/director_graph.py
  - 流式桥接层：server/agents/routes/streaming_utils.py
- - 业务语义层：server/agents/routes/stream_semantics.py + server/agents/routes/execution_core.py
+ - 业务语义层：server/agents/stream_semantics.py + server/agents/routes/execution_core.py（`server/agents/routes/stream_semantics.py` 仅为兼容重导出）
  - 路由聚合层：server/agents/routes/__init__.py
  - 上下文布局层：server/agents/prompt_layout.py + server/agents/context_budget.py
  - **大统一工具性底层（大统一基建）**：
@@ -210,9 +210,9 @@ SparkArc 用「工具 reference 自动注入」机制避免在 `system` 与 `pip
 **现状参考实现**（方便对照）：
 
 - `MuseAgent._get_tool_prompt_references` → `rewrite_inspiration` 指向 yaml 顶层 `system`（7 条灵感规范）
-- `WorldviewAgent._get_tool_prompt_references` → `rewrite_worldview` 指向 `rewrite_worldview.system`，`rewrite_all_characters` 指向 `generate_characters.system`
+- `WorldviewAgent._get_tool_prompt_references` → `rewrite_worldview` 指向 `rewrite_worldview.system`，`patch_worldview` 指向 `patch_worldview.system`，`rewrite_all_characters` 指向 `generate_characters.system`
 - `ShowrunnerAgent._get_tool_prompt_references` → 三个 rewrite_* 分别指向 `generate_synopsis.system` / `generate_beat_sheet.system` / `generate_outline.system`
-- `ScriptwriterAgent._get_tool_prompt_references` → `create_or_rewrite_script` 指向顶层 `system`（含 `.arc` 规范 + `{arc_example}` 占位符）
+- `ScriptwriterAgent._get_tool_prompt_references` → `create_or_rewrite_script` 按当前 `export_format` 动态指向顶层 `system`（arc，含 `.arc` 规范 + `{arc_example}` 占位符）或 `generate_novel.system`（novel）
 - `CriticAgent`：**无落盘工具**，故不注册 tool reference；`critic.yaml/pipeline_system` 内嵌了五维审核 + 等级映射 + JSON 必填字段清单。
 
 **贡献者常见错误**：
@@ -260,14 +260,14 @@ YAML 顶层 `tool_rules` 字段用于存放 Agent 在聊天/委派模式下的�
 
 - 原 Python 侧 `_build_tool_system_prompt` 中的硬编码补充规则，应逐字迁移到 YAML `tool_rules` 字段。
 - 迁移后删除 Agent 子类的 `_build_tool_system_prompt` 重写，基类自动加载。
-- **例外**：Director 的 `_build_tool_system_prompt` 包含运行时动态构建的团队成员能力概览块（从 registry 读取），不可迁入静态 YAML，应保留。
+- **例外**：Director 的 `_build_tool_system_prompt` 包含运行时动态构建的团队成员能力概览块（从 registry 读取），不可迁入静态 YAML，应保留；Scriptwriter 追加视觉小说演出构思协议或未开启引导（见 `agent_scriptwriter.py`），同样保留。
 
 **已迁移 Agent**：
 
 | Agent | tool_rules 内容 | Python 重写已删除 |
 | :--- | :--- | :--- |
 | lorebook | 工具调用顺序 + 输出纯度 + 反注入 | ✅ |
-| scriptwriter | create_chapter 先行 + export_format 强制 + 输出纯度 | ✅ |
+| scriptwriter | create_chapter 先行 + export_format 强制 + 输出纯度（另有 `autonomous_tool_rules` 专供 Auto-Write 单循环，`tool_rules_key` 切换加载） | ✅（视觉小说协议重写保留） |
 | showrunner | 反注入 + rewrite_outline 纯度 + 节奏约束 | ✅ |
 | critic | （无落盘工具，无 tool_rules） | N/A |
 | muse | （无额外工具规则） | N/A |
@@ -313,11 +313,11 @@ Auto-Write 每个场景 exactly 一次 `run_autonomous_scriptwriter_creation` �
 
 新增 Agent 时，以下所有项必须同时满足：
 
- 1. `server/agents/prompts/<agent>.yaml` 同时定义 `system`、`chat_system`、`pipeline_system` 三个顶层字段。
+ 1. 业务专家 `server/agents/prompts/<agent>.yaml` 同时定义 `system`、`chat_system`、`pipeline_system` 三个顶层字段；系统内部模板（如 `utility.yaml`）不进入聊天入口，不受本条约束。
  2. 若该 Agent 有落盘工具：必须在 Agent 子类重写 `_get_tool_prompt_references()`，把 yaml `system`（或对应子 prompt `system`）绑定 to 落盘工具；对应 Agent 的 `pipeline_system` 保持极简三件套（受众 / 调工具 / 简报）。
  3. 若该 Agent 没有落盘工具（产出直接给导演，如 critic）：必须在 `pipeline_system` 里直接内嵌产出规范的关键摘要（字段清单、等级标准等），不得引用式指向 `system`。
  4. 多模态共享的提示词片段（身份声明、核心要求等）必须提取到 YAML 顶层 `base` 字段，各模态通过 `{base.xxx}` 占位符引用，禁止在 `system` / `chat_system` / `pipeline_system` 之间重复书写。
- 5. 若该 Agent 有工具使用补充规则（调用顺序、输出纯度、反注入等），必须写入 YAML 顶层 `tool_rules` 字段，由基类 `_build_tool_system_prompt` 自动加载；禁止在 Python 侧重写 `_build_tool_system_prompt` 追加硬编码规则。
+ 5. 若该 Agent 有工具使用补充规则（调用顺序、输出纯度、反注入等），必须写入 YAML 顶层 `tool_rules` 字段，由基类 `_build_tool_system_prompt` 自动加载；Python 侧不得重写 `_build_tool_system_prompt` 追加硬编码业务规则。例外仅两处：Director 追加运行时团队成员能力概览块，Scriptwriter 追加视觉小说演出构思协议或未开启引导。
  6. 对应 `SparkAgentExecutor` 的 `build_context` / `execute` / `write_result` 协议完整实现。
  7. `server/agents/tools/*` 中，该 Agent 落盘相关工具（如 `rewrite_xxx`）已按域实现，并在 `server/agents/tools/registry.py` 注册；`server/agents/agent_tools.py` 继续作为唯一公共导出与 `get_tools_for_agent` 门面。
  8. 若希望被导演委派，需在 `server/agents/prompts/director.yaml` 的"专家分工"速查表中列入。

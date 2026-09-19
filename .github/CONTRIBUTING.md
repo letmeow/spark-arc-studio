@@ -54,7 +54,7 @@ Important constraints:
 
 - Frontend entry: `client/src/utils/streamingRuntime.ts`
 - Backend bridge: `server/agents/routes/streaming_utils.py`
-- Semantic layer: `server/agents/routes/stream_semantics.py` and `execution_core.py`
+- Semantic layer: `server/agents/stream_semantics.py` and `execution_core.py` (`server/agents/routes/stream_semantics.py` is a compatibility re-export only)
 
 Important constraints:
 

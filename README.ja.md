@@ -4,7 +4,7 @@
 
 > 📢 **サポートとスターのお願い**：本プロジェクトがあなたのインスピレーションや創作活動の助けになりましたら、ぜひ画面右上の **Star**（プロジェクトをお気に入りに登録して見失わないようにする）と **Watch**（Custom -> Releases を選択して新バージョンの更新を受け取る）をお願いいたします！独立したオープンソースプロジェクトとして、皆様からの Star と Watch の一つひとつがコミュニティでの露出向上に繋がり、プロジェクトの持続的な反復開発と長期的な成長において非常に大きな力となります。温かいご支援をよろしくお願いいたします！
 > 
-> 🤝 **共同制作者**：デザインおよびプロモーション面での多大な貢献に対して、[<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 氏に深く感謝いたします。氏の尽力がなければ、本プロジェクトが世に出ることはありませんでした。本プロジェクトは [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 氏主導のもとでコミュニティ運営とアップデートが行われ、[<img src="https://github.com/1deaaa.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @1deaaa](https://github.com/1deaaa) 氏も継続的な技術サポートを提供します。
+> 🤝 **共同制作者**：宣伝における尽力に対して、[<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 氏に感謝いたします。これらの重要な貢献がなければ、本プロジェクトが世に出ることはありませんでした。
 
 **SparkArc Studio** は、自律型マルチエージェント（Agent）群によって駆動する創作プラットフォームです。専門的な創作パイプラインを通じて、ひらめいたアイデアの火種を完全な物語の世界へと拡張し、小説や脚本の執筆、さらには美しい Web 演出や Unity エンジンによる演出制御までを一気通貫で駆動できるように設計されています。
 本作は、**「インスピレーション → 設定 → テンポ（ビート） → プロット大綱（アウトライン） → 執筆 → 検証 → リリース → 共有 → 演出」** の全ライフサイクルを繋ぎ、クリエイターに強力な生産性ツールスイートを提供します。
@@ -92,7 +92,7 @@ SparkArc のアーキテクチャは、文学、ゲーム、映画・映像業�
 | **2. 世界観・設定** | 世界設定資料 (Story Bible) | **設定専門家** | 物理法則、魔法体系、地理・政治、キャラクター詳細プロフィールを確立し、以降の創作における論理的整合性を担保します。 |
 | **3. 構成・テンポ** | ビートシート / プロット | **ショーランナー** | 「猫を救え！」や「英雄の旅」をベースにするか？この段階で物語の骨組みを決定し、幕（アクト）を分割して、詳細なビートシートを作成します。 |
 | **4. 執筆** | シナリオ / スクリプト | **シナリオライター** | 最終的な「筆」です。構成の枠組みに肉付けを行い、シーン描写、アクション指示、セリフを処理します。`.arc` インタラクティブ脚本形式と小説形式の双方に出力可能です。 |
-| **5. 品質保証** | スクリプトドクター / 監修 | **ロジック監査役 ＆ 文体クローン** | ロジック監査役は厳しい編集者として機能し、不整合やプロットの穴に対する改善点を提示します。文体クローンは目標の文体制約を通じて AI 独特の言葉遣いを排除します。GraphRAG 事実制約ツールは本番環境に対応しており、クロスチャプターの一貫性を高めるためにカナリア的に有効化できます。 |
+| **5. 品質保証** | スクリプトドクター / 監修 | **ロジック監査役 ＆ 文体クローン** | ロジック監査役は厳しい編集者として機能し、不整合やプロットの穴に対する改善点を提示します。文体クローンは目標の文体制約を通じて AI 独特の言葉遣いを排除します。GraphRAG は読み取り専用のグラフ検索機能（`query` / `status`）であり、セマンティック検索や作品メモリプールと問い合わせの複雑さに応じて使い分け、クロスチャプターの因果・長期構造の一貫性を高めます。 |
 | **6. リリース・演出** | 実装 / アセット化 | **ブラウザ演出 / Unity SDK** | シナリオのアセット化。脚本を軽量なランタイムにコンパイルし、ゲーム内の会話システム、演出制御、クエストのフラグ管理などを駆動します。 |
 
 ## クリエイターのワンマップワークフロー
@@ -335,7 +335,7 @@ SPARKARC_TURNSTILE_SECRET_KEY=あなたの Turnstile Secret Key
 * 管理画面から直接 Turnstile の設定を保存することもできます。管理画面で保存された設定は、サーバーの永続化データディレクトリ内にある実行時 `.env` に書き込まれるため、Docker コンテナの再作成時にも失われません。
 * `SPARKARC_TURNSTILE_SECRET_KEY` は秘密鍵であり、バックエンドでのみ使用され、フロントエンドに渡されることはありません。
 * **これらが設定されていない場合、登録検証はデフォルトで無効**になり、自己デプロイ時の初回ユーザー登録には影響しません。
-* 将来的に Google やテンセントクラウドなどの他の検証プラットフォームに切り替えたい場合は、登録ルーティングを変更せずに [verification.py](file:///d:/Desktop/sparkarc/server/core/verification.py) の検証プロバイダーを拡張してください。
+* 将来的に Google やテンセントクラウドなどの他の検証プラットフォームに切り替えたい場合は、登録ルーティングを変更せずに [verification.py](server/core/verification.py) の検証プロバイダーを拡張してください。
 
 ### 自己デプロイ時のアクセス方法：ブラウザとクライアント
 
@@ -367,7 +367,7 @@ GitHub Releases のデスクトップクライアントは、まずローカル�
 
 SparkArc は単一の巨大な AI モデルに依存せず、役割分担の明確なエージェント群（クラスター）を構築しています。各エージェントは独立したペルソナ、プロンプト、モデル設定を持っています。
 
-> 💡 **多言語対応（国際化）**: エージェント登録簿（[registry.py](file:///d:/Desktop/sparkarc/server/agents/registry.py)）は `zh-CN` / `en-US` / `ja-JP` / `ko-KR` の 4 言語をネイティブサポートしています。フロントエンドは i18n マッピングを使用し、バックエンドはリクエストのロケールに基づいて `resolve_agent_i18n_field()` を呼び出すことで、対応する翻訳フィールドを抽出します。新しい言語を追加する場合は、各エージェントのエントリに翻訳グループを追加するだけです。
+> 💡 **多言語対応（国際化）**: エージェント登録簿（[registry.py](server/agents/registry.py)）は `zh-CN` / `en-US` / `ja-JP` / `ko-KR` の 4 言語をネイティブサポートしています。フロントエンドは i18n マッピングを使用し、バックエンドはリクエストのロケールに基づいて `resolve_agent_i18n_field()` を呼び出すことで、対応する翻訳フィールドを抽出します。新しい言語を追加する場合は、各エージェントのエントリに翻訳グループを追加するだけです。
 
 #### A. 意思決定・オーケストレーター
 
@@ -396,16 +396,16 @@ SparkArc は単一の巨大な AI モデルに依存せず、役割分担の明�
   * **動作モード**: チャットパネルでの自然言語による対話、または ScriptWriter の右側パネルから手動で構造化レビューを実行可能です。
   * **出力プロトコル**: 数値スコアではなく、**S / A / B / C / D** の 5 段階評価を使用します。同時に指摘箇所、検知された問題、および後続の推敲に役立つ `fix_ticket`（修正指示書）を出力します。
   * **モデル戦略**: AI の判定と根拠説明の能力を活用し、単に確率スコアを出す分類器ではなく **LLM Judge / Editor** として機能させることに特化しています。
-* **GraphRAG Tool**（事実制約、任意カナリア機能）:
-  * **役割**: プロジェクト内の世界設定、キャラクター、プロット、シナリオの断片を検索可能なリレーショングラフに変換し、執筆やレビューの実行時に具体的な事実制約を適用します。
-  * **現状**: 実装済みですが、**デフォルトではどのエージェントにもバインドされていません**。必要に応じてカナリア的に有効化可能です。有効化された場合、グラフ構築は高速スロット（Fast）に固定され、検索フェーズは呼び出し元のモデル設定に従います。
+* **GraphRAG Tool**（読み取り専用グラフ検索）:
+  * **役割**: プロジェクト内の世界設定、キャラクター、プロット、シナリオの断片を検索可能なリレーショングラフに変換し、執筆やレビューの実行時に具体的な事実制約と原文証拠を適用します。
+  * **現状**: AI 側は読み取り専用の `query` / `status` のみを保持し、グラフの構築・再構築は設定画面から手動で実行します。Director / Scriptwriter / Critic / Showrunner（連続性ツール群）に標準でバインドされています。単純な事実確認はセマンティック検索、直近の状態確認は作品メモリプールを優先し、クロスチャプターの因果・関係変化・知識境界・長期スレッドのみ GraphRAG を使用します。
   * **品質上の利点**: 長期的な物語執筆における設定矛盾（いわゆる「設定崩れ / 食い違い」）を防止し、チャプター間の一貫性やキャラクター関係性の安定度を大幅に高めます。
 
 #### クリティック監査メカニズム
 
 クリティックエージェントは「これが AI によって書かれたものかどうか」ではなく、**「この文章のどこが、モデルがタスクを機械的にこなしているような印象を読者に与えるか」**を指摘します。評価は `S/A/B/C/D` 段階 ＋ 指摘原文 ＋ 修正指示 `fix_ticket` で構成され、デフォルトでは本文を直接改変しないため、クリエイターが創作の主導権を握り続けられます。
 
-> 📗 4つのコア監査機能と、機械学習分類器ではなく LLM を採用する理由の詳細については、[アーキテクチャ詳細ドキュメント §6](file:///d:/Desktop/sparkarc/docs/project/architecture.md#6-critic-审核机制完整版) をご参照ください。
+> 📗 4つのコア監査機能と、機械学習分類器ではなく LLM を採用する理由の詳細については、[アーキテクチャ詳細ドキュメント §6](docs/project/architecture.md#6-critic-审核机制完整版) をご参照ください。
 
 #### 協調データフロー
 
@@ -432,8 +432,8 @@ graph TD
     
     subgraph "フェーズ 3: 執筆・具現化"
         Outline -.-> Scriptwriter[シナリオライターエージェント]
-        Scriptwriter -. "任意カナリア機能" .-> GraphRAG[GraphRAG 事実制約ツール]
-        GraphRAG --> FactGuard[事実制約リスト]
+        Scriptwriter -. "読み取り専用検索" .-> GraphRAG[GraphRAG 読み取り専用検索]
+        GraphRAG --> FactGuard[事実制約と証拠パック]
         
         Scriptwriter -- "初稿執筆" --> Draft[.arc / 小説初稿]
         Draft --> Critic[クリティックエージェント]
@@ -459,7 +459,7 @@ graph TD
 | **対話モード** | `chat_system` | 自然な会話調。インスピレーションの拡大を目的とし、特定の出力フォーマットを強制しない。 |
 | **監督委託モード** | `pipeline_system` | 構造化出力 ＋ ツールによる自動保存 ＋ 監督エージェントへの簡易レポート。 |
 
-> 📗 実行時の割り振りロジック、`pipeline_system` 記述上の制約、ツール参照（Reference）自動注入機能、および新規エージェント追加時のチェックリストは、[アーキテクチャ詳細ドキュメント §2](file:///d:/Desktop/sparkarc/docs/project/architecture.md#2-agent-三模态调用协议完整版) および [AGENTS.md §4.5](file:///d:/Desktop/sparkarc/AGENTS.md) をご参照ください。
+> 📗 実行時の割り振りロジック、`pipeline_system` 記述上の制約、ツール参照（Reference）自動注入機能、および新規エージェント追加時のチェックリストは、[アーキテクチャ詳細ドキュメント §2](docs/project/architecture.md#2-agent-三模态调用协议完整版) および [AGENTS.md §4.5](AGENTS.md) をご参照ください。
 
 #### 文体クローンクラスター
 
@@ -500,7 +500,7 @@ graph TD
     end
 ```
 
-> 📗 シリアル分析の詳細とネガティブ制約メカニズムの完全な解説については、[アーキテクチャ詳細ドキュメント §7](file:///d:/Desktop/sparkarc/docs/project/architecture.md#7-风格克隆集群完整版) をご参照ください。
+> 📗 シリアル分析の詳細とネガティブ制約メカニズムの完全な解説については、[アーキテクチャ詳細ドキュメント §7](docs/project/architecture.md#7-风格克隆集群完整版) をご参照ください。
 
 ---
 
@@ -527,11 +527,11 @@ flowchart LR
 * **コンテキスト構築**: `communication.py` が安定したシステム前頭部を構築し、`prompt_layout.py` が現在の編集領域や添付ファイル、本ターンのユーザー要求を後半部に結合します。`context_budget.py` は対話履歴のトークン予算管理、要約の圧縮、ツールループ時の再計算を行います。
 * **統一実行プロトコル**: 各専門エージェントは `SparkBaseAgent` と `SparkAgentExecutor` を継承し、`build_context -> execute -> write_result` の手順で処理を統一管理します。対話と監督からの委任タスクはすべて `chat_stream(skip_tool_confirmation)` を経由して実行されます。
 * **長文コンテキスト処理**: 単一モデルのウィンドウに収まらない長文ドキュメント（添付ファイル、超過サイズの世界観など）は統一スライディングウィンドウ基盤で処理します——分割保存＋全体マップ＋二重検索による位置特定（セマンティック検索・正規表現検索とも `scope=["attachment"]` で添付ファイルに限定しチャンクへ直接ジャンプ）＋オンデマンド読み取り＋手がかり台帳（1ウィンドウ読むごとに1件記録し、ターンをまたいで保持）。モデルが見るのは常に「マップ＋台帳＋現在の1ウィンドウ」のみで、添付のないルームへの影響はありません。詳細は[長文コンテキスト処理](docs/project/long-context.zh-CN.md)、閾値は[閾値一覧](docs/project/longread-thresholds.zh-CN.md)をご参照ください。
-* **統一ツールシステム**: すべてのツールは [registry.py](file:///d:/Desktop/sparkarc/server/agents/tools/registry.py) でグループ分けして登録され、`agent_tools.py` のパブリックファサードから外部に公開されます。本文、アウトライン、世界設定の部分修正はすべて `_apply_patch` を再利用し、トークン分割やセマンティックチャンキングも共通インフラを利用します。
+* **統一ツールシステム**: すべてのツールは [registry.py](server/agents/tools/registry.py) でグループ分けして登録され、`agent_tools.py` のパブリックファサードから外部に公開されます。本文、アウトライン、世界設定の部分修正はすべて `_apply_patch` を再利用し、トークン分割やセマンティックチャンキングも共通インフラを利用します。
 * **スキルと MCP の境界**: AgentSkills は `search_skills` / `read_skill` / `read_skill_reference` 経由でオンデマンドに読み込まれます。MCP は `/api/mcp/` に統合され、インスピレーションツールは従来の名前を保ち、コントロールツールには `control_` プレフィックスを付けます。`/api/mcp/control/` は既存クライアント向けの互換入口としてのみ残り、書き込みは既存の Agent ツールパイプラインを経由します。
-* **フロントエンド対応**: エージェント名、説明、アイコン、テーマカラーなどの情報は [registry.py](file:///d:/Desktop/sparkarc/server/agents/registry.py) をマスターデータとして参照します。ツール呼び出し時の UI メタデータは、バックエンドの `build_tool_stream_event` によってストリームに注入され、フロントエンドの `chatStore` が一元的に処理・レンダリングします。
+* **フロントエンド対応**: エージェント名、説明、アイコン、テーマカラーなどの情報は [registry.py](server/agents/registry.py) をマスターデータとして参照します。ツール呼び出し時の UI メタデータは、バックエンドの `build_tool_stream_event` によってストリームに注入され、フロントエンドの `chatStore` が一元的に処理・レンダリングします。
 
-> 📗 コンテキストの結合構造、キャッシュヒットの表示、各エージェントの役割一覧、スキルと MCP の統合境界、ツールの登録構造の詳細については、[アーキテクチャ詳細ドキュメント §2-§3](file:///d:/Desktop/sparkarc/docs/project/architecture.md#2-agent-统一调用管线) をご参照ください。
+> 📗 コンテキストの結合構造、キャッシュヒットの表示、各エージェントの役割一覧、スキルと MCP の統合境界、ツールの登録構造の詳細については、[アーキテクチャ詳細ドキュメント §2-§3](docs/project/architecture.md#2-agent-统一调用管线) をご参照ください。
 
 ### 3. ビーコンバス通信メカニズム
 
@@ -570,7 +570,7 @@ graph TB
     AgentB -- ホーンなし: 自発的発信不可 --x Bus
 ```
 
-> 📗 3つのステートの定義や具体的な応用シーンについては、[アーキテクチャ詳細ドキュメント §8](file:///d:/Desktop/sparkarc/docs/project/architecture.md#8-信标总线核心机制完整版) をご参照ください。
+> 📗 3つのステートの定義や具体的な応用シーンについては、[アーキテクチャ詳細ドキュメント §8](docs/project/architecture.md#8-信标总线核心机制完整版) をご参照ください。
 
 #### 監督による統制 vs ビーコンによる協調（垂直連携と水平連携）
 
@@ -578,7 +578,7 @@ SparkArc には、**役割と動作ルートが異なる 2 つの通信システ
 * **監督（ディレクター）による統制**（垂直型）: ディレクターが LangGraph のツール呼び出しルーティングに基づいて自律的にタスクを割り振ります。これはビーコンの制約を受けず、任意のエージェントを直接インスタンス化して指示を実行させることができます。
 * **ビーコンによる協調**（水平型）: エージェント同士の直接対話は、無限ループやブロードキャスト嵐を避けるため、互いのビーコン・ホーン・バトンの制約を受けます。
 
-> 📗 2つの仕組みの比較表、協調パターンの違い、設計意図については、[アーキテクチャ詳細ドキュメント §1](file:///d:/Desktop/sparkarc/docs/project/architecture.md#1-导演调度-vs-信标协作双系统对比) をご参照ください。
+> 📗 2つの仕組みの比較表、協調パターンの違い、設計意図については、[アーキテクチャ詳細ドキュメント §1](docs/project/architecture.md#1-导演调度-vs-信标协作双系统对比) をご参照ください。
 
 ---
 
@@ -622,7 +622,7 @@ SparkArc は、**AI の可能性を極限まで引き出すこと**を目指し�
 このフォーマットは最終的に、高速かつバグのないデータベースへとコンパイルされ、実際のゲームや Web の演出を駆動します。
 なお、AI に直接コードや関数ノードを記述する権限はデフォルトでは付与しておらず、純粋な物語創作に集中させています。**今後のモデルの発展を見据え、段階的に解放していく予定です。**
 
-> 📗 構文解析の戦略や最適化の詳細については、[アーキテクチャ詳細ドキュメント §9](file:///d:/Desktop/sparkarc/docs/project/architecture.md#9-arc-格式解析策略) をご参照ください。
+> 📗 構文解析の戦略や最適化の詳細については、[アーキテクチャ詳細ドキュメント §9](docs/project/architecture.md#9-arc-格式解析策略) をご参照ください。
 
 ### 作品メモリプール
 
@@ -661,7 +661,7 @@ SparkArc は、**AI の可能性を極限まで引き出すこと**を目指し�
 * **正確なトークン計算**: `tiktoken` に加え、日中韓（CJK）テキスト用の動的な修正係数を組み合わせることで、高精度な利用料金計算を行います。
 * **用途別のモデル割り当て**: 高速処理（Fast）、推理思考（Reason）、デフォルト（Main）の 3 つのスロットを定義し、タスクの難易度に応じてモデルを自動で振り分けます。
 
-> 📗 デュアルチャネルの設計仕様、デプロイ方法、スロットの構成方針、Reasoning ストリームの処理方法については、[Matchbox Agent Gateway ガイド](file:///d:/Desktop/sparkarc/server/llm/agen_matchbox/README.md) をご参照ください。
+> 📗 デュアルチャネルの設計仕様、デプロイ方法、スロットの構成方針、Reasoning ストリームの処理方法については、[Matchbox Agent Gateway ガイド](server/llm/agen_matchbox/README.md) をご参照ください。
 
 ### 2. データベース管理と自動移行
 
@@ -692,7 +692,7 @@ SparkArc には**起動時のデータベース自動移行**機能が組み込�
 6. **履歴の修復**: 移行履歴が途切れている場合、安全のため足りないテーブルやカラムを追加した上でバージョン番号を合わせます（既存のカラムは削除しません）。
 7. **バージョン差分の保護**: バージョン履歴上は HEAD（最新）であるにもかかわらず実カラムが足りない場合は起動時にエラーを出し、未コミットの移行ファイルの漏れを早期検知します。
 
-> 📗 開発者向けのワークフロー、新しいテーブル定義時の移行手順、履歴データ整理上の注意点については、[データベース自動移行ガイド](file:///d:/Desktop/sparkarc/docs/project/database-migration.md) をご参照ください。
+> 📗 開発者向けのワークフロー、新しいテーブル定義時の移行手順、履歴データ整理上の注意点については、[データベース自動移行ガイド](docs/project/database-migration.md) をご参照ください。
 
 ### 3. 多テナント SaaS
 
@@ -732,7 +732,7 @@ SparkArc は完全自動化された CI/CD パイプラインを内蔵してい�
 Gitea Actions および GitLab CI をサポートしており、Gitea Actions の定義ファイルは GitHub Actions にも簡単に移植可能です。
 実行フェーズ：**コードチェックアウト → イメージビルド → テスト（事前定義） → デプロイ → クリーンアップ**
 
-> 📗 ランナーの設定方法、CI シークレットの登録、GitHub Actions への移行手順については、[CI/CD 自動デプロイガイド](file:///d:/Desktop/sparkarc/docs/project/cicd-deployment.md) をご参照ください。
+> 📗 ランナーの設定方法、CI シークレットの登録、GitHub Actions への移行手順については、[CI/CD 自動デプロイガイド](docs/project/cicd-deployment.md) をご参照ください。
 
 ---
 
@@ -755,7 +755,7 @@ Gitea Actions および GitLab CI をサポートしており、Gitea Actions �
 
 ### Tauri 2 を用いたクロスプラットフォームビルド
 
-フロントエンドは Tauri 2 に対応しています。Windows、Linux、macOS、Android、iOS 向けのシンプルなビルド手順については、[doc/tauri/tauri2-all.md](file:///d:/Desktop/sparkarc/doc/tauri/tauri2-all.md) をご参照ください。
+フロントエンドは Tauri 2 に対応しています。Windows、Linux、macOS、Android、iOS 向けのシンプルなビルド手順については、[docs/tauri/tauri2-all.md](docs/tauri/tauri2-all.md) をご参照ください。
 
 ビルド手順のクイックリファレンス（ルートから `cd client` を実行）：
 1. 依存関係のインストール：`npm install`
@@ -801,8 +801,8 @@ Gitea Actions および GitLab CI をサポートしており、Gitea Actions �
 ## 開発・リポジトリガイド
 
 * 開発への参加（コントリビューション）方法：`.github/CONTRIBUTING.md`（英語）
-* エージェントの開発・記述制約と設計仕様：[AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md)
-* エージェント言語規則と開発規範：[AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md)
+* エージェントの開発・記述制約と設計仕様：[AGENTS.md](AGENTS.md)
+* エージェント言語規則と開発規範：[AGENTS.md](AGENTS.md)
 
 ---
 
@@ -810,31 +810,36 @@ Gitea Actions および GitLab CI をサポートしており、Gitea Actions �
 
 | ドキュメント | 主な解説内容 |
 | :--- | :--- |
-| [アーキテクチャ詳細ドキュメント](file:///d:/Desktop/sparkarc/docs/project/architecture.md) | ディレクターとビーコンバスの連携仕様、3つの呼び出しモード仕様、クリティック監査メカニズム、文体クローンクラスター、信標バスの定義、ARC 解析戦略、ツール登録、ストリーミング共通インフラ。 |
+| [アーキテクチャ詳細ドキュメント](docs/project/architecture.md) | ディレクターとビーコンバスの連携仕様、3つの呼び出しモード仕様、クリティック監査メカニズム、文体クローンクラスター、信標バスの定義、ARC 解析戦略、ツール登録、ストリーミング共通インフラ、安定プレフィックス契約、フロント復旧契約、MCP マウント順序。 |
+| [チャット文脈管理（中国語）](docs/project/context-management.zh-CN.md) | 適応型予算、自動圧縮、原文履歴の永続化、チェックポイント、オンデマンド原文検索と StoryMemory の境界。 |
 | [長文コンテキスト処理](docs/project/long-context.zh-CN.md) | 添付ファイル・超過サイズ世界観向けスライディングウィンドウ基盤：分割保存、全体マップ、二重検索による位置特定、オンデマンド読み取り、手がかり台帳、前方キャッシュ配置。 |
 | [スライディングウィンドウ閾値一覧](docs/project/longread-thresholds.zh-CN.md) | 長文関連の全閾値の定義場所・既定値・適用範囲。 |
-| [Matchbox Agent Gateway ガイド](file:///d:/Desktop/sparkarc/server/llm/agen_matchbox/README.md) | デュアルチャネル構造、デプロイ方法、APIスロット設定、Reasoning ストリームの処理。 |
-| [データベース自動移行ガイド](file:///d:/Desktop/sparkarc/docs/project/database-migration.md) | データベース修正時のマイグレーション自動生成ワークフロー、トラブルシューティング。 |
-| [CI/CD 自動デプロイガイド](file:///d:/Desktop/sparkarc/docs/project/cicd-deployment.md) | ランナー構築、シークレットトークンの管理、GitHub Actions への移植。 |
-| [AGENTS.md](file:///d:/Desktop/sparkarc/AGENTS.md) | エージェント開発時の規約、追加時のチェックリスト、プロンプト定義ポリシー。 |
+| [長編 GraphRAG 位置づけと改善案（2026・中国語）](docs/project/narrative-graphrag-optimization-2026.zh-CN.md) | GraphRAG の適用範囲、読み取り専用運用、ハイブリッド検索と問い合わせルーティング、ナラティブグラフ改善ロードマップ。 |
+| [文脈圧縮戦略の比較（中国語）](docs/project/context-compaction-comparison.zh-CN.md) | Codex・OpenCode・SparkArc の文脈圧縮戦略のソースレベル比較。 |
+| [クライアント実行時更新戦略（中国語）](docs/project/client-runtime-update-strategy.zh-CN.md) | ブラウザ版と Tauri 版のフロント独立リリースとシェル更新戦略。 |
+| [ローカル配置マネージャー（中国語）](docs/project/local-deployment-manager.zh-CN.md) | Release Launcher の管理対象 `main`、Git/Node 境界、ネットワークフォールバック、データ保護と更新フロー。 |
+| [Matchbox Agent Gateway ガイド](server/llm/agen_matchbox/README.md) | デュアルチャネル構造、デプロイ方法、APIスロット設定、Reasoning ストリームの処理。 |
+| [データベース自動移行ガイド](docs/project/database-migration.md) | データベース修正時のマイグレーション自動生成ワークフロー、トラブルシューティング。 |
+| [CI/CD 自動デプロイガイド](docs/project/cicd-deployment.md) | ランナー構築、シークレットトークンの管理、GitHub Actions への移植。 |
+| [AGENTS.md](AGENTS.md) | エージェント開発時の規約、追加時のチェックリスト、プロンプト定義ポリシー。 |
 | [セマンティック検索エンジン](#4-セマンティック検索エンジン) | 正規表現検索とベクトル検索、自動重構築とハッシュ比較、LanceDB。 |
-| [LEGAL/README.md](file:///d:/Desktop/sparkarc/LEGAL/README.md) | 利用規約、免責事項、法的文書へのポータル。 |
+| [LEGAL/README.md](LEGAL/README.md) | 利用規約、免責事項、法的文書へのポータル。 |
 
 ---
 
 ## 法的説明・運営について
 
-公式デモサーバー、サードパーティでの公開デプロイ、コンテンツのガバナンス、プライバシー保護、および知的財産権の責任境界について説明するため、ルート配下に [`LEGAL/README.md`](file:///d:/Desktop/sparkarc/LEGAL/README.md) を新設し、ポータル窓口として定義しました。
+公式デモサーバー、サードパーティでの公開デプロイ、コンテンツのガバナンス、プライバシー保護、および知的財産権の責任境界について説明するため、ルート配下に [`LEGAL/README.md`](LEGAL/README.md) を新設し、ポータル窓口として定義しました。
 
 現在用意されている法的文書（中国語）：
-* [`LEGAL/LicensePolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/LicensePolicy.zh-CN.md)
-* [`LEGAL/TrademarkPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/TrademarkPolicy.zh-CN.md)
-* [`LEGAL/TermsOfService.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/TermsOfService.zh-CN.md)
-* [`LEGAL/PrivacyPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/PrivacyPolicy.zh-CN.md)
-* [`LEGAL/OfficialInstancePolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/OfficialInstancePolicy.zh-CN.md)
-* [`LEGAL/ThirdPartyOperatorNotice.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/ThirdPartyOperatorNotice.zh-CN.md)
-* [`LEGAL/ContentPolicy.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/ContentPolicy.zh-CN.md)
-* [`LEGAL/EvidenceAndIPCompliance.zh-CN.md`](file:///d:/Desktop/sparkarc/LEGAL/EvidenceAndIPCompliance.zh-CN.md)
+* [`LEGAL/LicensePolicy.zh-CN.md`](LEGAL/LicensePolicy.zh-CN.md)
+* [`LEGAL/TrademarkPolicy.zh-CN.md`](LEGAL/TrademarkPolicy.zh-CN.md)
+* [`LEGAL/TermsOfService.zh-CN.md`](LEGAL/TermsOfService.zh-CN.md)
+* [`LEGAL/PrivacyPolicy.zh-CN.md`](LEGAL/PrivacyPolicy.zh-CN.md)
+* [`LEGAL/OfficialInstancePolicy.zh-CN.md`](LEGAL/OfficialInstancePolicy.zh-CN.md)
+* [`LEGAL/ThirdPartyOperatorNotice.zh-CN.md`](LEGAL/ThirdPartyOperatorNotice.zh-CN.md)
+* [`LEGAL/ContentPolicy.zh-CN.md`](LEGAL/ContentPolicy.zh-CN.md)
+* [`LEGAL/EvidenceAndIPCompliance.zh-CN.md`](LEGAL/EvidenceAndIPCompliance.zh-CN.md)
 
 補足説明：
 * これらの法的文書は、公式の法的証拠の提示、およびサードパーティがデプロイする際の参考テンプレートとして利用可能です。

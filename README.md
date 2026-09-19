@@ -4,7 +4,7 @@
 
 > 📢 **支持与关注**：如果本项目对你有所启发或帮助，请帮我们点个 **Star**（收藏项目防止迷路）和 **Watch**（选择 Custom -> Releases 订阅新版本更新）。作为一个独立开源项目，每一个 Star 和 Watch 都能极大地提升我们在社区中的能见度，对项目的持续迭代和长远发展至关重要，非常感谢你的支持！
 > 
-> 🤝 **联合作者**：感谢 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 在设计与宣发上的付出，没有这些关键工作，本项目不可能面世。本项目由 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 主导迭代与社区管理，[<img src="https://github.com/1deaaa.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @1deaaa](https://github.com/1deaaa) 亦会持续提供技术支持。
+> 🤝 **联合作者**：感谢 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 在宣发上的付出，没有这些关键工作，本项目不可能面世。
 
 **引火AI创作台（SparkArc Studio）** 是一个Agent自主智能集群驱动的创作平台，旨在通过专业创作流水线，将星星灵感之火扩展为完整的故事世界，创作小说、剧本，并驱动精美的WEB演出/Unity引擎演出。
 它打通了**灵感——设定——节奏——大纲——写文——校验——发布——分享——演出**的全链路，为创作者提供了一套强大的生产力工具。
@@ -99,7 +99,7 @@ SparkArc 的核心用户是创作者，同时也覆盖作品体验、技术集�
 | **2. 世界观/设定**    | Story Bible / World Guide | **设定专家**                  | 确立物理法则、魔法体系、地理政治以及核心人物小传，确保后续创作的逻辑自洽。                               |
 | **3. 节奏/结构**      | Beat Sheet / Treatment    | **文案策划**                | "救猫咪"还是"英雄之旅"？在此阶段确立故事骨架，划分幕结构，生成精确的节奏表。                             |
 | **4. 撰写**      | Screenplay / Script       | **执笔编剧** | 最终的“笔”。在结构框架内填充血肉，处理场景描述、动作指导与角色对白；支持互动剧本与纯文学小说双态输出.|
-| **5. 质量保证**  | Script Doctor / Coverage  | **逻辑审核 & 文风克隆** | 逻辑审核负责模拟苛刻的审稿人提供冲突或逻辑漏洞的专业反馈；文风克隆负责通过目标文风约束消除 AI 味高频词。GraphRAG 事实约束工具已生产化，可按需灰度启用以增强跨章节一致性。 |
+| **5. 质量保证**  | Script Doctor / Coverage  | **逻辑审核 & 文风克隆** | 逻辑审核负责模拟苛刻的审稿人提供冲突或逻辑漏洞的专业反馈；文风克隆负责通过目标文风约束消除 AI 味高频词。GraphRAG 为只读图谱查询能力（`query` / `status`），与语义检索、作品记忆池按问题复杂度路由，重点增强跨章节因果与长期结构一致性。 |
 | **6. 发布/演出**      | Implementation / Assets   | **浏览器演出/Unity SDK**                  | 剧本资产化。编译剧本为高性能运行时，驱动游戏内的对话系统、演出调度与任务触发。                                 |
 
 ## 创作者一图工作流
@@ -421,10 +421,10 @@ GitHub Release 中提供的桌面客户端会优先探测本机后端（`6688` /
   * **输出协议**：使用 **S / A / B / C / D** 五档等级，而不是数字分数；同时输出原文证据、命中问题与 `fix_ticket` 风格修改单，便于后续返工。
   * **模型策略**：优先利用大模型的判别与归因能力，把它当成 **LLM Judge / Editor**，而不是训练一个只会给概率分数的专有分类器。
 
-* **GraphRAG Tool（事实约束，可选灰度）**：
-  * **职责**：把项目内世界观、角色、大纲与剧本片段转成可检索的关系图谱，在写作或审稿时返回可执行的事实约束。
-  * **当前状态**：已生产化，但**默认不挂载任何 Agent**，可按需灰度启用。启用后建图固定走 Fast 槽位，查询阶段跟随调用 Agent 的模型配置。
-  * **质量价值**：重点增强跨章节一致性、角色关系稳定性与设定回收能力，降低长线写作中的“吃书”。
+* **GraphRAG Tool（只读图谱查询）**：
+  * **职责**：把项目内世界观、角色、大纲与剧本片段转成可检索的关系图谱，在写作或审稿时返回可执行的事实约束与原文证据。
+  * **当前状态**：AI 端仅保留 `query` / `status` 只读操作，构建与重建收归设置页手动触发；默认挂载给 Director / Scriptwriter / Critic / Showrunner（连续性工具组）。简单事实问题优先语义检索，最近状态优先作品记忆池，跨章因果、关系演变、知情边界与长期线程才进入 GraphRAG。
+  * **质量价值**：重点增强跨章节一致性、角色关系稳定性与设定回收能力，降低长线写作中的“吃书”。完整定位、适用边界与整改路线见[长篇叙事 GraphRAG 定位与整改方案（2026）](docs/project/narrative-graphrag-optimization-2026.zh-CN.md)。
 
 #### Critic 审核机制
 
@@ -457,8 +457,8 @@ graph TD
     
     subgraph "Phase 3: 剧本落地"
         Outline -.-> Scriptwriter[Scriptwriter Agent]
-      Scriptwriter -. "可选灰度" .-> GraphRAG[GraphRAG 事实约束工具]
-      GraphRAG --> FactGuard[事实约束清单]
+      Scriptwriter -. "只读查询" .-> GraphRAG[GraphRAG 只读图谱查询]
+      GraphRAG --> FactGuard[事实约束与证据包]
         
       Scriptwriter -- "撰写初稿" --> Draft[.arc / Novel Draft]
         Draft --> Critic[Critic Agent]
@@ -696,7 +696,7 @@ graph TB
 - **精准 Token 估算**：基于 `tiktoken` + 动态 CJK 修正系数，确保计费精准
 - **多用途槽位**：Fast（快速）/ Reason（推理）/ Main（默认），按任务复杂度路由模型
 
-> 📗 完整的双通道设计、接入链路、槽位配置与推理流兼容细节，请参阅 [火柴Agent网关完整指南](server\llm\agen_matchbox\README.md)
+> 📗 完整的双通道设计、接入链路、槽位配置与推理流兼容细节，请参阅 [火柴Agent网关完整指南](server/llm/agen_matchbox/README.md)
 
 
 ### 2. 数据库管理
@@ -798,7 +798,7 @@ graph TB
 
 ### Tauri 2 跨平台构建
 
-前端已接入 Tauri 2，Windows / Linux / macOS / Android / iOS 的完整“傻瓜化”构建教程请查看 [doc/tauri/tauri2-all.md](doc/tauri/tauri2-all.md)。
+前端已接入 Tauri 2，Windows / Linux / macOS / Android / iOS 的完整“傻瓜化”构建教程请查看 [docs/tauri/tauri2-all.md](docs/tauri/tauri2-all.md)。
 
 简易发布速查（进入项目根目录后 `cd client`）：
 
@@ -856,10 +856,13 @@ graph TB
 
 | 文档 | 内容 |
 | :--- | :--- |
-| [架构深度文档](docs/project/architecture.md) | 导演调度 vs 信标协作对比、Agent 三模态完整协议、Critic 审核机制、风格克隆集群、信标总线核心机制、ARC 解析策略、工具注册表、流式基础设施层 |
+| [架构深度文档](docs/project/architecture.md) | 导演调度 vs 信标协作对比、Agent 三模态完整协议、Critic 审核机制、风格克隆集群、信标总线核心机制、ARC 解析策略、工具注册表、流式基础设施层、稳定前缀契约、前端恢复契约、MCP 挂载顺序 |
 | [聊天上下文管理](docs/project/context-management.zh-CN.md) | 自适应预算、自动压缩、原始历史持久化、checkpoint 事务、按需原文检索与 StoryMemory 边界 |
 | [长上下文处理](docs/project/long-context.zh-CN.md) | 附件与超长世界观的滑窗底座：切分落盘、全局地图、双检索定位、按需读窗、线索账本、前缀缓存布局 |
 | [滑窗阈值总览](docs/project/longread-thresholds.zh-CN.md) | 所有长文本阈值的定义位置、默认值与作用范围 |
+| [长篇叙事 GraphRAG 定位与整改方案（2026）](docs/project/narrative-graphrag-optimization-2026.zh-CN.md) | GraphRAG 适用边界、只读运行态、混合召回与查询路由、叙事图升级与增量构建路线 |
+| [上下文压缩策略对照](docs/project/context-compaction-comparison.zh-CN.md) | Codex、OpenCode 与 SparkArc 上下文压缩策略的源码级对照 |
+| [客户端热更新与版本治理](docs/project/client-runtime-update-strategy.zh-CN.md) | 浏览器端与 Tauri 客户端的前端版本独立发布与壳层升级策略 |
 | [Launcher 本地部署管理器](docs/project/local-deployment-manager.zh-CN.md) | Release Launcher 受管 `main`、系统 Git/Node 边界、网络回退、数据保护与更新流程 |
 | [火柴Agent网关指南](server/llm/agen_matchbox/README.md) | 双通道设计、接入链路、槽位配置、推理流兼容 |
 | [数据库自动迁移指南](docs/project/database-migration.md) | 开发者工作流、迁移接入指南、清理历史风险 |

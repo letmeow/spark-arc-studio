@@ -14,20 +14,32 @@ Director Agent 基于 **LangGraph SupervisorGraph** 实现多轮工具调用自�
 
 #### 调度工具集
 
+> 真相源：`server/agents/tools/registry.py` 的 `DIRECTOR_BASE_TOOLS`。下表与代码保持一致；
+> Skill（`search_skills` / `read_skill` / `read_skill_reference`）与聊天历史（`search_chat_history`）
+> 为条件追加工具，不计入固定调度集，详见 §3.1。
+
 | 工具名 | 功能 | 说明 |
 | :--- | :--- | :--- |
 | `list_chapters` | 查看项目章节结构 | 理解全局结构后决定分派 |
 | `read_chapter_scene` | 读取具体场景内容 | 精确了解当前进度 |
 | `read_chapter_outline_raw` | 读取原始大纲文本 | 获取原始规划信息 |
 | `delegate_task` | 委派任务给专家 Agent | 核心调度动作，返回 Sentinel 交由 LangGraph 拦截 |
+| `organize_scenes_to_chapter` | 整理场景到章节 | 复用 Scriptwriter 章节整理能力 |
+| `work_tracker` | 工作进度追踪 | 仅负责创建或增量更新任务板；当前板面由系统自动注入消息尾部 |
 | `trigger_auto_write` | 触发无人值守自动撰写 | 启动 Auto-Write 管道 |
 | `check_scriptwriter_status` | 查询自动撰写进度 | 检查 Auto-Write 状态 |
-| `work_tracker` | 工作进度追踪 | 仅负责创建或增量更新任务板；当前板面由系统自动注入消息尾部 |
+| `update_project_story_tags` | 更新项目创作参数 | 维护故事主题参数 |
 | `search_project` | 正则搜索全项目文本 | 快速定位关键词/模式 |
 | `semantic_search` | 语义搜索项目文本与附件 | 按语义相关性检索内容 |
 | `replace_from_search` | 基于搜索结果替换文本 | 批量修改命中片段 |
+| `story_memory_tool` | 只读故事记忆 | 查询实时故事状态，不提供剧情方案 |
+| `graph_rag_tool` | 只读图谱查询 | 仅 `query` / `status`，构建与重建收归设置页手动触发 |
 | `web_search` | 联网搜索外部公开信息 | 查询不熟悉的现实知识 |
-| `read_attachment_chunk` | 按需读取聊天附件分片 | 滑窗读取大附件避免上下文溢出 |
+| `read_attachment_chunk` | 按需读取聊天附件分片 | 兼容入口，内部转调 `read_longread_window` |
+| `read_longread_window` | 按窗口号读长文档 | 附件滑窗底座的统一读口 |
+| `describe_longread_source` | 查看长文档地图 | 开局先看地图，再决定读哪几个窗口 |
+| `note_window_clues` | 记录窗口线索 | 读一片记一笔，只追加不改写 |
+| `read_worldview_window` | 按窗口号读世界观 | 只读世界观逻辑切片视图，不复制不双写 |
 
 #### LangGraph 调度流程
 
@@ -233,9 +245,9 @@ flowchart LR
 | Agent | 落盘工具 | tool reference 映射 |
 | :--- | :--- | :--- |
 | Muse | `rewrite_inspiration` | → yaml 顶层 `system` |
-| Lorebook | `rewrite_worldview` / `rewrite_all_characters` | → `rewrite_worldview.system` / `generate_characters.system` |
+| Lorebook | `rewrite_worldview` / `patch_worldview` / `rewrite_all_characters` | → `rewrite_worldview.system` / `patch_worldview.system` / `generate_characters.system` |
 | Showrunner | `rewrite_synopsis` / `rewrite_beat_sheet` / `rewrite_outline` | → 各子 prompt 的 `system` |
-| Scriptwriter | `create_or_rewrite_script` | → 顶层 `system`（arc）或 `generate_novel.system`（novel） |
+| Scriptwriter | `create_or_rewrite_script` | → 顶层 `system`（arc）或 `generate_novel.system`（novel），按当前 `export_format` 动态切换 |
 | Critic | **无落盘工具** | `pipeline_system` 内嵌产出规范摘要 |
 
 ### 2.5 YAML 共享机制：`base` + `tool_rules`
@@ -257,7 +269,15 @@ flowchart LR
     AUTO --> APPEND["追加到 system_instruction 末尾"]
     APPEND --> RESULT["Agent 子类无需重写方法追加硬编码规则"]
     APPEND -.->|"Director 例外"| DIR["保留重写：追加运行时<br/>动态构建的团队成员能力概览块"]
+    APPEND -.->|"Scriptwriter 例外"| VIS["保留重写：追加视觉小说<br/>演出构思协议或未开启引导"]
 ```
+
+> 例外说明：除 Director 的团队成员能力概览块外，Scriptwriter 保留
+> `_build_tool_system_prompt` 重写，仅用于追加视觉小说演出构思协议
+> （项目开关开启时）或未开启时的状态引导说明，不改变工具装配主流程。
+> 此外 `scriptwriter.yaml` 顶层还有 `autonomous_tool_rules`，专供 Auto-Write
+> 单循环（`scriptwriter_prewrite.py` 经 `tool_rules_key="autonomous_tool_rules"` 加载），
+> 与聊天/委派模式的 `tool_rules` 互不干扰。
 
 ### 2.6 各 Agent 完整调用速查
 
@@ -274,11 +294,11 @@ flowchart LR
 
 ### 2.7 新增 Agent 自检清单
 
-1. `prompts/<agent>.yaml` 同时定义 `system`、`chat_system`、`pipeline_system` 三个顶层字段。
+1. 业务专家 `prompts/<agent>.yaml` 同时定义 `system`、`chat_system`、`pipeline_system` 三个顶层字段；系统内部 `utility.yaml` 仅定义 `compress_context` 等内部模板，不进入聊天入口，不受本条约束。
 2. 若有落盘工具：必须重写 `_get_tool_prompt_references()`，把 yaml `system` 绑定到落盘工具；`pipeline_system` 保持极简三件套。
 3. 若无落盘工具：必须在 `pipeline_system` 里直接内嵌产出规范关键摘要。
 4. 多模态共享片段提取到 YAML 顶层 `base` 字段，各模态通过 `{base.xxx}` 引用，禁止重复书写。
-5. 工具使用补充规则写入 YAML 顶层 `tool_rules` 字段，由基类自动加载；禁止 Python 侧重写 `_build_tool_system_prompt` 追加硬编码规则。
+5. 工具使用补充规则写入 YAML 顶层 `tool_rules` 字段，由基类自动加载；Python 侧不得重写 `_build_tool_system_prompt` 追加硬编码业务规则。例外仅两处：Director 追加运行时团队成员能力概览块，Scriptwriter 追加视觉小说演出构思协议或未开启引导。
 6. `SparkAgentExecutor` 的 `build_context` / `execute` / `write_result` 协议完整实现。
 7. 该 Agent 的落盘工具已在 `server/agents/tools/*` 中按域实现，并统一在 `server/agents/tools/registry.py` 注册；`server/agents/agent_tools.py` 继续作为唯一公共导出与 `get_tools_for_agent` 门面。
 
@@ -311,22 +331,34 @@ SparkArc 的工具层采用“统一门面 + 内部按域拆分”的结构：
 
 ### 3.1 各 Agent 工具分配
 
-| Agent | 工具列表 |
+> 真相源：`server/agents/tools/registry.py`（`get_tools_for_agent`）。
+> 下表为各 Agent 固定工具集；`search_skills` / `read_skill` / `read_skill_reference`
+> 仅在用户已安装有效 Skill 时条件追加，`search_chat_history` 仅在房间上下文存在时
+> 条件追加，两者都不改变稳定前缀；`pipeline_mode=True` 时另给四个流水线 Agent
+> 追加 `complete_pipeline_step`。
+
+| Agent | 固定工具列表 |
 | :--- | :--- |
-| **Director** | `list_chapters`, `read_chapter_scene`, `read_chapter_outline_raw`, `delegate_task`, `organize_scenes_to_chapter`, `work_tracker`, `trigger_auto_write`, `check_scriptwriter_status`, `update_project_story_tags`, `search_project`, `semantic_search`, `replace_from_search`, `graph_rag_tool`, `web_search`, `read_attachment_chunk`, `search_skills`, `read_skill`, `read_skill_reference` |
-| **Muse** | `rewrite_inspiration`, `list_inspirations`, `read_inspiration`, `bind_inspiration_to_current_project`, `web_search`, `search_skills`, `read_skill`, `read_skill_reference` |
-| **Lorebook** | `rewrite_worldview`, `rewrite_all_characters`, `update_character`, `patch_worldview`, `search_skills`, `read_skill`, `read_skill_reference` |
-| **Showrunner** | `rewrite_synopsis`, `rewrite_beat_sheet`, `rewrite_outline`, `patch_synopsis`, `patch_beat_sheet`, `patch_outline`, `read_chapter_outline_raw`, `search_skills`, `read_skill`, `read_skill_reference` |
-| **Scriptwriter** | `create_chapter`, `create_or_rewrite_script`, `organize_scenes_to_chapter`, `patch_script`, `read_worldview`, `read_character`, `read_synopsis`, `read_beat_sheet`, `work_tracker`, `graph_rag_tool`, `search_skills`, `read_skill`, `read_skill_reference` + `list_chapters`, `read_chapter_scene`, `read_chapter_outline_raw` |
-| **Critic** | `list_chapters`, `read_chapter_scene`, `read_chapter_outline_raw`, `graph_rag_tool`, `search_skills`, `read_skill`, `read_skill_reference` |
+| **Director** | `list_chapters`, `read_chapter_scene`, `read_chapter_outline_raw`, `delegate_task`, `organize_scenes_to_chapter`, `work_tracker`, `trigger_auto_write`, `check_scriptwriter_status`, `update_project_story_tags`, `search_project`, `semantic_search`, `replace_from_search`, `story_memory_tool`, `graph_rag_tool`, `web_search`, `read_attachment_chunk`, `read_longread_window`, `describe_longread_source`, `note_window_clues`, `read_worldview_window` |
+| **Muse** | `rewrite_inspiration`, `list_inspirations`, `read_inspiration`, `bind_inspiration_to_current_project`, `web_search` |
+| **Lorebook** | `rewrite_worldview`, `rewrite_all_characters`, `update_character`, `create_character_relation`, `patch_worldview`, `web_search` |
+| **Showrunner** | 结构工具：`rewrite_synopsis`, `rewrite_beat_sheet`, `rewrite_outline`, `patch_synopsis`, `patch_beat_sheet`, `patch_outline`, `read_worldview`, `read_character`, `read_synopsis`, `read_beat_sheet`；连续性工具：`list_chapters`, `read_chapter_scene`, `read_chapter_outline_raw`, `story_memory_tool`, `graph_rag_tool`, `search_project`, `semantic_search` |
+| **Scriptwriter** | `prepare_script_creation`, `create_chapter`, `create_or_rewrite_script`, `batch_rename_chapters`, `batch_rename_scenes`, `batch_update_story_metadata`, `rename_chapter`, `rename_scene`, `reorder_chapters`, `reorder_scenes`, `organize_scenes_to_chapter`, `patch_script`, `read_worldview`, `read_character`, `read_synopsis`, `read_beat_sheet`, `search_project`, `semantic_search`, `work_tracker`, `update_project_story_tags`, `story_memory_tool`, `graph_rag_tool` + 共享读取 `list_chapters`, `read_chapter_scene`, `read_chapter_outline_raw` |
+| **Critic** | `list_chapters`, `read_chapter_scene`, `read_chapter_outline_raw`, `story_memory_tool`, `graph_rag_tool` |
 | **Style** | 无绑定工具（通过子集群内部流程执行） |
 
-### 3.2 可选灰度工具
+### 3.2 只读与受限工具
 
 | 工具 | 状态 | 说明 |
 | :--- | :--- | :--- |
-| `graph_rag_tool` | 已生产化，默认不挂载 | 支持 `build` / `query` / `status` / `reset` 四种操作，查询模式支持 `local` / `global` / `drift`。若要启用，只需加入目标 Agent 的工具列表 |
-| `capture_inspiration` | MCP 专用 | 仅通过 MCP Server 暴露，不挂载到任何聊天 Agent |
+| `graph_rag_tool` | 只读运行态，默认挂载给 Director / Scriptwriter / Critic / Showrunner（连续性工具组） | AI 端仅保留 `query` / `status` 两个只读操作，查询模式支持 `local` / `global` / `drift`，输出模式支持 `answer` / `writing_guardrails`；构建与重建已收归设置页手动触发，避免 AI 在聊天链路中私自触发昂贵的图谱构建。若图谱未构建、已过期或正在构建，工具返回明确的未就绪提示并引导用户到「设置 → 项目检索索引」刷新 |
+| `capture_inspiration` | MCP 专用 | 列入 `MCP_ONLY_TOOLS`，仅通过 MCP Server 暴露，不挂载到任何聊天 Agent |
+
+> GraphRAG 在长篇叙事中的定位、适用边界与后续整改路线，见
+> [长篇叙事 GraphRAG 定位与整改方案（2026）](narrative-graphrag-optimization-2026.zh-CN.md)：
+> 简单事实问题优先 `semantic_search`，最近状态与开放线索优先 `story_memory_tool`，
+> 跨章因果、关系演变、知情边界与长期线程才进入 GraphRAG；图谱只做导航、聚合与约束，
+> 不做脱离原文的第二真相源。
 
 ### 3.3 AgentSkills 与 MCP 兼容层
 
@@ -450,8 +482,31 @@ SparkArc 前端有两条独立的流式消费链路，不可混淆：
 | 公共工厂 / 服务层 | `server/agents/agent_factory.py` + `project_content.py` + `auto_write_service.py` | 统一实例化与跨链路复用服务 |
 | 多 Agent 调度 | `server/agents/director_graph.py` | LangGraph SupervisorGraph |
 | 流式桥接 | `server/agents/routes/streaming_utils.py` | 同步→异步桥接 |
-| 业务语义层 | `server/agents/routes/stream_semantics.py` + `execution_core.py` | SSE 语义帧协议 |
+| 业务语义层 | `server/agents/stream_semantics.py` + `execution_core.py`（`server/agents/routes/stream_semantics.py` 仅为兼容重导出） | SSE 语义帧协议 |
 | 路由聚合 | `server/agents/routes/__init__.py` | 子路由聚合 |
+
+### 4.4 稳定前缀契约（缓存友好布局）
+
+聊天上下文维持“稳定前缀 + 动态尾部”布局：Agent 模态 prompt、语言策略、
+工具清单、确认规则、tool reference、tool_rules 固定在前；当前编辑区、附件现场、
+本轮用户请求经 `prompt_layout.py` 放入最后一条 user message；历史消息、压缩摘要与
+工具结果由 `context_budget.py` 管理预算。长文档滑窗维持
+`system（稳定）+ manifest（稳定）+ ledger（只追加）+ 当前窗口（一片，尾部）+ 本轮用户请求（最尾）`，
+地图与账本一经注入只追加不改写，旧窗口折叠只在任务终态落盘前发生一次。
+
+### 4.5 前端恢复契约
+
+聊天流恢复走 `task_snapshot` + `afterSeq` 游标回放，不使用破坏性队列消费；
+Auto-Write 进度走 SSE 观察 + 轮询双保险，前端断连不影响后台任务。
+`write_started` 之前的状态一律视为调研阶段，仅落盘工具调用后才进入写作阶段；
+`scene_completed` 的字数与耗时为落盘瞬间的事后统计，不做逐字测速展示。
+
+### 4.6 MCP 挂载顺序与工单边界
+
+Starlette 挂载时必须先注册 `/api/mcp/control`，再注册 `/api/mcp` 父路径，
+否则父 Mount 会吞掉控制子路径。写盘请求不直接暴露为 MCP 工具，一律经
+`control_submit_director_task` 进入 Director 工单，由既有 Agent 工具管线执行；
+工单按用户持久化并校验所有者，`project_name` 统一经 `core.utils` 校验。
 
 ---
 
