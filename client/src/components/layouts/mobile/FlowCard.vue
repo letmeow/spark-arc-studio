@@ -91,7 +91,7 @@ function scrollToNext() {
   flex-direction: column;
   padding: 18px 16px;
   padding-top: calc(var(--mobile-header-height, 48px) + var(--sat, 0px) + 18px);
-  padding-bottom: calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 112px);
+  padding-bottom: calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 28px);
   
   /* 简化背景 */
   background: var(--spark-bg);

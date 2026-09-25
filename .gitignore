@@ -58,6 +58,7 @@ lerna-debug.log*
 dist/
 dist-launcher/
 dist-ssr/
+video/
 *.local
 
 # 前端一键构建脚本产生的标记与校验文件

@@ -294,13 +294,13 @@ flowchart LR
 
 ### 2.7 新增 Agent 自检清单
 
-1. 业务专家 `prompts/<agent>.yaml` 同时定义 `system`、`chat_system`、`pipeline_system` 三个顶层字段；系统内部 `utility.yaml` 仅定义 `compress_context` 等内部模板，不进入聊天入口，不受本条约束。
-2. 若有落盘工具：必须重写 `_get_tool_prompt_references()`，把 yaml `system` 绑定到落盘工具；`pipeline_system` 保持极简三件套。
-3. 若无落盘工具：必须在 `pipeline_system` 里直接内嵌产出规范关键摘要。
-4. 多模态共享片段提取到 YAML 顶层 `base` 字段，各模态通过 `{base.xxx}` 引用，禁止重复书写。
-5. 工具使用补充规则写入 YAML 顶层 `tool_rules` 字段，由基类自动加载；Python 侧不得重写 `_build_tool_system_prompt` 追加硬编码业务规则。例外仅两处：Director 追加运行时团队成员能力概览块，Scriptwriter 追加视觉小说演出构思协议或未开启引导。
-6. `SparkAgentExecutor` 的 `build_context` / `execute` / `write_result` 协议完整实现。
-7. 该 Agent 的落盘工具已在 `server/agents/tools/*` 中按域实现，并统一在 `server/agents/tools/registry.py` 注册；`server/agents/agent_tools.py` 继续作为唯一公共导出与 `get_tools_for_agent` 门面。
+**本清单的唯一真相源是 [AGENTS.md §4.6](../../AGENTS.md)，此处仅保留速览；两处表述不同步时，一律以 AGENTS.md 为准。** 速览要点：
+
+1. 业务专家 `prompts/<agent>.yaml` 三模态齐全（`system` / `chat_system` / `pipeline_system`）；系统内部 `utility.yaml` 等模板豁免本条。
+2. 有落盘工具：注册 `_get_tool_prompt_references()` 绑定格式规范，`pipeline_system` 保持极简三件套；无落盘工具：`pipeline_system` 内嵌产出规范关键摘要。
+3. 多模态共享片段提取到 YAML `base` 字段；工具补充规则写入 `tool_rules` 字段，Python 侧不得硬编码业务规则（Director / Scriptwriter 两处例外见 AGENTS.md）。
+4. `SparkAgentExecutor` 的 `build_context` / `execute` / `write_result` 协议完整实现；落盘工具在 `server/agents/tools/*` 按域实现并统一注册于 `tools/registry.py`，经 `agent_tools.py` 门面导出。
+5. 新增回归覆盖三模态分别命中，放入所属领域测试目录。
 
 贡献者请参阅 [AGENTS.md](../../AGENTS.md) 查看完整协议。
 
@@ -515,7 +515,7 @@ Starlette 挂载时必须先注册 `/api/mcp/control`，再注册 `/api/mcp` 父
 Agent 注册表（`server/agents/registry.py`）采用多语言字典结构，每个 Agent 的 `name` / `display` / `description` 均包含 `zh-CN` / `en-US` / `ja-JP` / `ko-KR` 四种语言。
 
 - 前端通过 i18n 的 `components.agentNames` / `agentDescriptions` 做本地映射
-- 后端通过 `resolve_agent_i18n_field()` 按请求 locale 提取对应字段
+- 后端通过 `server/agents/registry.py` 的 locale 解析函数（`_resolve_i18n_field`）按请求 locale 提取对应字段
 - 新增语言时，只需在每个 Agent 条目中加一组翻译即可
 
 ---
@@ -546,38 +546,31 @@ Critic 的核心目标不是回答"这段是不是 AI 写的"，而是回答：*
 
 ## 7. 风格克隆集群（完整版）
 
-这是 SparkArc 最具技术深度的模块。为了捕捉人类作者微妙的文风，我们设计了一个精简高效的分析子系统，核心由 **UnifiedStyleAnalyzer（统一分析器）** 和 **ValidatorAgent（验证器）** 组成。
+这是 SparkArc 最具技术深度的模块。为了捕捉人类作者微妙的文风，我们设计了一个精简高效的分析子系统，核心由 **UnifiedStyleAnalyzer（统一分析器，串行接力分析）** 与 **StyleChatAgent（风格档案问答）** 组成。早期的多 Agent 并行分析框架（StyleAnalysisAgent / CoordinatorAgent / ValidatorAgent）已收敛为统一分析器服务，由提示词管线承载全部分析与回测规约。
 
 ### 7.1 工作流：串行深度分析
 
 ```mermaid
 graph TD
     Input[目标小说/文本] --> Chunker["智能切分 (30k tokens/块)"]
-    
+
     subgraph "串行分析链"
         Chunker --> Block1[文本块 1]
         Block1 --> Analyzer1[Unified Analyzer 1]
-        Analyzer1 -- "传递上下文" --> Analyzer2[Unified Analyzer 2]
-        
+        Analyzer1 -- "传递剧情概括" --> Analyzer2[Unified Analyzer 2]
+
         Chunker --> Block2[文本块 2]
         Block2 --> Analyzer2
         Analyzer2 -- "传递上下文" --> AnalyzerN[...]
-        
+
         Chunker --> BlockN[文本块 N]
         BlockN --> AnalyzerN
-        AnalyzerN --> FinalProfile[完整风格档案]
+        AnalyzerN --> Synthesis["最终汇总<br/>标志性特征 / 稳态vs高潮态 / 作者回避负面约束 / 风格执行卡"]
     end
-    
-    subgraph "图灵回测闭环"
-        FinalProfile --> Validator[Validator Agent]
-        Validator -- "尝试模仿写作" --> MimicText[模仿片段]
-        MimicText --> Evaluator{相似度评级?}
-        
-        Evaluator -- "有AI味 (Tier B-F)" --> Refine[生成负向约束]
-        Refine --> Finalizer[最终修正]
-        
-        Evaluator -- "完美拟合 (Tier S/A)" --> Finalizer
-    end
+
+    Synthesis --> FinalProfile[风格档案]
+    FinalProfile --> Injection["注入执笔编剧提示词<br/>约束后续生成"]
+    FinalProfile --> StyleChat["StyleChatAgent<br/>风格档案问答"]
 ```
 
 ### 7.2 风格分析流程
@@ -585,9 +578,11 @@ graph TD
 1. **智能流式分析**：
     我们将长篇小说切分为 30k tokens 的大块（约 4.5 万字），由 `UnifiedStyleAnalyzer` 进行**串行分析**。
     * **上下文传递**：每块分析结束时，分析器会生成一份"剧情概括"传递给下一块，确保 AI 知道前文发生了什么（如角色关系变化、伏笔）。
-    * **全维覆盖**：每个块都由同一个分析器进行 7 维度（对话、独白、叙事、角色、语言、结构、情感）的全量分析，避免了碎片化检索导致的上下文丢失。
-2. **自我对抗**：
-    `ValidatorAgent` 是一个独立的评判者。它会基于生成的风格档案尝试写一段"伪作"，然后自我评分。如果发现生成的文字带有 AI 特有的"说教感"或"总分总结构"，它会生成一条**负向约束**（例如："禁止使用'然而'作为转折"，"禁止在对话后立即解释心理活动"），并强制注入到风格档案中。
+    * **全维覆盖**：每个块都由同一个分析器进行 **5 个维度**（思维与认知指纹、语言体感、情绪处理、感官与注意力、人际场域）的全量分析，避免了碎片化检索导致的上下文丢失。
+2. **可执行产出与负面约束**：
+    分析结论必须"指令而非观察"，并附脱敏短例举证。最终汇总产出标志性特征、稳态 vs 高潮态语体、**作者回避（负面约束）**与 10-15 行**风格执行卡**：如果发现作者明显回避的表达方式（如"说教感""总分总结构"），会形成一条**负向约束**（例如："禁止使用'然而'作为转折"、"禁止在对话后立即解释心理活动"），强制注入风格档案并随执行卡约束后续生成。
+3. **图灵回测评分规约**：
+    风格档案附带 `S/A/B/C/D` 五档模仿回测评分标准（rubric 已固化在分析提示词中），用于人工核验与后续自动化回测；自动化"模仿写作—自评—修正"闭环在路线图中。
 
 ---
 

@@ -2,12 +2,17 @@
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-> 📢 **Support & Star**: If this project inspires or helps you, please give us a **Star** (bookmark the project to avoid losing it) and **Watch** (select Custom -> Releases to subscribe to new version updates). As an independent open-source project, every Star and Watch significantly increases our visibility in the community, which is crucial for the continuous iteration and long-term development of the project. Thank you very much for your support!
-> 
-> 🤝 **Co-Authors**: Thanks to [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) for his work on publicity. Without these key contributions, this project could never have been released.
+**SparkArc Studio** is a **multi-agent autonomous creative pipeline**: it **compiles** sparks of inspiration into complete, runnable story worlds — novels and scripts, driving web performances and Unity engine performances.
 
-**SparkArc Studio** is a creative platform driven by an autonomous agent cluster. It is designed to expand a spark of inspiration into a complete story world through a professional creative pipeline, author novels and scripts, and drive exquisite web performances or Unity engine shows.
-It connects the entire chain of **Inspiration — Lore/Settings — Beat Sheet — Outline — Writing — Validation — Publishing — Sharing — Performance**, providing a powerful set of productivity tools for creators.
+It connects the entire chain of **Inspiration — Lore — Beat — Outline — Writing — Validation — Publishing — Sharing — Performance**: you own the inspiration and the decisions, and the agent cluster turns them into deliverable story assets.
+
+> 📊 **Engineering at a glance**: 9 registered agents (7 delegatable experts + 2 in-process services) · 56 unified tools · tri-modal prompt protocol · stable-prefix cache engineering · 170+ automated test files · 5-platform clients · 4-language UI · MCP remote access
+>
+> ⚡ **Two steps to run**: `git clone https://github.com/1deaaa/spark-arc-studio && cd spark-arc-studio && docker compose up -d --build` → open `http://localhost:7788`
+>
+> 📢 **Support & Star**: If this project inspires or helps you, please give us a **Star** (bookmark the project to avoid losing it) and **Watch** (select Custom -> Releases to subscribe to new version updates). As an independent open-source project, every Star and Watch significantly increases our visibility in the community, which is crucial for the continuous iteration and long-term development of the project. Thank you very much for your support!
+>
+> 🤝 **Co-Authors**: Thanks to [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) for his work on publicity. Without these key contributions, this project could never have been released.
 
 ## Core Features
 
@@ -53,11 +58,14 @@ Inspiration is often born **outside the computer — on the subway, during a wal
 
 * **Web Performance Terminal**: Share your inspiration at any time. Audiences can enter the script with **just a single click**.
 * **Version Snapshot & Export**: Supports one-click creation of version snapshots. Export as `.arc` interactive scripts or pure literary novels, and restore to the workspace from snapshots with one click.
-* **Planned Features**: *This is a huge roadmap, please stay tuned.*
-  1. Support generating character portraits with stable styles to ensure consistency.
-  2. Implement a simple background image feature by combining image generation and editing models.
-  3. Allow custom Scriptwriter features to derive sub-agents, such as daily slice-of-life writers, item setting writers, etc.
-  4. Allow users to define custom data structures, where agents generate corresponding parsing components for frontend display and editing, and save the component code in the database (LUI or Gen-UI).
+* **AI-Generated Performance Assets (Shipped)**: Backgrounds, character sprites, and scene illustrations support both upload and online generation. Four kinds of consistency reference images — **style / scene / character / continuity** — lock the visual style so sprites and backgrounds stay consistent within a single work; uploaded sprites are automatically cut out, and image models from multiple vendors (OpenAI / Gemini / xAI, etc.) are adapted through one unified layer.
+* **Immersive Performance Player**: Three.js full-screen atmosphere shaders with frame-rate adaptive degradation; Novel Mode automatically switches to a clean reader (page-flip / scrolling, font size, reading progress). Performance assets ship together with version snapshots.
+* **Public-Share Content Safety**: Before a work goes public, AI shards it for concurrent review (Critic compliance mode); anything that fails is not published. Administrators can control the public sharing policy globally.
+* **Planned Features**:
+
+> 1. Customizable Scriptwriter capabilities that spawn sub-agents, such as daily-life writers, item lore writers, and more.
+> 2. User-defined data structures, where agents generate matching parsing/editing components for frontend display, with the component code saved to the database (LUI / GEN-UI direction).
+> 3. An automated Turing-style mimic-test loop for style cloning (the scoring rubric is already built into the analysis prompts).
 
 ### 5. Industrial Production, Democratic Creation
 
@@ -179,12 +187,13 @@ flowchart TB
   * [2. Context Structure & Unified Execution Pipeline](#2-context-structure--unified-execution-pipeline)
   * [3. Beacon Bus Communication Mechanism](#3-beacon-bus-communication-mechanism)
 * [Quality Engineering](#quality-engineering)
-  * [Interactive Script Format (ARC)](#interactive-script-format-arc)
+  * [Interactive Script Format (ARC)](#interactive-script-format-arc-example)
   * [Story Memory Pool](#story-memory-pool)
   * [Novel Mode](#novel-mode)
+  * [Engineering Quality Guardrails](#engineering-quality-guardrails)
 * [Infrastructure](#infrastructure)
   * [1. Matchbox Agent Gateway](#1-matchbox-agent-gateway)
-  * [2. Database Auto-Migration](#2-database-auto-migration)
+  * [2. Database Auto-Migration](#2-database-management--auto-migration)
   * [3. Multi-Tenant SaaS](#3-multi-tenant-saas)
   * [4. Semantic Search Engine](#4-semantic-search-engine)
   * [5. CI/CD Automated Deployment](#5-cicd-automated-deployment)
@@ -308,7 +317,7 @@ Configuration is simple, and you can press F5 in VS Code to start. This is suita
 2. **Build the Frontend Interface**
    ```bash
    # Return to the project root directory, then enter client
-   cd ../../../client
+   cd client
    npm install
    npm run build
    ```
@@ -367,7 +376,7 @@ After signing in, open **MCP Connection Service** from the desktop dashboard or 
 
 SparkArc does not rely on a single large model, but builds an agent cluster with clear division of labor. Each Agent has its own independent persona, prompt engineering, and model configuration.
 
-> 💡 **Internationalization**: The Agent registry ([registry.py](server/agents/registry.py)) natively supports four languages: `zh-CN` / `en-US` / `ja-JP` / `ko-KR`. The frontend uses i18n mapping, and the backend extracts the corresponding fields via `resolve_agent_i18n_field()` based on the request locale. Adding a new language only requires adding a set of translations in each Agent entry.
+> 💡 **Internationalization**: The Agent registry ([registry.py](server/agents/registry.py)) natively supports four languages: `zh-CN` / `en-US` / `ja-JP` / `ko-KR`. The frontend uses i18n mapping, and the backend extracts the corresponding fields via the locale resolver (`_resolve_i18n_field`) based on the request locale. Adding a new language only requires adding a set of translations in each Agent entry.
 
 #### A. Dispatcher
 
@@ -390,7 +399,7 @@ SparkArc does not rely on a single large model, but builds an agent cluster with
 
 * **Style Agent** (Style Cloning Sub-Cluster):
   * **Responsibility**: Counter AI flavor. By mimicking the writing style of a specified writer or even yourself, it ensures that the large model avoids using high-frequency phrases common to AI when generating, **minimizing the AI flavor**.
-  * **Sub-Cluster Structure**: Composed of the **Coordinator** (orchestrating the analysis process), the **Validator** (Turing backtest closed loop), and the **StyleChatAgent** (style profile Q&A interaction). See the [Style Cloning Cluster](#style-cloning-cluster) section for details.
+  * **Sub-Cluster Structure**: Completed collaboratively by **UnifiedStyleAnalyzer** (unified serial analysis) and **StyleChatAgent** (style profile Q&A). See the [Style Cloning Cluster](#style-cloning-cluster) section for details.
 * **Critic Agent (Logic Auditor)**:
   * **Responsibility**: Simulates a harsh editor. It does not directly modify text, but audits script/novel fragments for **AI flavor residues perceivable by readers, dialogue distortion, lack of literary depth, and logic/character persona issues**, outputting structured review feedback.
   * **Work Mode**: Can operate either through natural language dialog in the chat panel, or be triggered manually as a structured review in the right panel of the ScriptWriter.
@@ -459,45 +468,39 @@ Each expert Agent's prompt strictly distinguishes three calling modes, carried b
 | **User Interaction** | `chat_system` | Natural conversation, open-ended, format not forced. |
 | **Director Delegation** | `pipeline_system` | Strictly structured + tool saving + briefing the Director. |
 
-> 📗 For complete runtime logic, `pipeline_system` writing constraints, tool reference mechanisms, and new Agent self-checklists, please refer to [Architecture Document §2](docs/project/architecture.md#2-agent-三模态调用协议完整版) and [AGENTS.md §4.5](AGENTS.md).
+> 📗 For complete runtime logic, `pipeline_system` writing constraints, tool reference mechanisms, and new Agent self-checklists, please refer to [Architecture Document §2](docs/project/architecture.md#2-agent-统一调用管线) and [AGENTS.md §4.5](AGENTS.md).
 
 #### Style Cloning Cluster
 
-SparkArc's most technically profound module — capturing the subtle writing styles of human authors and generating style profiles through **UnifiedStyleAnalyzer** serial analysis + **ValidatorAgent** Turing backtest closed loop, which is used to constrain subsequent generation and eliminate AI-flavor high-frequency words.
+SparkArc's most technically deep module — built from **UnifiedStyleAnalyzer** serial relay analysis + **StyleChatAgent** (style profile Q&A). It captures the subtle writing voice of human authors and generates **executable style profiles** that constrain subsequent generation and eliminate AI-flavor high-frequency words.
 
-* **Serial Analysis**: Long novels are chunked by 30k tokens, each chunk fully analyzed across 7 dimensions, with plot summaries passed between chunks to maintain context.
-* **Adversarial Tuning**: ValidatorAgent writes "fictional mimics" based on style profiles and self-evaluates. If AI flavor is detected, negative constraints are generated and forcibly injected.
+* **Serial Analysis**: Long novels are chunked by 30k tokens. Each chunk receives a full **5-dimension analysis** (thinking & cognitive fingerprint / linguistic texture / emotional processing / senses & attention / interpersonal field), with plot summaries passed between chunks to preserve context and avoid the context loss of fragmented retrieval.
+* **Executable Output**: Every conclusion must be an **instruction, not an observation**, backed by a short sanitized example; the final synthesis yields signature features, steady-state vs climax-state registers, **author-avoidance negative constraints (a taboo list)**, and a 10-15-line **style execution card**, injected directly into the Scriptwriter's prompt.
+* **Turing Backtest Scoring Rubric**: Style profiles ship with an `S/A/B/C/D` five-tier mimicry backtest rubric, used for manual verification and future automated backtesting (the automated closed loop is on the roadmap).
 
 #### Workflow: Serial Deep Analysis
 
 ```mermaid
 graph TD
     Input[Target Novel/Text] --> Chunker["Token Chunking (30k tokens/chunk)"]
-    
+
     subgraph "Serial Analysis Chain"
         Chunker --> Block1[Text Chunk 1]
         Block1 --> Analyzer1[Unified Analyzer 1]
-        Analyzer1 -- "Pass Context" --> Analyzer2[Unified Analyzer 2]
-        
+        Analyzer1 -- "Pass Plot Summary" --> Analyzer2[Unified Analyzer 2]
+
         Chunker --> Block2[Text Chunk 2]
         Block2 --> Analyzer2
         Analyzer2 -- "Pass Context" --> AnalyzerN[...]
-        
+
         Chunker --> BlockN[Text Chunk N]
         BlockN --> AnalyzerN
-        AnalyzerN --> FinalProfile[Complete Style Profile]
+        AnalyzerN --> Synthesis["Final Synthesis<br/>Signature Features / Steady vs Climax Registers / Author-Avoidance Constraints / Style Execution Card"]
     end
-    
-    subgraph "Turing Backtest Closed Loop"
-        FinalProfile --> Validator[Validator Agent]
-        Validator -- "Attempt Mimicry" --> MimicText[Mimicked Snippet]
-        MimicText --> Evaluator{Similarity Grade?}
-        
-        Evaluator -- "AI Flavor (Tier B-F)" --> Refine[Generate Negative Constraints]
-        Refine --> Finalizer[Final Refinement]
-        
-        Evaluator -- "Perfect Fit (Tier S/A)" --> Finalizer
-    end
+
+    Synthesis --> FinalProfile[Style Profile]
+    FinalProfile --> Injection["Inject into Scriptwriter Prompt<br/>Constrain Subsequent Generation"]
+    FinalProfile --> StyleChat["StyleChatAgent<br/>Style Profile Q&A"]
 ```
 
 > 📗 For full descriptions of serial analysis details and negative constraint mechanisms, please refer to [Architecture Document §7](docs/project/architecture.md#7-风格克隆集群完整版).
@@ -531,9 +534,12 @@ This is **persisted short-term chat context**, not a cross-project user profile 
 * **Context Concatenation**: `communication.py` constructs the stable system prefix, `prompt_layout.py` puts the current editing area, attachment scene, and the current user request into the back segment, and `context_budget.py` handles historical budgets, compression, and tool loop re-budgeting.
 * **Unified Execution Protocol**: Typical expert Agents reuse `SparkBaseAgent` and `SparkAgentExecutor`, using `build_context -> execute -> write_result` to unify business entries; chat and director delegations go through `chat_stream(skip_tool_confirmation)`.
 * **Long-Context Handling**: Long documents that exceed a single model window (attachments, oversized worldviews) go through a unified sliding-window base — chunked persistence + global map + dual-retrieval locating (both semantic and regex search accept `scope=["attachment"]` to scope to attachments and jump straight to chunks) + on-demand window reading + clue ledger (read one window, note one entry, persisted across turns). The model only ever sees "map + ledger + one current window"; rooms without attachments are unaffected. See [Long-Context Handling](docs/project/long-context.zh-CN.md) and [Threshold Reference](docs/project/longread-thresholds.zh-CN.md).
-* **Unified Tool Ecosystem**: All tools are grouped and registered in [registry.py](server/agents/tools/registry.py) and exported through `agent_tools.py` as a public facade. Local replacements of scripts, outlines, and settings all reuse `_apply_patch`; token splitting and semantic chunking also reuse the public base.
+* **Unified Tool Ecosystem**: All 56 tools are grouped and registered by domain in [registry.py](server/agents/tools/registry.py), exported through `agent_tools.py` as a public facade, and bound per Agent responsibilities. Skill tools and chat-history retrieval use **conditional injection** (mounted only when Skills are installed / a chat room exists), keeping the stable prefix unpolluted by irrelevant tools. Local replacements of scripts, outlines, and settings all reuse `_apply_patch`; token splitting and semantic chunking also reuse the public base.
 * **AgentSkills & MCP**: AgentSkills are read on demand through `search_skills` / `read_skill` / `read_skill_reference` and do not automatically pollute the system prefix. MCP is unified at `/api/mcp/`: inspiration tools keep their original names, while control tools use the `control_` prefix. `/api/mcp/control/` remains only as a compatibility endpoint for existing clients; writes still run through the existing Agent tool pipeline.
 * **Frontend Mapping**: Agent names, descriptions, icons, and theme colors use [registry.py](server/agents/registry.py) as the source of truth; tool-calling UI metadata is injected by the backend's `build_tool_stream_event` and consumed and rendered uniformly by the frontend's `chatStore`.
+* **Execution Discipline (Saying ≠ Doing)**: Director delegations must close the loop with a **real persistence receipt** (`complete_pipeline_step`) — draft-only output without saving is rejected and redone. The Director's **work tracker** (work_tracker) persists the task list and forces every delegation to bind to a task entry; repeated failures of the same tool trigger circuit breaking. Multi-agent collaboration stays accountable and auditable.
+* **Reliability Foundation**: Model-stream idle watchdog (first-activity deadline + one-shot retry, without inflating user wait); three crash-recovery paths for chat / Auto-Write / background builds (interrupted runs close out and keep progress, cursor-based resume, and partial-result saving under dual-event cancellation); context compaction never tears apart tool-chain history (ToolCall / ToolMessage kept in pairs).
+* **Pre-Write Context Handoff**: When the Director delegates to the Scriptwriter, it automatically assembles a **scene handoff package** — the outline's scene contract plus real-time character states, relationships, open threads, and revision tickets from the Story Memory Pool. The writing context follows a three-ring strategy of "recent scene full text + cross-chapter tail + synopsis beat sheet", directly powering long-form coherence.
 
 > 📗 For more complete details on context structure, cache hit displays, Agent responsibility tables, AgentSkills/MCP boundaries, and tool registration, please refer to [Architecture Document §2-§3](docs/project/architecture.md#2-agent-统一调用管线).
 
@@ -646,6 +652,13 @@ In addition to the interactive script format, SparkArc supports the **pure liter
 
 Both modes share the same world view, characters, outline, and beat sheet, diverging only in the final output format.
 
+### Engineering Quality Guardrails
+
+* **Automated Tests**: 96 server test files (24 business-domain directories + 10 foundation architecture contract tests + the independent Matchbox gateway suite) + 81 frontend test suites (architecture / performance / integration layers). Foundation architecture tests never call real LLMs — they guard the unified pipeline protocols only.
+* **CI Quality Gates**: Strict i18n validation (CJK hardcoding scan toolchain), type checking, frontend & backend unit tests, and dual-end & Docker builds gate the pipeline stage by stage.
+* **Runtime Forensics**: Switchable request-level JSON capture (`runtime_capture`) for auditing real context layouts and tool-call closures, supporting cache-hit analysis and quality evaluation.
+* **Content Safety**: LLM compliance review before public sharing (30k chunking, concurrent review, no pass = no publish); the ARC safety sanitizer strips control commands and illustration prompts before content enters the model (anti prompt-injection); sensitive keys in tool events are redacted.
+
 ---
 
 ## Infrastructure
@@ -670,7 +683,7 @@ Core Capabilities:
 ### 2. Database Management & Auto-Migration
 
 SparkArc uses SQLite and the high-performance vector database LanceDB as its local, zero-deployment database solution by default.
-It can be switched with **one click to PostgreSQL + PG Vector** for production-grade performance supporting large user bases.
+The business database can be **switched to PostgreSQL with one click** for production-grade performance at large user scales; the project-level semantic vector index stays on LanceDB by default, decoupled from the business database.
 
 #### Automatic Migration
 
@@ -689,12 +702,13 @@ Please copy out the models defining the table structures and the erroneous datab
 #### Core Features
 
 1. **Multiple Database Branches**: `users.db` and `llm_config.db` use independent `version_locations` without interfering with each other.
-2. **Auto-Upgrade on Startup**: If the upstream database format updates, the startup script uses the Alembic API to upgrade directly.
-3. **Temp DB Generated Migrations**: Generation scripts build temporary databases based on the migration chain, keeping the development machine's actual database clean.
-4. **Smart Rename Detection**: Automatically identifies field renames and asks for confirmation.
-5. **Dangerous Action Interception**: `DROP COLUMN` / `DROP TABLE` forces interactive confirmation.
-6. **Legacy Version Self-Healing**: When the migration chain is broken, it conservatively patches missing tables/columns and aligns version numbers, defaulting not to delete extra structures.
-7. **Version Drift Protection**: Throws errors when the version number is already head but fields are missing, preventing silent swallowing of migrations that should be submitted.
+2. **Auto-Upgrade on Startup**: If the upstream database format updates, the startup script uses the Alembic API to upgrade directly; when already up to date, it skips automatically.
+3. **Runs at the Earliest Stage**: Migrations complete at the very front of the application lifecycle, avoiding business initialization from holding database locks.
+4. **Temp DB Generated Migrations**: Generation scripts build temporary databases based on the migration chain, keeping the development machine's actual database clean.
+5. **Smart Rename Detection**: Automatically identifies field renames and asks for confirmation.
+6. **Dangerous Action Interception**: `DROP COLUMN` / `DROP TABLE` forces interactive confirmation.
+7. **Orphan Version Self-Healing**: When the migration chain is broken, it conservatively patches missing tables/columns and aligns version numbers, defaulting not to delete extra structures.
+8. **Head Drift Protection**: Throws errors when the version number is already at head but fields are missing, preventing silent swallowing of migrations that should have been committed.
 
 > 📗 For the developer workflow, migration integration guide, and instructions for clearing historical risks, please refer to the [Database Auto-Migration Guide](docs/project/database-migration.md).
 
@@ -706,6 +720,7 @@ The system adopts role-based access control and simplifies initial configuration
 * **First Administrator**: The system automatically sets the **first registered user** as the administrator, who has permission to modify the system's model platforms.
 * **Default Permissions**: Except for the first user, all newly registered users default to ordinary users (`is_admin = 0`).
 * **Privilege Granting**: The first administrator can authorize other users as administrators through the "Admin Panel" UI.
+* **Operations Loop**: Credit ledgers with per-model pricing, redemption codes, quota-grant campaigns (idempotent re-grants / revocation semantics), user feedback tickets, and system announcements — self-hosting gives you the complete multi-tenant operational toolkit.
 
 ---
 
@@ -727,13 +742,14 @@ SparkArc has a built-in project-level semantic search engine, providing the Dire
 * **Chunking Strategy**: `SemanticChunker` splits project text by semantic boundaries, preserving metadata such as narrative location (`narrative_ref`) and line range.
 * **Chinese Project Name Compatibility**: LanceDB table names are converted via MD5 hashes, solving naming convention violations caused by Chinese project names.
 * **Batch Vectorization**: Calls embedding APIs in batches of `batch_size=50`, adapting to the batch limits of mainstream models.
+* **Optional Local Embedding Engine**: Local vectorization with zero external APIs — automatically downloads the llama.cpp runner package and GGUF embedding models (with mirror fallback), with local process hosting and health diagnostics, ready out of the box.
 
 ---
 
 ### 5. CI/CD Automated Deployment
 
 SparkArc has a built-in CI/CD pipeline, supporting **fully automated image builds, testing, and deployment** after code pushes without any manual intervention.
-It supports Gitea Actions and GitLab CI, and Gitea Actions workflows can be migrated to GitHub Actions at low cost.
+The pipeline ships across the **Gitea Actions and GitHub Actions** ecosystems (including desktop / Android release pipelines and Gitee Release sync), and can be migrated to other CI platforms at low cost.
 Pipeline Stages: **Checkout Code → Build Image → Test (Reserved) → Deploy → Cleanup**
 
 > 📗 For complete Runner configurations, CI Secrets, and GitHub Actions migration instructions, please refer to the [CI/CD Automated Deployment Guide](docs/project/cicd-deployment.md).
@@ -746,16 +762,16 @@ Pipeline Stages: **Checkout Code → Build Image → Test (Reserved) → Deploy 
 
 To achieve a seamless **five-minute subway** experience, SparkArc uses a decoupled architecture:
 
-* **Business Logic (Composables)**: All core business logic is encapsulated in independent Composable functions that do not depend on specific UIs. Key Composables include:
+* **Business Logic (Composables)**: All core business logic is encapsulated in independent Composable functions (26 in total) that do not depend on specific UIs. Key Composables include:
   * `useSynopsisLogic` / `useScriptWriterLogic` — Synopsis and Scriptwriter
   * `useWorldLogic` / `useStyleLogic` / `useStructureLogic` — Worldview, Style, Structure
   * `useAIModelManager` / `useAIPlatformManager` / `useAIEmbeddingManager` — Model and Platform management
   * `useAgentRegistry` / `useChatActions` / `useAdminLogic` — Agent registry, Chat, and Administration
   * **The project is evolving towards LUI. In the near future, every sentence you speak can launch a complex creative flow.**
-* **Streaming Infrastructure**: The frontend manages all business streaming tasks uniformly via `createStreamingTask` in `streamingRuntime.ts`, forming a complete streaming consumption closed loop with `loadingStats.ts` (global loading statistics), `eventBus.ts` (event bus), and `GlobalLoading.vue` (global loading UI). Chat streams and business task streams run independently and do not interfere with each other.
+* **Streaming Infrastructure**: The frontend manages all business streaming tasks uniformly via `createStreamingTask` in `streamingRuntime.ts` (SSE / text / NDJSON protocol readers, unified thinking-stream parsing, cancellation and statistics), forming a complete streaming consumption closed loop with `loadingStats.ts` (global loading statistics), `eventBus.ts` (event bus), and `GlobalLoading.vue` (global loading UI). Chat streams support reconnect recovery and `afterSeq` cursor replay, so a refresh never drops the stream; chat streams and business task streams run independently and do not interfere with each other.
 * **All-Size Screen Adaptation**:
   * **Desktop Views**: Complex workstations optimized for wide screens, providing multi-column layouts and detailed control panels.
-  * **Mobile Views**: Flow-like interactive interfaces optimized for vertical screens, emphasizing reading experiences and quick operations. Most core views (synopsis, structure, worldview, style analysis, etc.) provide independent mobile views; the script writing workbench (ScriptWriter) currently only supports desktop.
+  * **Mobile Views**: Flow-like interactive interfaces optimized for vertical screens, emphasizing reading experiences and quick operations. Most core views (synopsis, structure, worldview, style analysis, etc.) provide independent mobile views; the script writing workbench (ScriptWriter) provides a lightweight workstation on mobile, while complex refinement is still recommended on desktop.
 
 ### Tauri 2 Cross-Platform Builds
 
@@ -775,7 +791,7 @@ Notes:
 
 ### Unity Game Engine Integration (BETA)
 
-> The Unity SDK (`SparkArc.Unity`) is currently located as an independent module in `presenter/UnitySDK`, aimed at providing game developers with an out-of-the-box plot solution. **This feature is in an extremely early beta phase, and coverage is limited. Stay tuned.**
+> The Unity SDK (`SparkArc.Unity`) is currently located as an independent module in `presenter/UnitySDK`, aimed at providing indie game developers with an out-of-the-box story solution. **It is currently in BETA**: it already covers dialogue trees, branch jumps, scene condition evaluation, state save & effect write-back, and attributed behavior dispatch (including an Editor behavior-list exporter), and ships with a MinimalRuntime sample project, a runtime smoke probe, and two integration documents.
 
 #### Full-Process Data Pipeline
 
@@ -847,7 +863,7 @@ Current Chinese legal and operational documents include:
 
 Description:
 * Repository-level legal documents are used for public evidence, site reuse, and third-party deployment references.
-* The in-site ToS route reads `server/data/TermsOfService.md` by default; `LEGAL/TermsOfService.zh-CN.md` is retained as a reference template for third-party deployments.
+* The in-site ToS endpoint reads `LEGAL/TermsOfService.{lang}.md` first according to `?lang=`, falling back to `server/data/TermsOfService.md` when missing; `LEGAL/TermsOfService.zh-CN.md` is also retained as a reference template for third-party deployments.
 * Third-party deployers should add operational entities, domains, ICP filings/licenses, complaint emails, and privacy info according to their own circumstances before offering services to the public.
 
 ## Brand & Trademark Policy

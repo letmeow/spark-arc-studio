@@ -5,7 +5,7 @@
 #   { 'zh-CN': '中文', 'en-US': 'English', 'ja-JP': '日本語', 'ko-KR': '한국어' }
 # 新增语言时，只需在每个 Agent 条目的 name/display/description 中加一组翻译即可。
 # 前端通过 i18n 的 components.agentNames / agentDescriptions 做本地映射，
-# 后端通过 resolve_agent_i18n_field() 按请求 locale 提取对应字段。
+# 后端通过 _resolve_i18n_field() 按请求 locale 提取对应字段。
 #
 # icon: Lucide 图标名（PascalCase），前端 AgentAvatar 通过映射表转为组件。
 # color: 该 Agent 的专属主题色（hex），用于头像描边/光晕/轮盘扇片渐变。

@@ -2,12 +2,17 @@
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-> 📢 **支持与关注**：如果本项目对你有所启发或帮助，请帮我们点个 **Star**（收藏项目防止迷路）和 **Watch**（选择 Custom -> Releases 订阅新版本更新）。作为一个独立开源项目，每一个 Star 和 Watch 都能极大地提升我们在社区中的能见度，对项目的持续迭代和长远发展至关重要，非常感谢你的支持！
-> 
-> 🤝 **联合作者**：感谢 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 在宣发上的付出，没有这些关键工作，本项目不可能面世。
+**引火AI创作台（SparkArc Studio）** 是一条**多 Agent 自主创作流水线**：把星星灵感之火**编译**为完整、可运行的故事世界——创作小说与剧本，并驱动 WEB 演出 / Unity 引擎演出。
 
-**引火AI创作台（SparkArc Studio）** 是一个Agent自主智能集群驱动的创作平台，旨在通过专业创作流水线，将星星灵感之火扩展为完整的故事世界，创作小说、剧本，并驱动精美的WEB演出/Unity引擎演出。
-它打通了**灵感——设定——节奏——大纲——写文——校验——发布——分享——演出**的全链路，为创作者提供了一套强大的生产力工具。
+它打通了**灵感——设定——节奏——大纲——写文——校验——发布——分享——演出**的全链路：你负责灵感与决策，Agent 集群负责把它们变成可交付的作品资产。
+
+> 📊 **工程概览**：9 个注册 Agent（7 位可委派专家 + 2 个系统内服务）· 56 个统一收口工具 · 三模态提示词协议 · 稳定前缀缓存工程 · 170+ 自动化测试文件 · 5 平台客户端 · 四语 UI · MCP 远程接入
+>
+> ⚡ **两步启动**：`git clone https://github.com/1deaaa/spark-arc-studio && cd spark-arc-studio && docker compose up -d --build` → 访问 `http://localhost:7788`
+>
+> 📢 **支持与关注**：如果本项目对你有所启发或帮助，请帮我们点个 **Star**（收藏项目防止迷路）和 **Watch**（选择 Custom -> Releases 订阅新版本更新）。作为一个独立开源项目，每一个 Star 和 Watch 都能极大地提升我们在社区中的能见度，对项目的持续迭代和长远发展至关重要，非常感谢你的支持！
+>
+> 🤝 **联合作者**：感谢 [<img src="https://github.com/wxwxwkai.png" width="20" style="border-radius:50%; vertical-align:middle;"/> @wxwxwkai](https://github.com/wxwxwkai) 在宣发上的付出，没有这些关键工作，本项目不可能面世。
 
 ## 核心功能
 
@@ -59,12 +64,14 @@
 
 * **WEB演出端**：随时分享你的灵感。观众只需**点击链接**，即可进入剧本。
 * **版本快照与导出**：支持一键创建版本快照，可按 `.arc` 互动剧本或纯文学小说两种格式导出，也可从快照一键恢复到工作区。
-* **规划中功能**：*这个饼很大，请你等一下。*
+* **演出资产 AI 生成（已上线）**：背景、角色立绘与场景插图支持上传与在线生成，通过**风格 / 场景 / 角色 / 连续性四类一致性参考图**锁定画面风格，保证同一作品内立绘与背景风格统一；上传立绘可自动抠图，多厂商图像模型（OpenAI / Gemini / xAI 等）统一适配。
+* **沉浸演出端**：Three.js 全屏氛围着色器 + 帧率自适应降级；小说模式自动切换纯净阅读器（翻页 / 滚动、字号、阅读进度）。演出资产随版本快照分发。
+* **公开分享内容安全**：作品公开前由 AI 分片并发审核（Critic 合规模态），未通过不予公开；管理员可全局控制公开分享策略。
+* **规划中功能**：
 
->1.支持生成角色立绘 并固定生成风格确保所有立绘风格一致
-2.结合图片生成模型和图片编辑模型实现简易的背景图片功能
-3.允许自定义scriptwritter功能 衍生出子agent 比如日常剧情写手、物品设定写手等等
-4.用户可以自定义数据结构 由agent生成对应的解析组件在前端显示编辑 并把这个组件代码保存到数据库中 也就是LUI或者GEN-UI化
+> 1. 允许自定义 Scriptwriter 功能，衍生出子 Agent（如日常剧情写手、物品设定写手等）
+> 2. 用户自定义数据结构，由 Agent 生成对应解析组件在前端显示编辑，组件代码保存入库（LUI / GEN-UI 方向）
+> 3. 风格克隆的图灵回测自动化闭环（回测评分规约已内置于分析提示词）
 
 ### 5. 工业生产，创作平权
 
@@ -186,13 +193,14 @@ flowchart TB
   * [2. 上下文结构与统一执行管线](#2-上下文结构与统一执行管线)
   * [3. 信标总线通信机制](#3-信标总线通信机制)
 * [质量工程](#质量工程)
-  * [互动剧本格式](#ARC互动剧本格式示例)
+  * [互动剧本格式](#arc互动剧本格式示例)
   * [作品记忆池](#作品记忆池)
   * [小说模式](#小说模式)
+  * [工程质量护栏](#工程质量护栏)
 * [基础设施](#基础设施)
   * [1. 火柴Agent网关](#1-火柴agent网关)
-  * [2. 数据库自动管理](#2-数据库管理)
-  * [3. 用户管理与权限](#3-用户管理与权限)
+  * [2. 数据库管理](#2-数据库管理)
+  * [3. 多租户 SaaS](#3-多租户saas)
   * [4. 语义检索引擎](#4-语义检索引擎)
   * [5. CI/CD 自动化部署](#5-cicd-自动化部署)
 * [全平台生态与架构](#全平台生态与架构)
@@ -328,7 +336,7 @@ docker compose logs --tail=120 sparkarc
 
    ```bash
    # 返回项目根目录后进入 client
-   cd ../../../client
+   cd client
    npm install
    npm run build
    ```
@@ -391,7 +399,7 @@ GitHub Release 中提供的桌面客户端会优先探测本机后端（`6688` /
 
 引火AI 不依赖单一的大模型，而是构建了一个分工明确的智能体集群。每个 Agent 都有独立的人设、提示词工程和模型配置。
 
-> 💡 **国际化**：Agent 注册表（`registry.py`）原生支持 `zh-CN` / `en-US` / `ja-JP` / `ko-KR` 四语，前端通过 i18n 映射、后端通过 `resolve_agent_i18n_field()` 按请求 locale 提取对应字段。新增语言只需在每个 Agent 条目中加一组翻译。
+> 💡 **国际化**：Agent 注册表（`registry.py`）原生支持 `zh-CN` / `en-US` / `ja-JP` / `ko-KR` 四语，前端通过 i18n 映射、后端通过 locale 解析函数（`_resolve_i18n_field`）按请求 locale 提取对应字段。新增语言只需在每个 Agent 条目中加一组翻译。
 
 #### A. 调度者
 
@@ -414,7 +422,7 @@ GitHub Release 中提供的桌面客户端会优先探测本机后端（`6688` /
 
 * **Style Agent**（风格克隆子集群）
   * **职责**：反AI，通过模仿指定作家甚至你本人的文风，来确保大模型在创作的时候避开AI常使用的高频词组，**最大化降低AI味道**。
-  * **子集群结构**：由 **Coordinator**（协调分析流程）、**Validator**（图灵回测闭环）、**StyleChatAgent**（风格档案问答交互）三个子 Agent 协作完成。详见[风格克隆集群](#2-风格克隆集群)章节。
+  * **子集群结构**：由 **UnifiedStyleAnalyzer**（统一串行分析）与 **StyleChatAgent**（风格档案问答交互）协作完成。详见[风格克隆集群](#风格克隆集群)章节。
 * **Critic Agent (逻辑审核)**：
   * **职责**：模拟严苛的审稿人。它不直接修改文本，而是审查剧本/小说片段中**读者可感知的 AI 味残留、对白失真、文学承载不足、逻辑与人设问题**，并输出结构化的审稿意见。
   * **工作模式**：既可在聊天面板中自然语言对话，也可在 ScriptWriter 右侧面板手动触发结构化审查。
@@ -484,46 +492,40 @@ graph TD
 | **用户交互模式** | `chat_system` | 自然对话、可发散、不强制格式 |
 | **导演委派模式** | `pipeline_system` | 严格结构化 + 工具落盘 + 向导演简报 |
 
-> 📗 完整的运行态逻辑、`pipeline_system` 写法硬约束、工具 reference 机制与新增 Agent 自检清单，请参阅 [架构深度文档 §2](docs/project/architecture.md#2-agent-三模态调用协议完整版) 及 [AGENTS.md §4.5](AGENTS.md)
+> 📗 完整的运行态逻辑、`pipeline_system` 写法硬约束、工具 reference 机制与新增 Agent 自检清单，请参阅 [架构深度文档 §2](docs/project/architecture.md#2-agent-统一调用管线) 及 [AGENTS.md §4.5](AGENTS.md)
 
 
 #### 风格克隆集群
 
-引火AI 最具技术深度的模块——通过 **UnifiedStyleAnalyzer** 串行分析 + **ValidatorAgent** 图灵回测闭环，捕捉人类作者微妙的文风并生成风格档案，用于约束后续生成、消除 AI 味高频词。
+引火AI 最具技术深度的模块——由 **UnifiedStyleAnalyzer（统一分析器）** 串行接力分析 + **StyleChatAgent（风格档案问答）** 组成，捕捉人类作者微妙的文风并生成**可执行的风格档案**，用于约束后续生成、消除 AI 味高频词。
 
-- **串行分析**：长篇小说按 30k tokens 切块，逐块 7 维度全量分析，块间传递剧情概括保持上下文
-- **自我对抗**：ValidatorAgent 基于风格档案写"伪作"并自评，发现 AI 味则生成负向约束强制注入
+- **串行分析**：长篇小说按 30k tokens 切块，逐块进行 **5 维度全量分析**（思维与认知指纹 / 语言体感 / 情绪处理 / 感官与注意力 / 人际场域），块间传递剧情概括保持上下文，避免碎片化检索的上下文丢失。
+- **可执行产出**：每条结论必须是"指令而非观察"，并附脱敏短例举证；最终汇总产出标志性特征、稳态 vs 高潮态语体、**作者回避负面约束（禁忌清单）** 与 10-15 行**风格执行卡**，直接注入执笔编剧的提示词。
+- **图灵回测评分规约**：风格档案附带 `S/A/B/C/D` 五档模仿回测评分标准，用于人工核验与后续自动化回测（自动化闭环在路线图中）。
 
 #### 工作流：串行深度分析
 
 ```mermaid
 graph TD
     Input[目标小说/文本] --> Chunker["智能切分 (30k tokens/块)"]
-    
+
     subgraph "串行分析链"
         Chunker --> Block1[文本块 1]
         Block1 --> Analyzer1[Unified Analyzer 1]
-        Analyzer1 -- "传递上下文" --> Analyzer2[Unified Analyzer 2]
-        
+        Analyzer1 -- "传递剧情概括" --> Analyzer2[Unified Analyzer 2]
+
         Chunker --> Block2[文本块 2]
         Block2 --> Analyzer2
         Analyzer2 -- "传递上下文" --> AnalyzerN[...]
-        
+
         Chunker --> BlockN[文本块 N]
         BlockN --> AnalyzerN
-        AnalyzerN --> FinalProfile[完整风格档案]
+        AnalyzerN --> Synthesis["最终汇总<br/>标志性特征 / 稳态vs高潮态 / 作者回避负面约束 / 风格执行卡"]
     end
-    
-    subgraph "图灵回测闭环"
-        FinalProfile --> Validator[Validator Agent]
-        Validator -- "尝试模仿写作" --> MimicText[模仿片段]
-        MimicText --> Evaluator{相似度评级?}
-        
-        Evaluator -- "有AI味 (Tier B-F)" --> Refine[生成负向约束]
-        Refine --> Finalizer[最终修正]
-        
-        Evaluator -- "完美拟合 (Tier S/A)" --> Finalizer
-    end
+
+    Synthesis --> FinalProfile[风格档案]
+    FinalProfile --> Injection["注入执笔编剧提示词<br/>约束后续生成"]
+    FinalProfile --> StyleChat["StyleChatAgent<br/>风格档案问答"]
 ```
 
 > 📗 串行分析细节与负向约束机制的完整说明，请参阅 [架构深度文档 §7](docs/project/architecture.md#7-风格克隆集群完整版)
@@ -558,9 +560,12 @@ flowchart LR
 * **上下文拼接**：`communication.py` 构造稳定 system 前缀，`prompt_layout.py` 将当前编辑区、附件现场与本轮用户请求放入后段，`context_budget.py` 负责历史预算、压缩与工具循环再预算。
 * **统一执行协议**：典型专家 Agent 复用 `SparkBaseAgent` 与 `SparkAgentExecutor`，以 `build_context -> execute -> write_result` 收口业务入口；聊天与导演委派统一走 `chat_stream(skip_tool_confirmation)`。
 * **长上下文处理**：附件、超长世界观等“全文放不下”的长文档走统一滑窗底座——切分落盘 + 全局地图 + 双检索定位（语义/正则均可 `scope=["attachment"]` 限定到附件并直达分块）+ 滑窗按需读 + 线索账本（读一片记一笔，跨轮沉淀）。模型永远只看到“地图 + 账本 + 当前一个窗口”，无附件房间零干扰。详见[长上下文处理](docs/project/long-context.zh-CN.md)，阈值见[阈值总览](docs/project/longread-thresholds.zh-CN.md)。
-* **统一工具生态**：所有工具经 `server/agents/tools/registry.py` 分组注册，再由 `agent_tools.py` 作为公共门面导出。剧本、大纲、设定等局部替换统一复用 `_apply_patch`，Token 切分与语义分块也复用公共底座。
+* **统一工具生态**：56 个工具按域分组注册于 `server/agents/tools/registry.py`，再由 `agent_tools.py` 作为公共门面导出，按 Agent 分工绑定；Skill 工具与聊天历史检索采用**条件注入**（仅在已安装 Skill / 存在聊天房间时挂载），保护稳定前缀不被无关工具污染。剧本、大纲、设定等局部替换统一复用 `_apply_patch`，Token 切分与语义分块也复用公共底座。
 * **AgentSkills 与 MCP**：AgentSkills 通过 `search_skills` / `read_skill` / `read_skill_reference` 作为写作质量参考按需读取，不自动污染 system 前缀；MCP 统一挂载在 `/api/mcp/`，灵感工具保留原名，控制工具使用 `control_` 前缀。`/api/mcp/control/` 仅作为旧客户端兼容入口保留，写盘仍经既有 Agent 工具管线执行。
 * **前端映射**：Agent 名称、描述、徽标和主题色以 `server/agents/registry.py` 为真相源；工具调用 UI 元数据由后端 `build_tool_stream_event` 注入，前端 `chatStore` 统一消费并渲染。
+* **执行纪律（说了 ≠ 做了）**：导演委派必须以**真实落盘回执**（`complete_pipeline_step`）交差——只输出草稿不落盘会被打回重做；导演**进度板**（work_tracker）持久化任务清单并强制委派绑定任务条目；同工具连续失败触发熔断。多 Agent 协作"有账可对、有据可查"。
+* **可靠性底座**：模型流空闲看门狗（首活动截止 + 单轮重试，不放大用户等待）；聊天 / Auto-Write / 后台构建三类崩溃恢复（interrupted 收口保进度、游标续写、双事件取消下部分结果保存）；上下文压缩不拆散工具链历史（ToolCall / ToolMessage 成对保留）。
+* **写前核设定**：导演委派执笔编剧时自动组装**场景交接包**——大纲场景契约 + 作品记忆池实时人物状态、关系、开放线索与修订工单；写作上下文按"最近场景全文 + 跨章尾声 + 梗概节拍表"三圈策略组装，直接支撑长篇连贯性。
 
 > 📗 更完整的上下文结构、缓存命中显示、Agent 职责表、AgentSkills/MCP 边界与工具注册细节，请参阅 [架构深度文档 §2-§3](docs/project/architecture.md#2-agent-统一调用管线)。
 
@@ -675,6 +680,13 @@ graph TB
 
 两种模式共享同一套世界观、角色、大纲和节拍表，仅在最终输出格式上分化。
 
+### 工程质量护栏
+
+- **自动化测试**：服务端 96 个测试文件（24 个业务领域目录 + 10 个基础建筑契约测试 + 火柴网关独立套件）+ 前端 81 个测试套件（含架构 / 性能 / 集成分层），基础建筑测试禁止调用真实大模型，只守护统一管线协议。
+- **CI 质量门**：i18n 严格校验（CJK 硬编码扫描工具链）、类型检查、前后端单测、双端构建、Docker 构建逐级把关。
+- **运行态取证**：可开关的请求级 JSON 取证（runtime_capture），用于审计真实上下文布局与工具调用闭环，支撑缓存命中与质量评测。
+- **内容安全**：公开分享前 LLM 合规审核（30k 分块并发、不过不公开）；ARC 安全净化器在进模型前剥离控制指令与插画提示词（防提示词注入）；工具事件敏感键脱敏。
+
 
 ---
 
@@ -702,7 +714,7 @@ graph TB
 ### 2. 数据库管理
 
 引火AI默认使用SQLite与高性能的向量数据库LanceDB作为本地无需部署的数据库方案。
-可以通过**开关一键切换到PostgreSQL+PG Vector**的大用户量生产级性能。
+业务数据库可以通过**开关一键切换到PostgreSQL**获得大用户量生产级性能；项目级语义向量索引默认使用 LanceDB，与业务库解耦。
 
 #### 自动迁移
 
@@ -723,12 +735,13 @@ graph TB
 #### 核心特性
 
 1. **多数据库分支**：`users.db` 与 `llm_config.db` 采用独立 `version_locations`，互不干扰
-2. **启动自动升级**：如果上游更新数据库格式，启动时使用 Alembic API 直接升级
-3. **临时库生成迁移**：生成脚本基于迁移链构造临时 DB，不再受开发机真实 DB 污染
-4. **智能重命名检测**：自动识别字段重命名并询问确认
-5. **危险操作拦截**：`DROP COLUMN` / `DROP TABLE` 强制交互确认
-6. **遗留版本自愈**：迁移链被打断时保守补缺失表/列并对齐版本号，默认不删除额外结构
-7. **版本漂移保护**：版本号已是 head 但缺字段时直接报错，避免悄悄吞掉应提交的 migration
+2. **启动自动升级**：如果上游更新数据库格式，启动时使用 Alembic API 直接升级；已是最新时自动跳过
+3. **最早阶段执行**：迁移在应用生命周期最前面完成，避免业务初始化占用数据库锁
+4. **临时库生成迁移**：生成脚本基于迁移链构造临时 DB，不再受开发机真实 DB 污染
+5. **智能重命名检测**：自动识别字段重命名并询问确认
+6. **危险操作拦截**：`DROP COLUMN` / `DROP TABLE` 强制交互确认
+7. **孤儿版本自愈**：迁移链被打断时保守补缺失表/列并对齐版本号，默认不删除额外结构
+8. **head 漂移保护**：版本号已是 head 但缺字段时直接报错，避免悄悄吞掉应提交的 migration
 
 > 📗 完整的开发者工作流、迁移接入指南与清理历史风险说明，请参阅 [数据库自动迁移完整指南](docs/project/database-migration.md)
 
@@ -741,6 +754,7 @@ graph TB
 * **首位管理员**：系统会自动将**第一个注册的用户**设为管理员，拥有修改系统模型平台的权限。
 * **默认权限**：除首位用户外，所有新注册的用户默认为普通用户 (`is_admin = 0`)。
 * **权限授予**：首位管理员可通过 UI 界面中的"管理中心"授权其他用户成为管理员。
+* **运营闭环**：点数账本与按模型定价、兑换码发放、额度发放活动（幂等补发 / 撤销语义）、用户反馈工单与系统公告——自部署即获得完整的多租户运营能力。
 
 ---
 
@@ -762,6 +776,7 @@ graph TB
 - **分块策略**：`SemanticChunker` 按语义边界切分项目文本，保留叙事定位（`narrative_ref`）、行号范围等元数据
 - **中文项目名兼容**：LanceDB 表名通过 MD5 哈希转换，解决中文项目名不符合命名规范的问题
 - **批量向量化**：按 batch_size=50 分批调用嵌入 API，适配主流模型的批量限制
+- **可选本地嵌入引擎**：零外部 API 的本地向量化——自动下载 llama.cpp 运行包与 GGUF 嵌入模型（含镜像回退），本地进程托管与健康诊断，开箱即用
 
 ---
 
@@ -769,7 +784,7 @@ graph TB
 
 引火AI 内置了完整的 CI/CD 流水线，支持代码推送后**全自动构建镜像、测试并部署**，无需任何手动干预。
 
-支持 Gitea Actions 和 GitLab CI，且 Gitea Actions 工作流可低成本迁移至 GitHub Actions。
+流水线以 **Gitea Actions 与 GitHub Actions** 双生态交付（含桌面 / Android 发布流水线与 Gitee Release 同步），可低成本迁移到其他 CI 平台。
 
 流水线阶段：**检出代码 → 构建镜像 → 测试（预留） → 部署 → 清理**
 
@@ -784,17 +799,17 @@ graph TB
 
 为了实现**地铁五分钟**的无缝体验，引火AI 采用分离架构：
 
-* **Business Logic (Composables)**: 所有的核心业务逻辑被封装在独立的 Composable 函数中，不依赖具体 UI。关键 Composable 包括：
+* **Business Logic (Composables)**: 所有的核心业务逻辑被封装在独立的 Composable 函数中（共 26 个），不依赖具体 UI。关键 Composable 包括：
   - `useSynopsisLogic` / `useScriptWriterLogic` — 梗概与编剧
   - `useWorldLogic` / `useStyleLogic` / `useStructureLogic` — 世界观、风格、结构
   - `useAIModelManager` / `useAIPlatformManager` / `useAIEmbeddingManager` — 模型与平台管理
   - `useAgentRegistry` / `useChatActions` / `useAdminLogic` — Agent 注册、聊天与管理
   - **项目正在往LUI的方向演进。不久的以后，你的每一句话，都可以开启一个复杂的创作流。**
-* **流式基础设施层**：前端统一通过 `streamingRuntime.ts` 的 `createStreamingTask` 托管所有业务流式任务，配合 `loadingStats.ts`（全局遮罩统计）、`eventBus.ts`（事件总线）、`GlobalLoading.vue`（全局加载 UI）形成完整的流式消费闭环。聊天流与业务任务流两条主链路独立运行，互不干扰。
+* **流式基础设施层**：前端统一通过 `streamingRuntime.ts` 的 `createStreamingTask` 托管所有业务流式任务（SSE / 文本 / NDJSON 三协议读取器、思考流统一解析、可取消与统计），配合 `loadingStats.ts`（全局遮罩统计）、`eventBus.ts`（事件总线）、`GlobalLoading.vue`（全局加载 UI）形成完整的流式消费闭环。聊天流支持断线恢复与 `afterSeq` 游标回放，刷新不丢流；聊天流与业务任务流两条主链路独立运行，互不干扰。
 
 * **全尺寸屏幕适配**:
   * **Desktop Views**: 针对宽屏优化的复杂工作台，提供多列布局与详细控制面板。
-  * **Mobile Views**: 针对竖屏优化的流式交互界面，强调阅读体验与快速操作。大部分核心视图（梗概、结构、世界观、风格分析等）均提供独立移动端视图，编剧台（ScriptWriter）目前仅支持桌面端。
+  * **Mobile Views**: 针对竖屏优化的流式交互界面，强调阅读体验与快速操作。大部分核心视图（梗概、结构、世界观、风格分析等）均提供独立移动端视图，编剧台（ScriptWriter）在移动端提供轻量工作台，复杂精修仍推荐桌面端。
 
 ### Tauri 2 跨平台构建
 
@@ -816,7 +831,7 @@ graph TB
 
 ### Unity 游戏引擎集成（BETA）
 
-> Unity SDK (`SparkArc.Unity`) 目前作为独立模块位于 `presenter/UnitySDK`，旨在为独立游戏开发者提供开箱即用的剧情解决方案。**该功能尚处于极早期测试阶段，覆盖情景难免较少，敬请期待。**
+> Unity SDK (`SparkArc.Unity`) 目前作为独立模块位于 `presenter/UnitySDK`，旨在为独立游戏开发者提供开箱即用的剧情解决方案。**当前为 BETA**：已覆盖对话树、分支跳转、场景条件求值、状态存档与效果回写、属性化行为派发（含 Editor 行为清单导出器），并附 MinimalRuntime 示例工程、运行时冒烟探针与两份接入文档。
 
 #### 全流程数据管线
 
@@ -891,7 +906,7 @@ graph TB
 说明：
 
 - 仓库级法律文件用于公开证据、站内复用和第三方部署参考。
-- 站内 ToS 接口默认读取 `server/data/TermsOfService.md`；`LEGAL/TermsOfService.zh-CN.md` 作为第三方部署参考模板保留。
+- 站内 ToS 接口按 `?lang=` 优先读取 `LEGAL/TermsOfService.{lang}.md`，缺失时回退读取 `server/data/TermsOfService.md`；`LEGAL/TermsOfService.zh-CN.md` 同时作为第三方部署参考模板保留。
 - 第三方部署者在向公众提供服务前，应按自身情况补充运营主体、域名、备案/许可、投诉邮箱与隐私信息。
 
 ## 品牌与商标声明

@@ -15,7 +15,7 @@
 
 阅读顺序：
 
-1. `../NOTICE`
+1. `../LICENSE` 与 `../server/llm/agen_matchbox/LICENSE`
 2. `LicensePolicy.zh-CN.md`
 3. `TrademarkPolicy.zh-CN.md`
 4. `OfficialInstancePolicy.zh-CN.md`
@@ -27,8 +27,8 @@
 
 文件用途说明：
 
-- `../NOTICE`
-  仓库级许可、火柴网关单独授权、官方实例、第三方运营与品牌边界的英文简明声明。
+- `../LICENSE` 与 `../server/llm/agen_matchbox/LICENSE`
+  根项目 AGPL-3.0-only 与火柴 Agent 网关 Apache-2.0 的授权原文。
 - `LicensePolicy.zh-CN.md`
   SparkArc 的 AGPL-3.0-only 社区许可立场、自部署友好说明、官方实例自营与第三方默认无商业豁免边界。
 - `TrademarkPolicy.zh-CN.md`
@@ -39,6 +39,8 @@
   英文版服务条款，已去除中国特有法律条款，做本土化适配。
 - `TermsOfService.ja-JP.md`
   日本語版利用規約，中国特有の法的条項を削除し、ローカライズ済み。
+- `TermsOfService.ko-KR.md`
+  한국어판 이용약관, 중국 특유의 법적 조항을 제거하고 현지화했습니다.
 - `PrivacyPolicy.zh-CN.md`
   当前实例对个人信息处理、日志留存、模型转发与用户权利的说明。
 - `OfficialInstancePolicy.zh-CN.md`
@@ -55,4 +57,4 @@
 - 对外提供服务的实例，应在登录页、页脚、帮助页或设置页显著位置链接本目录中的核心文件。
 - `server/core/routes_tos.py` 当前支持按 `?lang=` 参数返回对应语言版本的服务条款。优先读取 `LEGAL/TermsOfService.{lang}.md`，回退到 `server/data/TermsOfService.md`，最终兜底 `LEGAL/TermsOfService.zh-CN.md`。
 - 如后续新增官方域名、商标、软件著作权登记号、投诉邮箱、备案号，应优先更新本目录，再同步到页面。
-- 如后续调整许可证、引入 CLA/DCO、开放商业豁免或新增官方实例，应同步更新 `NOTICE`、`LicensePolicy.zh-CN.md`、`TrademarkPolicy.zh-CN.md`、`OfficialInstancePolicy.zh-CN.md` 与 README 四语版本。
+- 如后续调整许可证、引入 CLA/DCO、开放商业豁免或新增官方实例，应同步更新 `../LICENSE`、`LicensePolicy.zh-CN.md`、`TrademarkPolicy.zh-CN.md`、`OfficialInstancePolicy.zh-CN.md` 与 README 四语版本。

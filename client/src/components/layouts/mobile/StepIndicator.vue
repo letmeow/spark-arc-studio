@@ -9,12 +9,12 @@
         :class="{ 'is-active': currentStep === index }"
         :aria-current="currentStep === index ? 'step' : undefined"
         :aria-label="step.label"
+        :title="step.label"
         @click="scrollToStep(index)"
       >
-        <n-icon class="nav-icon" size="17">
+        <n-icon class="nav-icon" size="15">
           <component :is="getIconComponent(step.id)" />
         </n-icon>
-        <span class="nav-label">{{ step.label }}</span>
       </button>
     </div>
   </nav>
@@ -66,69 +66,96 @@ function scrollToStep(index: number) {
 <style scoped>
 .flow-nav {
   position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: calc(var(--sab, 0px) + 12px);
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
   z-index: 100;
-  padding: 6px;
-  border: 1px solid color-mix(in srgb, var(--spark-border) 78%, transparent);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--spark-panel-bg) 92%, transparent);
-  box-shadow: 0 10px 30px color-mix(in srgb, #000 28%, transparent);
-  backdrop-filter: blur(18px) saturate(125%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 3px;
+
+  background: color-mix(in srgb, var(--spark-panel-bg) 66%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  backdrop-filter: blur(18px) saturate(135%);
+  border: 1px solid color-mix(in srgb, var(--spark-border) 28%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px color-mix(in srgb, #000 10%, transparent);
 }
 
 .flow-nav-track {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 1px;
-  width: 100%;
-  overflow: hidden;
   scrollbar-width: none;
 }
 
 .flow-nav-track::-webkit-scrollbar { display: none; }
 
-.nav-item {
-  min-width: 0;
-  min-height: 42px;
-  flex: 1 1 0;
-  display: inline-flex;
-  flex-direction: column;
+.flow-nav .nav-item {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 4px 2px;
-  border: 0;
-  border-radius: 11px;
+  border-radius: 6px;
   color: var(--spark-text-muted);
   background: transparent;
-  font: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+  transition: color 160ms ease, opacity 160ms ease, transform 160ms ease;
 }
 
-.nav-item:active { transform: scale(0.96); }
+.flow-nav .nav-item:hover { background: transparent; box-shadow: none; transform: none; }
+.flow-nav .nav-item:active { transform: scale(0.9); }
+.flow-nav .nav-item:focus-visible { outline: 1px solid var(--spark-primary); outline-offset: -1px; }
 
-.nav-item.is-active {
+.flow-nav .nav-item.is-active {
   color: var(--spark-primary);
-  background: color-mix(in srgb, var(--spark-primary) 13%, transparent);
+  opacity: 1;
 }
 
-.nav-icon { flex: 0 0 auto; }
-
-.nav-label {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-  line-height: 1.2;
+.flow-nav .nav-item.is-active::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  border-radius: 999px;
+  background: currentColor;
 }
 
-@media (max-width: 360px) {
-  .flow-nav { left: 8px; right: 8px; }
-  .nav-item { min-height: 40px; }
-  .nav-label { font-size: 9px; }
+.nav-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--spark-text-muted);
+  opacity: 0.58;
+  transition: color 160ms ease, opacity 160ms ease, transform 160ms ease;
+  flex-shrink: 0;
+}
+
+.flow-nav .nav-item.is-active .nav-icon {
+  color: var(--spark-primary);
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+@media (max-width: 380px) {
+  .flow-nav {
+    right: 5px;
+    padding: 3px 2px;
+  }
+
+  .flow-nav-track { gap: 1px; }
+
+  .flow-nav .nav-item { width: 22px; height: 22px; }
+  .nav-icon { width: 14px; height: 14px; font-size: 14px !important; }
 }
 </style>

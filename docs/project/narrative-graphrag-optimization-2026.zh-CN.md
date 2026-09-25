@@ -4,7 +4,7 @@
 
 SparkArc 当前的 GraphRAG 确实偏鸡肋。问题不在于它被封装成工具后不能由 Agent 自主调用，而在于以下三层能力没有对齐：
 
-1. **工具绑定错位**：`graph_rag_tool` 目前绑定给 Director、Scriptwriter、Critic；真正承担编剧前期开发的 Muse、Lorebook、Showrunner 没有该工具。
+1. **工具绑定错位**（正在整改）：`graph_rag_tool` 现绑定给 Director、Scriptwriter、Critic、Showrunner；承担创意前期开发的 Muse、Lorebook 仍没有该工具。
 2. **工具协议过窄**：AI 端只有 `status` 和通用自然语言 `query`，输出只有普通回答或写作约束，缺少结构诊断、路径追踪、缺口发现、方案对比等前期开发操作。
 3. **图谱表达力不足**：底层是静态无向实体三元组图。同一实体对的多种关系会被压进一条边，无法可靠表达事件、目标、冲突、因果、时间、知情边界、关系变化、伏笔状态和揭示顺序。
 
@@ -77,15 +77,15 @@ GraphRAG 也不只适合处理长篇人物关系。对长篇小说和剧本而�
 - Director
 - Scriptwriter
 - Critic
+- Showrunner（连续性工具组）
 
 工具目前没有绑定给：
 
 - Muse
 - Lorebook
-- Showrunner
 - Style
 
-其中 Showrunner 是梗概、节拍表和大纲的主要生产者，却无法直接使用 GraphRAG。这是 GraphRAG 不能在编剧前期发挥作用的首要原因。
+> 📌 整改进展：Showrunner 已接入 `graph_rag_tool`（随连续性工具组绑定），"大纲主要生产者无法直接使用 GraphRAG"的首要障碍已解除；Muse、Lorebook 的接入仍在规划中。
 
 ### 3.2 PreWrite 的真实能力
 

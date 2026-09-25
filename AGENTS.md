@@ -143,7 +143,7 @@ SparkArc 现有架构已经有清晰收口层。新增功能必须先判断是�
 
 ### 4.4 工具 UI 联动必须双端一致
 
-工具事件中的 UI 提示由后端 communication.py 的 build_tool_stream_event 注入（ui_scope/ui_target/ui_refresh_events），前端 chatStore 读取。
+工具事件中的 UI 提示由后端 `server/agents/tools/stream_events.py` 的 build_tool_stream_event 注入（ui_scope/ui_target/ui_refresh_events），前端 chatStore 读取。
 
 ### 4.4.1 AgentSkills 与 MCP 边界
 
@@ -270,7 +270,7 @@ YAML 顶层 `tool_rules` 字段用于存放 Agent 在聊天/委派模式下的�
 | lorebook | 工具调用顺序 + 输出纯度 + 反注入 | ✅ |
 | scriptwriter | create_chapter 先行 + export_format 强制 + 输出纯度（另有 `autonomous_tool_rules` 专供 Auto-Write 单循环，`tool_rules_key` 切换加载） | ✅（视觉小说协议重写保留） |
 | showrunner | 反注入 + rewrite_outline 纯度 + 节奏约束 | ✅ |
-| critic | （无落盘工具，无 tool_rules） | N/A |
+| critic | StoryMemory / GraphRAG 事实核对规则（无落盘工具） | N/A |
 | muse | （无额外工具规则） | N/A |
 | director | （动态团队概览，保留 Python 重写） | ❌ 保留 |
 
@@ -375,7 +375,7 @@ AI 在修改内容产出链路时，应根据任务质量和协议需要自行�
 1. 视图默认 Agent 分配：client/src/components/chat/GlobalChatFloat.vue（viewAgentMap）
 2. 聊天气泡显示名/颜色/图标：后端 `server/agents/registry.py` 的 `name` / `icon` / `color` 是真相源，前端 `client/src/composables/useAgentRegistry.ts` 只负责读取与兜底。
 3. Agent 流程蓝图布局与默认连线：client/src/components/lorebook/AgentFlowBlueprint.vue
-4. 运行态 mock 数据（如保留）：client/src/components/stores/agentRuntimeStore.ts
+4. 运行态协作信号数据（真实信标/号角/旗帜 API 客户端）：client/src/components/stores/agentRuntimeStore.ts
 5. 页面级快捷模型选择入口（如需要）：client/src/components/lorebook/AiSettingsPanel.vue 与对应视图
 
 说明：并非每次都必须改全部文件，但必须逐项确认。

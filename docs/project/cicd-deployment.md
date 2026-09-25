@@ -9,10 +9,10 @@
 | 平台 | 配置文件 | Runner | 触发条件 |
 | :--- | :--- | :--- | :--- |
 | **Gitea** | `.gitea/workflows/deploy.yml` | 自建 `act_runner`（Docker 模式） | push 到 `main` 分支 |
-| **GitLab** | `.gitlab/gitlab-ci.yml` | 自建 GitLab Runner（Docker 模式） | push 到任意分支 |
-| **GitHub** | `.github/workflows/pr-checks.yml` / `release-desktop.yml` / `release-android-apk.yml` | GitHub 托管 Runner | PR / push 到 `main`（检查）；手动触发（发布） |
+| **GitLab** | 需自行移植（参考 `.gitea/workflows/deploy.yml`） | 自建 GitLab Runner（Docker 模式） | push 到任意分支 |
+| **GitHub** | `.github/workflows/pr-checks.yml` / `release-desktop.yml` / `release-android-apk.yml` / `release-all.yml` / `sync-gitee-release.yml` | GitHub 托管 Runner | PR / push 到 `main`（检查）；手动触发（发布） |
 
-> ⚠️ **GitLab 配置文件路径**：本项目的 CI 配置文件位于 `.gitlab/gitlab-ci.yml`（非默认的根目录 `.gitlab-ci.yml`）。使用 GitLab CI 时，必须在项目 **Settings → CI/CD → General pipelines → CI/CD configuration file** 中填入 `.gitlab/gitlab-ci.yml`，否则 GitLab 找不到配置文件，流水线不会触发。
+> ⚠️ **GitLab CI 说明**：仓库当前**未附带** GitLab CI 配置文件。如需在 GitLab 上运行，请参考 `.gitea/workflows/deploy.yml` 的五阶段逻辑自行移植，并在项目 **Settings → CI/CD → General pipelines → CI/CD configuration file** 中指向你创建的配置文件路径。
 
 > 💡 **关于 GitHub Actions**：本项目已在 GitHub 上配置了完整的工作流——`pr-checks.yml` 负责 PR 质量门禁（前端构建/类型检查/单元测试 + 后端回归测试 + Docker 构建），`release-desktop.yml` 和 `release-android-apk.yml` 负责桌面端与 Android 端的发布构建。Gitea Actions 的语法设计与 GitHub Actions 高度相似，但**并非直接兼容**，移植时需注意以下差异：
 >

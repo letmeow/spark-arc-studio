@@ -250,7 +250,7 @@ const currentStep = ref(0);
 const settingsDrawerVisible = ref(false);
 const publishDrawerVisible = ref(false);
 const previewing = ref(false);
-// 沉浸模式：创作页进入场景详情时隐藏底部步骤导航，避免阅读下滑误触
+// 沉浸模式：创作页进入场景详情时隐藏右侧步骤导航，避免阅读下滑误触
 const immersiveMode = ref(false);
 
 const workspaceMode = computed(() => sceneStore.workspaceMode || 'script');
