@@ -1,192 +1,134 @@
 <template>
-  <div class="flow-nav">
-    <div
-      v-for="(step, index) in steps"
-      :key="step.id"
-      class="nav-item"
-      :class="{
-        'is-active': currentStep === index
-      }"
-      @click="scrollToStep(index)"
-    >
-      <n-icon class="nav-icon" size="18">
-        <component :is="getIconComponent(step.id)" />
-      </n-icon>
+  <nav class="flow-nav" :aria-label="t('mobileFlow.steps.home')">
+    <div class="flow-nav-track">
+      <button
+        v-for="(step, index) in steps"
+        :key="step.id"
+        type="button"
+        class="nav-item"
+        :class="{ 'is-active': currentStep === index }"
+        :aria-current="currentStep === index ? 'step' : undefined"
+        :aria-label="step.label"
+        @click="scrollToStep(index)"
+      >
+        <n-icon class="nav-icon" size="17">
+          <component :is="getIconComponent(step.id)" />
+        </n-icon>
+        <span class="nav-label">{{ step.label }}</span>
+      </button>
     </div>
-  </div>
+  </nav>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, markRaw, type PropType } from 'vue';
+import { markRaw, type PropType } from 'vue';
 import { NIcon } from 'naive-ui';
-import { Activity, Globe2, House, Lightbulb, List, Map as MapIcon, SquarePen } from '@lucide/vue';
+import { useI18n } from 'vue-i18n';
+import { Activity, Globe2, House, Lightbulb, List, Map as MapIcon, SquarePen, UsersRound } from '@lucide/vue';
 
-// 图标映射
+const { t } = useI18n();
+
 const iconMap = {
-  'home': House,              // 首页 - 小屋
-  'muse': Lightbulb,          // 灵感 - 灯泡
-  'lorebook': Globe2,    // 世界观 - 星球 (移动端独立页面)
-  'characters': Globe2,  // 角色 - 复用星球（与世界观同源设定）
-  'synopsis': Activity,     // 梗概 - 脉冲
-  'structure': List,     // 大纲 - 列表
-  'production': SquarePen,  // 创作 - 铅笔
-  'blueprint': MapIcon       // 蓝图 - 地图
+  home: House,
+  muse: Lightbulb,
+  lorebook: Globe2,
+  characters: UsersRound,
+  synopsis: Activity,
+  structure: List,
+  production: SquarePen,
+  blueprint: MapIcon,
 };
 
-function getIconComponent(stepId) {
-  return markRaw(iconMap[stepId] || Lightbulb);
+function getIconComponent(stepId: string) {
+  return markRaw(iconMap[stepId as keyof typeof iconMap] || Lightbulb);
 }
 
-type StepItem = {
-  id: string;
-};
+type StepItem = { id: string; label: string };
 
 const props = defineProps({
   steps: {
     type: Array as PropType<StepItem[]>,
-    required: true
+    required: true,
   },
-  containerRef: {
-    type: Object,
-    default: null
-  }
+  currentStep: {
+    type: Number,
+    required: true,
+  },
 });
 
-const currentStep = ref(0);
-
-function scrollToStep(index) {
-  const stepId = `step-${index + 1}`;
-  const element = document.getElementById(stepId);
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+function scrollToStep(index: number) {
+  const element = document.getElementById(`step-${index}`);
+  if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// IntersectionObserver 检测当前可见卡片
-let observer: IntersectionObserver | null = null;
-
-function setupObserver() {
-  const options = {
-    root: props.containerRef?.value || null,
-    rootMargin: '-40% 0px -40% 0px',
-    threshold: 0
-  };
-  
-  observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const id = entry.target.id;
-        const match = id.match(/step-(\d+)/);
-        if (match) {
-          currentStep.value = parseInt(match[1]) - 1;
-        }
-      }
-    });
-  }, options);
-  
-  props.steps.forEach((_, index) => {
-    const element = document.getElementById(`step-${index + 1}`);
-    if (element) {
-      observer?.observe(element);
-    }
-  });
-}
-
-onMounted(() => {
-  setTimeout(setupObserver, 100);
-});
-
-onUnmounted(() => {
-  if (observer) {
-    observer.disconnect();
-  }
-});
 </script>
 
 <style scoped>
 .flow-nav {
   position: fixed;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--sab, 0px) + 12px);
   z-index: 100;
-  
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
   padding: 6px;
-  
-  background: color-mix(in srgb, var(--spark-panel-bg) 80%, transparent);
-  backdrop-filter: blur(12px);
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--spark-border) 30%, transparent);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid color-mix(in srgb, var(--spark-border) 78%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--spark-panel-bg) 92%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, #000 28%, transparent);
+  backdrop-filter: blur(18px) saturate(125%);
 }
+
+.flow-nav-track {
+  display: flex;
+  gap: 1px;
+  width: 100%;
+  overflow: hidden;
+  scrollbar-width: none;
+}
+
+.flow-nav-track::-webkit-scrollbar { display: none; }
 
 .nav-item {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  display: flex;
+  min-width: 0;
+  min-height: 42px;
+  flex: 1 1 0;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  /* 背景 */
-  background: transparent;
-}
-
-/* 增大触控区域 */
-.nav-item::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 14px;
-}
-
-.nav-item:active {
-  transform: scale(0.92);
-}
-
-.nav-icon {
-  width: 18px;
-  height: 18px;
+  gap: 2px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 11px;
   color: var(--spark-text-muted);
-  opacity: 0.5;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
-/* 当前激活状态 - 主色高亮 + 背景 */
+.nav-item:active { transform: scale(0.96); }
+
 .nav-item.is-active {
-  background: rgba(var(--spark-primary-rgb), 0.12);
-}
-
-.nav-item.is-active .nav-icon {
   color: var(--spark-primary);
-  opacity: 1;
-  transform: scale(1.1);
+  background: color-mix(in srgb, var(--spark-primary) 13%, transparent);
 }
 
-/* 响应式 - 极小屏幕 */
-@media (max-width: 380px) {
-  .flow-nav {
-    right: 4px;
-    padding: 5px;
-    gap: 1px;
-  }
-  
-  .nav-item {
-    width: 28px;
-    height: 28px;
-  }
-  
-  .nav-icon {
-    width: 16px;
-    height: 16px;
-  }
+.nav-icon { flex: 0 0 auto; }
+
+.nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+@media (max-width: 360px) {
+  .flow-nav { left: 8px; right: 8px; }
+  .nav-item { min-height: 40px; }
+  .nav-label { font-size: 9px; }
 }
 </style>

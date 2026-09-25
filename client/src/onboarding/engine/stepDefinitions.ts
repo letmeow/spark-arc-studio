@@ -407,7 +407,7 @@ function scrollMobileStep(stepNum: number): () => Promise<void> {
  * 移动端布局与桌面端完全不同：
  * - 顶部 flow-header（Logo + 操作按钮）
  * - 垂直滚动 FlowCard（6步创作流程）
- * - 右侧 StepIndicator（导航图标）
+ * - 底部 StepIndicator（阶段导航）
  * - 底部 GlobalChatFloat（抽屉式聊天）
  * - 设置/风格/引擎/管理 在抽屉中
  */

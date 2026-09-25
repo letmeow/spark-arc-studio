@@ -4,7 +4,13 @@
     :id="`step-${step}`"
     :class="{ 'is-active': isActive }"
   >
-    <!-- Secondary titles removed to maximize vertical space -->
+    <header class="flow-card-header">
+      <div class="flow-card-kicker">
+        <span class="flow-card-index">{{ String(step + 1).padStart(2, '0') }}</span>
+        <span>{{ title }}</span>
+      </div>
+      <p v-if="subtitle" class="card-subtitle">{{ subtitle }}</p>
+    </header>
     
     <div class="flow-card-content">
       <slot />
@@ -16,7 +22,7 @@
           v-if="showNextButton" 
           class="next-step-fab"
           @click="scrollToNext"
-          aria-label="下一步"
+          :aria-label="nextLabel"
         >
           <svg viewBox="0 0 24 24" fill="none" class="fab-icon">
              <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5" class="fab-circle"/>
@@ -80,20 +86,19 @@ function scrollToNext() {
   min-height: 100vh;
   min-height: 100dvh;
   scroll-snap-align: start;
-  scroll-snap-stop: always;
   
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  padding-top: calc(var(--mobile-header-height, 48px) + var(--sat, 0px) + 8px);
-  padding-bottom: calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 12px);
+  padding: 18px 16px;
+  padding-top: calc(var(--mobile-header-height, 48px) + var(--sat, 0px) + 18px);
+  padding-bottom: calc(var(--sab, env(safe-area-inset-bottom, 0px)) + 112px);
   
   /* 简化背景 */
   background: var(--spark-bg);
   border-bottom: 1px solid var(--spark-border);
   
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
 }
 
@@ -103,47 +108,41 @@ function scrollToNext() {
   display: none;
 }
 
-/* 卡片激活时的视觉反馈 */
-.flow-card.is-active .flow-card-header {
-  opacity: 1;
-}
-
 .flow-card-header {
   display: flex;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  opacity: 0.85;
-  transition: opacity 0.3s ease;
-  padding-left: 4px;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 2px 18px;
 }
 
-.header-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.title-row {
+.flow-card-kicker {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  color: var(--spark-text);
+  font-size: var(--spark-fs-h2);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
-.card-title {
-  margin: 0;
-  font-size: var(--spark-fs-display); /* 更大一点 */
-  font-weight: 800;
-  color: var(--spark-text);
-  line-height: 1.2;
-  letter-spacing: -0.5px;
+.flow-card-index {
+  color: var(--spark-primary);
+  font-family: var(--spark-mono);
+  font-size: var(--spark-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .card-subtitle {
   margin: 0;
-  font-size: var(--spark-fs-base);
+  max-width: 34rem;
+  font-size: var(--spark-fs-sm);
   color: var(--spark-text-muted);
   line-height: 1.4;
-  font-weight: 500;
+}
+
+.flow-card.is-active .flow-card-header {
+  opacity: 1;
 }
 
 .flow-card-content {
@@ -151,10 +150,7 @@ function scrollToNext() {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 20px;
+  overflow: visible;
 }
 
 .flow-card-footer {

@@ -14,7 +14,7 @@ html.platform-mobile-shell {
     --fallback-sat: 0px;
     --sat: max(env(safe-area-inset-top, 0px), var(--fallback-sat));
     --sab: env(safe-area-inset-bottom, 0px);
-    --mobile-header-height: 44px;
+    --mobile-header-height: 56px;
     --mobile-bottom-nav-height: 60px;
 }
 
@@ -29,6 +29,19 @@ html.platform-mobile-shell body {
 html.viewport-mobile body,
 html.platform-mobile-shell body {
     overflow: hidden;
+    overscroll-behavior: none;
+}
+
+/* 落地页是连续长页面，不能复用工作台的锁滚策略。 */
+html.viewport-mobile:has(.product-home-mobile),
+html.platform-mobile-shell:has(.product-home-mobile) {
+    overflow-y: auto;
+}
+
+html.viewport-mobile:has(.product-home-mobile) body,
+html.platform-mobile-shell:has(.product-home-mobile) body {
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
 }
 
 html.viewport-mobile .n-button {
@@ -53,7 +66,8 @@ html.platform-mobile-shell ::-webkit-scrollbar {
 
 html.viewport-mobile .n-card {
     border-radius: var(--spark-radius) !important;
-    box-shadow: none !important;
+    box-shadow: 0 8px 24px color-mix(in srgb, #000 14%, transparent) !important;
+    border-color: color-mix(in srgb, var(--spark-border) 84%, transparent) !important;
 }
 
 html.viewport-mobile .n-card > .n-card-header {
@@ -62,6 +76,20 @@ html.viewport-mobile .n-card > .n-card-header {
 
 html.viewport-mobile .n-card > .n-card-content {
     padding: 12px 16px !important;
+}
+
+html.viewport-mobile button,
+html.platform-mobile-shell button,
+html.viewport-mobile [role='button'],
+html.platform-mobile-shell [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+}
+
+html.viewport-mobile input,
+html.viewport-mobile textarea,
+html.platform-mobile-shell input,
+html.platform-mobile-shell textarea {
+    caret-color: var(--spark-primary);
 }
 
 html.viewport-mobile .n-drawer {

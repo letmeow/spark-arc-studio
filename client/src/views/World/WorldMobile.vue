@@ -128,7 +128,7 @@ import GlobalLoading from '../../components/share/GlobalLoading.vue';
 import InspireTagSelector from '../../components/lorebook/InspireTagSelector.vue';
 import MobileTextArea from '../../components/editors/mobile/MobileTextArea.vue';
 import { useWorldLogic } from '../../composables/useWorldLogic';
-import { scrollToFlowStep } from '../../utils/mobileFlow';
+import { MOBILE_FLOW_STEP, scrollToFlowStep } from '../../utils/mobileFlow';
 import { useProjectStore } from '../../components/stores/projectStore';
 
 const { t } = useI18n();
@@ -171,7 +171,7 @@ function handleMobileHistorySelect(item: Parameters<typeof handleMuseHistorySele
 
 function handleGenerateSettingsAndScroll() {
   void handleGenerateFromMuse({
-    beforeGenerate: () => scrollToFlowStep(2),
+      beforeGenerate: () => scrollToFlowStep(MOBILE_FLOW_STEP.world),
   });
 }
 </script>

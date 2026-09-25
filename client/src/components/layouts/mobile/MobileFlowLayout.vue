@@ -3,39 +3,24 @@
     <!-- 顶部固定导航栏 -->
     <header class="flow-header">
       <div class="header-left">
-        <a :href="SPARKARC_GITHUB_URL" target="_blank" rel="noopener" class="app-logo-link"><AppBrand class="app-logo" :size="28" :show-text="false" /></a>
+        <n-dropdown trigger="click" :options="projectSwitchOptions" @select="handleProjectSwitch">
+          <button type="button" class="project-switch-button" :aria-label="t('mobileFlow.header.switchProject')">
+            <n-icon :component="FolderOpen" size="17" />
+            <span class="project-switch-name">{{ currentProjectLabel }}</span>
+            <n-icon :component="ChevronDown" size="14" class="project-switch-chevron" />
+          </button>
+        </n-dropdown>
       </div>
-      
+
       <div class="header-center">
-        <span class="current-step-label">{{ currentStepLabel }}</span>
+        <div class="step-status">
+          <span class="step-status-label">{{ currentStepLabel }}</span>
+          <span class="step-status-count">{{ currentStep + 1 }}/{{ flowSteps.length }}</span>
+        </div>
         <OnboardingHelpButton :scene-id="currentTutorialSceneId" />
       </div>
-      
+
       <div class="header-right">
-        <n-dropdown trigger="click" :options="projectSwitchOptions" @select="handleProjectSwitch">
-          <span class="tooltip-dropdown-trigger">
-            <n-button
-              quaternary
-              circle
-              size="small"
-              :aria-label="t('mobileFlow.header.switchProject')"
-              :title="t('mobileFlow.header.switchProject')"
-            >
-              <template #icon><n-icon :component="FolderOpen" /></template>
-            </n-button>
-          </span>
-        </n-dropdown>
-        <StoryTagsPanel />
-        <n-button
-          quaternary
-          circle
-          size="small"
-          :aria-label="t('components.headerToolbar.publishTitle')"
-          :title="t('components.headerToolbar.publishTitle')"
-          @click="openPublishDrawer"
-        >
-          <template #icon><n-icon :component="Share2" /></template>
-        </n-button>
         <n-button
           quaternary
           circle
@@ -58,6 +43,11 @@
         >
           <template #icon><n-icon :component="Settings" /></template>
         </n-button>
+        <n-dropdown trigger="click" :options="utilityOptions" @select="handleUtilityAction">
+          <n-button quaternary circle size="small" :aria-label="t('components.headerToolbar.publishTitle')">
+            <template #icon><n-icon :component="MoreHorizontal" /></template>
+          </n-button>
+        </n-dropdown>
       </div>
     </header>
     
@@ -153,7 +143,11 @@
     </main>
     
     <!-- 步骤指示器 -->
-    <StepIndicator v-show="!immersiveMode" :steps="flowSteps" :container-ref="containerRef" />
+    <StepIndicator
+      v-show="!immersiveMode"
+      :steps="flowSteps"
+      :current-step="currentStep"
+    />
     
     <!-- 移动端所有创作步骤都保留 AI 悬浮聊天入口 -->
     <GlobalChatFloat />
@@ -205,7 +199,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, provide, watch, h, nextTick } from 'vue';
 import { NButton, NIcon, NDrawer, NDrawerContent, NTabs, NTabPane, NDropdown, type DropdownOption, useDialog } from 'naive-ui';
-import { Archive, BookOpen, CircleCheckBig, CirclePlus, Clapperboard, FolderOpen, PaintBucket, Play, Settings, Share2, SquarePen, Trash } from '@lucide/vue';
+import { Archive, BookOpen, ChevronDown, CircleCheckBig, CirclePlus, Clapperboard, FolderOpen, MoreHorizontal, PaintBucket, Play, Settings, Share2, SquarePen, Trash } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 import FlowCard from './FlowCard.vue';
@@ -237,13 +231,10 @@ import { useFileStore } from '../../stores/fileStore';
 import { useFullscreen } from '../../../composables/useFullscreen';
 import { useOnboarding } from '../../../onboarding';
 import { mobilePageSceneIds } from '../../../onboarding/engine/stepDefinitions';
-import AppBrand from '../../share/AppBrand.vue';
-import { SPARKARC_GITHUB_URL } from '@/config';
 import VersionManager from '../../dlg-editor/VersionManager.vue';
 import bus from '../../../eventBus';
 import { saveStory, fetchWithAuth } from '../../../services/api';
 import { exportProjectAsSpark, importProjectFromSpark } from '../../../services/projectService';
-import StoryTagsPanel from '../../share/StoryTagsPanel.vue';
 import { closeDeferredBrowserTab, navigateDeferredBrowserTab, openDeferredBrowserTab } from '../../../utils/deferredBrowserTab';
 
 const projectStore = useProjectStore();
@@ -259,7 +250,7 @@ const currentStep = ref(0);
 const settingsDrawerVisible = ref(false);
 const publishDrawerVisible = ref(false);
 const previewing = ref(false);
-// 沉浸模式：创作页进入场景详情时隐藏右侧步骤导航，避免阅读下滑误触
+// 沉浸模式：创作页进入场景详情时隐藏底部步骤导航，避免阅读下滑误触
 const immersiveMode = ref(false);
 
 const workspaceMode = computed(() => sceneStore.workspaceMode || 'script');
@@ -282,6 +273,18 @@ const flowSteps = computed(() => [
 const currentStepLabel = computed(() => {
   return flowSteps.value[currentStep.value]?.label || t('mobileFlow.sparkArc');
 });
+
+const currentProjectLabel = computed(() => (
+  projectStore.currentProject || t('components.headerToolbar.selectProjectFirst')
+));
+
+const utilityOptions = computed<DropdownOption[]>(() => [
+  {
+    label: t('components.headerToolbar.publishTitle'),
+    key: 'publish',
+    icon: () => h(NIcon, null, { default: () => h(Share2) }),
+  },
+]);
 
 const currentTutorialSceneId = computed(() => (
   ['page-mobile-home', 'page-mobile-muse', 'page-mobile-world', 'page-mobile-world', 'page-mobile-synopsis', 'page-mobile-structure', 'page-mobile-production', 'page-mobile-blueprint'][currentStep.value] || mobilePageSceneIds[0]
@@ -319,6 +322,10 @@ function openSettings() {
 
 function openPublishDrawer() {
   publishDrawerVisible.value = true;
+}
+
+function handleUtilityAction(key: string) {
+  if (key === 'publish') openPublishDrawer();
 }
 
 // ── 项目菜单（含切换、新建、重命名、删除、导入导出） ──
@@ -538,7 +545,7 @@ function setupObserver() {
         const id = entry.target.id;
         const match = id.match(/step-(\d+)/);
         if (match) {
-          currentStep.value = parseInt(match[1]) - 1;
+          currentStep.value = parseInt(match[1], 10);
         }
       }
     });
@@ -546,7 +553,7 @@ function setupObserver() {
   
   // 观察所有步骤卡片
   flowSteps.value.forEach((_, index) => {
-    const element = document.getElementById(`step-${index + 1}`);
+    const element = document.getElementById(`step-${index}`);
     if (element) {
       observer?.observe(element);
     }
@@ -624,17 +631,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 12px;
   padding-top: var(--sat, 0px);
   
-  background: color-mix(in srgb, var(--spark-panel-bg) 85%, transparent);
+  background: color-mix(in srgb, var(--spark-panel-bg) 92%, transparent);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid color-mix(in srgb, var(--spark-border) 50%, transparent);
   overflow-x: hidden;
 }
 
 .header-left, .header-right {
-  width: 48px;
+  width: auto;
   display: flex;
   justify-content: center;
   flex-shrink: 0;
@@ -650,34 +657,57 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 2px;
+  gap: 5px;
+  padding: 0 8px;
 }
 
 .header-right {
   justify-content: flex-end;
-  gap: 4px;
-  width: auto;
-  min-width: 0;
-  max-width: calc(100% - 96px);
+  gap: 2px;
+  min-width: 92px;
   overflow: hidden;
 }
 
-.app-logo-link {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  color: inherit;
-  line-height: 0;
-}
-.app-logo {
-  display: flex;
-  align-items: center;
-  line-height: 0;
+.header-right :deep(.n-button) {
+  width: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  height: 34px;
 }
 
 .tooltip-dropdown-trigger {
   display: inline-flex;
 }
+
+.project-switch-button {
+  max-width: 124px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--spark-border) 88%, transparent);
+  border-radius: 11px;
+  color: var(--spark-text);
+  background: color-mix(in srgb, var(--spark-bg) 70%, transparent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.project-switch-button:active {
+  background: color-mix(in srgb, var(--spark-primary) 10%, var(--spark-bg));
+}
+
+.project-switch-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--spark-fs-xs);
+  font-weight: 600;
+}
+
+.project-switch-chevron { color: var(--spark-text-muted); }
 
 .mobile-project-mode-icon {
   width: 22px;
@@ -699,16 +729,29 @@ onUnmounted(() => {
 }
 
 
-.current-step-label {
+.step-status {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.step-status-label {
   display: block;
   font-weight: 600;
-  font-size: var(--spark-fs-md);
+  font-size: var(--spark-fs-sm);
   color: var(--spark-text);
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.step-status-count {
+  color: var(--spark-text-muted);
+  font-family: var(--spark-mono);
+  font-size: 10px;
 }
 
 /* 滚动容器 */
@@ -725,8 +768,8 @@ onUnmounted(() => {
   overflow-y: auto;
   overflow-x: hidden;
   
-  /* 垂直滚动吸附 */
-  scroll-snap-type: y mandatory;
+  /* 垂直滚动吸附，长内容允许自然滚动 */
+  scroll-snap-type: y proximity;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   
@@ -818,5 +861,17 @@ onUnmounted(() => {
 
 .mobile-settings-tabs :deep(.n-tab-pane) {
   padding: 8px 0 calc(84px + var(--sab, 0px));
+}
+
+@media (max-width: 360px) {
+  /* 极窄屏幕优先保持步骤标题单行，教程入口仍可从设置中重开。 */
+  .header-center {
+    flex-wrap: nowrap;
+    padding: 0 2px;
+  }
+
+  .header-center :deep(.onboarding-help-button) {
+    display: none;
+  }
 }
 </style>

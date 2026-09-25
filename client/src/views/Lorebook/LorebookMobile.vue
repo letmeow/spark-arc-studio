@@ -158,7 +158,7 @@ import { useProjectStore } from '../../components/stores/projectStore';
 import { useCharacterStore } from '../../components/stores/characterStore';
 import { useSceneStore } from '../../components/stores/sceneStore';
 import { useViewStore } from '../../components/stores/viewStore';
-import { scrollToFlowStep } from '../../utils/mobileFlow';
+import { MOBILE_FLOW_STEP, scrollToFlowStep } from '../../utils/mobileFlow';
 import { extractLoglineFromInspiration } from '../../utils/inspiration';
 import { buildCreativeCacheKey, isCreativeCacheEqual, loadCreativeCache, saveCreativeCache } from '@/utils/creativeLocalCache';
 import { createAutoSaveScheduler } from '@/utils/autoSaveScheduler';
@@ -342,7 +342,7 @@ async function goToSynopsisStep() {
   projectStore.setPendingSynopsisAdoption(payload);
   viewStore.setView('synopsis');
   bus.emit('adopt-inspiration', payload);
-  scrollToFlowStep(3);
+  scrollToFlowStep(MOBILE_FLOW_STEP.synopsis);
 }
 
 // 加载角色

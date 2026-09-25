@@ -163,7 +163,7 @@ import { Activity, ArrowRight, BookOpen, FileText, MessagesSquare, Sparkles, X }
 import { useSynopsisLogic } from '../../composables/useSynopsisLogic';
 import GlobalLoading from '../../components/share/GlobalLoading.vue';
 import MobileTextArea from '../../components/editors/mobile/MobileTextArea.vue';
-import { scrollToFlowStep } from '../../utils/mobileFlow';
+import { MOBILE_FLOW_STEP, scrollToFlowStep } from '../../utils/mobileFlow';
 
 const { t } = useI18n();
 const showBeatDetail = ref(false);
@@ -194,7 +194,7 @@ function handleGenerateBeatsClick() {
 function goToStructureStep() {
   void goToStructure({
     autoGenerateOutline: true,
-    beforeNavigate: () => scrollToFlowStep(4),
+    beforeNavigate: () => scrollToFlowStep(MOBILE_FLOW_STEP.structure),
   });
 }
 </script>

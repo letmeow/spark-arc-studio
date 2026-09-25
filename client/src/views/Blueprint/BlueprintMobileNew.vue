@@ -198,6 +198,7 @@ import { useViewStore } from '../../components/stores/viewStore';
 import SparkSegment from '../../components/share/SparkSegment.vue';
 import SparkTag from '../../components/share/SparkTag.vue';
 import { useStoryFileOptions } from '../../composables/useStoryFileOptions';
+import { MOBILE_FLOW_STEP, scrollToFlowStep } from '../../utils/mobileFlow';
 import {
   buildRelationDiagnostics,
   type RelationDiagnostic,
@@ -251,7 +252,7 @@ async function openSceneInProduction(scene?: RelationScene) {
   detailVisible.value = false;
   viewStore.setView('production');
   await nextTick();
-  document.getElementById('step-5')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  scrollToFlowStep(MOBILE_FLOW_STEP.production);
 }
 
 onMounted(async () => {
