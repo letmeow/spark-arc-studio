@@ -1,8 +1,7 @@
 
 import { ref, computed, onMounted, h } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useMessage, NTag, NButton, NIcon, NPopconfirm, NSpace, NTooltip } from 'naive-ui';
-import { Trash, Ban, Unlock, UserCog } from '@lucide/vue';
+import { useMessage, NTag, NButton, NIcon, NPopconfirm } from 'naive-ui';
+import { Trash } from '@lucide/vue';
 import {
     getMyUsage,
     getMyQuotaStatus,
@@ -176,7 +175,6 @@ function createEmptyPricingForm(): PricingForm {
 }
 
 export function useAdminLogic() {
-    const { t } = useI18n();
     const message = useMessage();
 
     const loading = ref(false);
@@ -301,173 +299,6 @@ export function useAdminLogic() {
         { title: '调用', key: 'requests', width: 60 },
     ];
 
-    const userColumns = computed(() => {
-        const myId = currentUserId.value;
-        return [
-            { title: 'ID', key: 'user_id', width: 56, align: 'center' as const },
-            { title: '用户名', key: 'username', ellipsis: { tooltip: true } },
-            {
-                title: '管理员',
-                key: 'is_admin',
-                width: 80,
-                align: 'center' as const,
-                render: (row: UserItem) => h(NTag, {
-                    type: row.is_admin ? 'success' : 'default',
-                    size: 'small',
-                    bordered: false,
-                    round: true,
-                }, () => row.is_admin ? '是' : '否')
-            },
-            {
-                title: '状态',
-                key: 'is_active',
-                width: 90,
-                align: 'center' as const,
-                render: (row: UserItem) => h(NTag, {
-                    type: row.is_active ? 'success' : 'error',
-                    size: 'small',
-                    bordered: false,
-                    round: true,
-                }, () => row.is_active ? '正常' : '已封禁')
-            },
-            {
-                title: '操作',
-                key: 'actions',
-                width: 120,
-                align: 'center' as const,
-                render: (row: UserItem) => {
-                    const isSelf = myId !== null && row.user_id === myId;
-                    const isInitialAdmin = row.user_id === 1;
-                    const protectedFromBan = isSelf || isInitialAdmin;
-                    const protectedFromDelete = isSelf || isInitialAdmin;
-                    const protectReason = isInitialAdmin
-                        ? t('views.dashboard.desktop.protectedInitialAdmin')
-                        : t('views.dashboard.desktop.protectedSelf');
-
-                    const adminBtnRaw = h(NButton, {
-                        size: 'tiny',
-                        type: row.is_admin ? 'warning' : 'primary',
-                        secondary: true,
-                        disabled: isInitialAdmin && row.is_admin,
-                        circle: true,
-                        onClick: () => toggleAdmin(row),
-                    }, {
-                        icon: () => h(NIcon, null, () => h(UserCog)),
-                    });
-                    const adminBtn = h(NTooltip, null, {
-                        trigger: () => h('span', { style: 'display:inline-flex' }, [adminBtnRaw]),
-                        default: () => row.is_admin
-                            ? t('views.dashboard.desktop.cancelAdmin')
-                            : t('views.dashboard.desktop.setAdmin'),
-                    });
-
-                    const banBtnRaw = h(NButton, {
-                        size: 'tiny',
-                        type: row.is_active ? 'error' : 'success',
-                        secondary: true,
-                        disabled: protectedFromBan,
-                        circle: true,
-                    }, {
-                        icon: () => h(NIcon, null, () => h(row.is_active ? Ban : Unlock)),
-                    });
-                    const banTooltip = h(NTooltip, null, {
-                        trigger: () => h('span', { style: 'display:inline-flex' }, [banBtnRaw]),
-                        default: () => protectedFromBan
-                            ? protectReason
-                            : (row.is_active ? t('views.dashboard.desktop.banUser') : t('views.dashboard.desktop.unbanUser')),
-                    });
-                    const banBtn = protectedFromBan
-                        ? banTooltip
-                        : h(NPopconfirm, {
-                            onPositiveClick: () => toggleUserActive(row),
-                        }, {
-                            trigger: () => banTooltip,
-                            default: () => row.is_active
-                                ? `确定封禁用户「${row.username}」？封禁后该用户将无法登录`
-                                : `确定解封用户「${row.username}」？`,
-                        });
-
-                    const delBtnRaw = h(NButton, {
-                        size: 'tiny',
-                        type: 'error',
-                        tertiary: true,
-                        disabled: protectedFromDelete,
-                        circle: true,
-                    }, {
-                        icon: () => h(NIcon, null, () => h(Trash)),
-                    });
-                    const delTooltip = h(NTooltip, null, {
-                        trigger: () => h('span', { style: 'display:inline-flex' }, [delBtnRaw]),
-                        default: () => protectedFromDelete
-                            ? protectReason
-                            : t('views.dashboard.desktop.deleteUser'),
-                    });
-                    const delBtn = protectedFromDelete
-                        ? delTooltip
-                        : h(NPopconfirm, {
-                            onPositiveClick: () => deleteUser(row),
-                        }, {
-                            trigger: () => delTooltip,
-                            default: () => `确定删除用户「${row.username}」？此操作不可恢复`,
-                        });
-
-                    return h(NSpace, { size: 6, align: 'center', justify: 'center', wrap: false }, () => [
-                        adminBtn,
-                        banBtn,
-                        delBtn,
-                    ]);
-                }
-            },
-        ];
-    });
-
-    const userCreditColumns = computed(() => [
-        {
-            title: '用户',
-            key: 'user.username',
-            render: (row: UserCreditAccountItem) => row.user?.username || `用户 ${row.user?.user_id ?? '-'}`
-        },
-        {
-            title: '当前火柴',
-            key: 'account.credit_balance',
-            render: (row: UserCreditAccountItem) => formatTokens(row.account?.credit_balance || 0)
-        },
-        {
-            title: '累计发放',
-            key: 'account.credit_total_granted',
-            render: (row: UserCreditAccountItem) => formatTokens(row.account?.credit_total_granted || 0)
-        },
-        {
-            title: '累计消耗',
-            key: 'account.credit_total_used',
-            render: (row: UserCreditAccountItem) => formatTokens(row.account?.credit_total_used || 0)
-        },
-        {
-            title: '系统请求',
-            key: 'account.requests',
-            render: (row: UserCreditAccountItem) => row.account?.requests || 0
-        },
-        {
-            title: '状态',
-            key: 'account.status',
-            render: (row: UserCreditAccountItem) => h(NTag, {
-                size: 'small',
-                type: row.account?.status === 'active' ? 'success' : 'warning',
-            }, () => row.account?.status || 'active')
-        },
-        {
-            title: '操作',
-            key: 'actions',
-            width: 88,
-            render: (row: UserCreditAccountItem) => h(NButton, {
-                size: 'tiny',
-                type: 'primary',
-                secondary: true,
-                onClick: () => openCreditAdjustModal(row),
-            }, () => '增减')
-        },
-    ]);
-
     const modelCreditPricingColumns = computed(() => [
         {
             title: '平台',
@@ -551,30 +382,6 @@ export function useAdminLogic() {
             })
         },
     ]);
-
-    const allUsageColumns = [
-        { title: '用户', key: 'user.username', ellipsis: true },
-        {
-            title: '24h Tokens',
-            key: 'last_24h.tokens',
-            render: (row: AllUserUsageRow) => formatTokens(row.last_24h?.tokens || 0)
-        },
-        {
-            title: '24h 请求',
-            key: 'last_24h.requests',
-            render: (row: AllUserUsageRow) => row.last_24h?.requests || 0
-        },
-        {
-            title: '累计 Tokens',
-            key: 'total.tokens',
-            render: (row: AllUserUsageRow) => formatTokens(row.total?.tokens || 0)
-        },
-        {
-            title: '累计请求',
-            key: 'total.requests',
-            render: (row: AllUserUsageRow) => row.total?.requests || 0
-        },
-    ];
 
     const platformOptions = computed(() => {
         const seen = new Set();
@@ -719,6 +526,26 @@ export function useAdminLogic() {
         }
     }
 
+    /**
+     * 批量封禁/解封：逐个调用既有接口，全部结束后只刷新一次，返回成功与失败数量。
+     */
+    async function batchSetUserActive(userIds: number[], isActive: boolean) {
+        const results = await Promise.allSettled(userIds.map(id => setUserActiveStatus(id, isActive)));
+        const ok = results.filter(r => r.status === 'fulfilled').length;
+        await refreshData();
+        return { ok, fail: results.length - ok };
+    }
+
+    /**
+     * 批量删除用户：逻辑同 batchSetUserActive。
+     */
+    async function batchDeleteUsers(userIds: number[]) {
+        const results = await Promise.allSettled(userIds.map(id => deleteUserService(id)));
+        const ok = results.filter(r => r.status === 'fulfilled').length;
+        await refreshData();
+        return { ok, fail: results.length - ok };
+    }
+
     async function saveQuota() {
         if (!quotaForm.value.platformId) {
             message.warning('请选择平台');
@@ -780,6 +607,7 @@ export function useAdminLogic() {
     return {
         loading,
         isAdmin,
+        currentUserId,
         myUsage,
         myQuotaStatus,
         myCreditStatus,
@@ -805,11 +633,8 @@ export function useAdminLogic() {
         fetchMyUsageOnly,
         modelColumns,
         agentColumns,
-        userColumns,
-        userCreditColumns,
         modelCreditPricingColumns,
         quotaColumns,
-        allUsageColumns,
         platformOptions,
         modelOptions,
         pricingModelOptions,
@@ -820,6 +645,8 @@ export function useAdminLogic() {
         toggleAdmin,
         toggleUserActive,
         deleteUser,
+        batchSetUserActive,
+        batchDeleteUsers,
         saveQuota,
         removeQuota,
         submitCreditAdjust,

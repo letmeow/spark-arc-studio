@@ -27,7 +27,7 @@
 
     <div class="content-area">
       <n-spin :show="loading">
-        <div class="admin-container" :class="{ 'admin-container--compact': !isAdmin }">
+        <div class="admin-container">
           <div class="admin-column">
             <n-card :title="t('views.dashboard.desktop.myUsageStats')" size="small">
               <template #header-extra>
@@ -146,44 +146,23 @@
             <AdminRedeemCodeManager v-if="isAdmin" style="margin-top: 16px;" />
           </div>
 
-          <div class="admin-column" v-if="isAdmin">
-            <template v-if="isAdmin">
-            <n-card :title="t('views.dashboard.desktop.userManagement')" size="small">
-              <template #header-extra>
-                <n-text depth="3">{{ t('views.dashboard.desktop.totalUsers', { count: allUsers.length }) }}</n-text>
-              </template>
-
-              <n-data-table
-                :columns="userColumns"
-                :data="allUsers"
-                :pagination="{ pageSize: 10 }"
-                size="small"
-                :max-height="300"
-              />
-            </n-card>
-
-            <n-card :title="t('views.dashboard.desktop.userSystemCreditAccount')" size="small" style="margin-top: 16px;">
-              <n-data-table
-                :columns="userCreditColumns"
-                :data="userCreditAccounts"
-                :pagination="{ pageSize: 8 }"
-                size="small"
-                :max-height="320"
-              />
-            </n-card>
-
-            <n-card :title="t('views.dashboard.desktop.allUsersUsageOverview')" size="small" style="margin-top: 16px;">
-              <n-data-table
-                :columns="allUsageColumns"
-                :data="allUsersUsage"
-                :pagination="{ pageSize: 10 }"
-                size="small"
-                :max-height="400"
-              />
-            </n-card>
-            </template>
-          </div>
         </div>
+
+        <!-- 管理员用户管理：数据量大时需要横向空间，独占整行 -->
+        <AdminUserManager
+          v-if="isAdmin"
+          class="admin-user-section"
+          :users="allUsers"
+          :credit-accounts="userCreditAccounts"
+          :usage-rows="allUsersUsage"
+          :current-user-id="currentUserId"
+          :batch-set-active="batchSetUserActive"
+          :batch-delete="batchDeleteUsers"
+          @adjust-credit="openCreditAdjustModal"
+          @toggle-admin="toggleAdmin"
+          @toggle-active="toggleUserActive"
+          @delete="deleteUser"
+        />
       </n-spin>
     </div>
 
@@ -283,6 +262,7 @@ import MCPConnectCard from '../../components/settings/MCPConnectCard.vue';
 import FeedbackCard from '../../components/settings/FeedbackCard.vue';
 import AdminRedeemCodeManager from '../../components/settings/AdminRedeemCodeManager.vue';
 import UserRedeemCard from '../../components/settings/UserRedeemCard.vue';
+import AdminUserManager from '../../components/settings/AdminUserManager.vue';
 import { useAdminLogic } from '../../composables/useAdminLogic';
 import { changePassword } from '../../services/authService';
 
@@ -292,6 +272,7 @@ const message = useMessage();
 const {
   loading,
   isAdmin,
+  currentUserId,
   myUsage,
   myQuotaStatus,
   myCreditStatus,
@@ -308,12 +289,13 @@ const {
   fetchMyUsageOnly,
   modelColumns,
   agentColumns,
-  userColumns,
-  userCreditColumns,
-  allUsageColumns,
+  openCreditAdjustModal,
   submitCreditAdjust,
+  toggleAdmin,
   toggleUserActive,
   deleteUser,
+  batchSetUserActive,
+  batchDeleteUsers,
 } = useAdminLogic();
 
 const modelColumnsForTable = modelColumns;
@@ -430,13 +412,13 @@ function formatTokenWithCredit(tokens, credit, noCredit = false) {
 
 .admin-container {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   max-width: 100%;
 }
 
-.admin-container--compact {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.admin-user-section {
+  margin-top: 16px;
 }
 
 .admin-column {
@@ -465,8 +447,7 @@ function formatTokenWithCredit(tokens, credit, noCredit = false) {
 }
 
 @media (max-width: 1200px) {
-  .admin-container,
-  .admin-container--compact {
+  .admin-container {
     grid-template-columns: 1fr;
   }
 }
