@@ -294,15 +294,17 @@ flowchart LR
 
 ### 2.7 新增 Agent 自检清单
 
-**本清单的唯一真相源是 [AGENTS.md §4.6](../../AGENTS.md)，此处仅保留速览；两处表述不同步时，一律以 AGENTS.md 为准。** 速览要点：
+本节定义新增 Agent 的实现检查项；项目级权限、架构与验证约束见 [AGENTS.md](../../AGENTS.md)。
 
 1. 业务专家 `prompts/<agent>.yaml` 三模态齐全（`system` / `chat_system` / `pipeline_system`）；系统内部 `utility.yaml` 等模板豁免本条。
 2. 有落盘工具：注册 `_get_tool_prompt_references()` 绑定格式规范，`pipeline_system` 保持极简三件套；无落盘工具：`pipeline_system` 内嵌产出规范关键摘要。
-3. 多模态共享片段提取到 YAML `base` 字段；工具补充规则写入 `tool_rules` 字段，Python 侧不得硬编码业务规则（Director / Scriptwriter 两处例外见 AGENTS.md）。
+3. 多模态共享片段提取到 YAML `base` 字段；工具补充规则写入 `tool_rules` 字段，Python 侧不得硬编码静态业务规则；动态装配边界见本章 §2.5。
 4. `SparkAgentExecutor` 的 `build_context` / `execute` / `write_result` 协议完整实现；落盘工具在 `server/agents/tools/*` 按域实现并统一注册于 `tools/registry.py`，经 `agent_tools.py` 门面导出。
 5. 新增回归覆盖三模态分别命中，放入所属领域测试目录。
 
-贡献者请参阅 [AGENTS.md](../../AGENTS.md) 查看完整协议。
+6. 同步检查 Agent 元数据、工具绑定、导演分工与前端展示；涉及运行态授权时检查调度与权限策略。
+
+提示词装配与模态协议见本章 §2.1–§2.5，工具注册见 §3，流式恢复见 §4。
 
 ---
 

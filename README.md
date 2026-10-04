@@ -496,7 +496,7 @@ graph TD
 | **用户交互模式** | `chat_system` | 自然对话、可发散、不强制格式 |
 | **导演委派模式** | `pipeline_system` | 严格结构化 + 工具落盘 + 向导演简报 |
 
-> 📗 完整的运行态逻辑、`pipeline_system` 写法硬约束、工具 reference 机制与新增 Agent 自检清单，请参阅 [架构深度文档 §2](docs/project/architecture.md#2-agent-统一调用管线) 及 [AGENTS.md §4.5](AGENTS.md)
+> 📗 运行态逻辑、提示词装配、工具 reference 与新增 Agent 检查项见 [架构文档 §2](docs/project/architecture.md#2-agent-统一调用管线)；项目级工作约束见 [AGENTS.md](AGENTS.md)。
 
 
 #### 风格克隆集群
@@ -887,7 +887,7 @@ graph TB
 | [数据库自动迁移指南](docs/project/database-migration.md) | 开发者工作流、迁移接入指南、清理历史风险 |
 | [数据库部署与配置](docs/project/database-deployment.md) | SQLite、Compose PostgreSQL、外部与宿主 PostgreSQL 的首次部署 |
 | [CI/CD 部署指南](docs/project/cicd-deployment.md) | Runner 配置、CI Secret、GitHub Actions 迁移 |
-| [AGENTS.md](AGENTS.md) | Agent 开发规范、新增 Agent 自检清单、提示词协议 |
+| [AGENTS.md](AGENTS.md) | 项目级权限、架构边界、验证规范与专题文档入口 |
 | [语义检索引擎](#4-语义检索引擎) | 双模式检索、项目级开关、懒构建+哈希增量、LanceDB 向量存储 |
 | [LEGAL/README.md](LEGAL/README.md) | 法律与运营声明统一入口 |
 
