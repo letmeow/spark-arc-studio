@@ -18,7 +18,12 @@
     <!-- Content -->
     <div class="style-list-mobile">
         <n-spin v-if="isLoadingList" />
-        <n-empty v-else-if="styles.length === 0" :description="t('views.style.mobile.noLocalStyle')" />
+        <MobileEmptyState
+          v-else-if="styles.length === 0"
+          fill
+          :icon="Palette"
+          :title="t('views.style.mobile.noLocalStyle')"
+        />
         <div 
           v-else 
           v-for="style in styles" 
@@ -56,11 +61,10 @@
          </div>
      </div>
 
-     <div class="mobile-footer-actions">
+     <div class="mobile-footer-actions m-action-bar">
        <n-button
          secondary
-         block
-         :loading="isImportingStyleProfile"
+                  :loading="isImportingStyleProfile"
          @click="triggerStyleProfileImport"
        >
          <template #icon><n-icon><Upload /></n-icon></template>
@@ -68,8 +72,7 @@
        </n-button>
        <n-button
          type="primary"
-         block
-         :disabled="hasRunningAnalysis"
+                  :disabled="hasRunningAnalysis"
          @click="openCreateModal"
        >
          <template #icon><n-icon><Plus /></n-icon></template>
@@ -133,9 +136,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { NIcon, NSpin, NButton, NInput, NEmpty, NDrawer, NDrawerContent, NModal, NFormItem } from 'naive-ui';
+import { NIcon, NSpin, NButton, NInput, NDrawer, NDrawerContent, NModal, NFormItem } from 'naive-ui';
 import DocumentImportPicker from '../../components/import/DocumentImportPicker.vue';
-import { ChevronRight, Download, Plus, RefreshCw, Upload } from '@lucide/vue';
+import MobileEmptyState from '../../components/layouts/mobile/MobileEmptyState.vue';
+import { ChevronRight, Download, Palette, Plus, RefreshCw, Upload } from '@lucide/vue';
 import GlobalLoading from '../../components/share/GlobalLoading.vue';
 import { useStyleLogic } from '../../composables/useStyleLogic';
 import { renderStyleMarkdown } from '../../utils/styleMarkdown';

@@ -268,6 +268,10 @@ cd spark-arc-studio
 
 ### 方式二：Docker 一键部署（推荐）
 
+默认使用 SQLite。已有 PostgreSQL 时建议复用宿主机数据库；没有可复用的 PostgreSQL 时，才选择随 Compose 一起部署的 PostgreSQL。两种 PostgreSQL 方式都必须显式选择，程序不会自动探测宿主机数据库。默认 Compose 已提供访问宿主机的地址映射，但只有填写数据库配置时才会连接。配置入口、选择方法、启动命令和建库步骤见 [数据库部署与配置](docs/project/database-deployment.md)。
+
+需要配置环境变量时，首次部署可将根目录 `.env.example` 复制为 `.env` 后填写（Linux / macOS：`cp .env.example .env`；PowerShell：`Copy-Item .env.example .env`）。默认 SQLite 无需填写数据库配置；已有 `.env` 时直接编辑，不要覆盖。
+
 最省心的跨平台部署方式，只需 2 步：
 
 ```bash
@@ -282,7 +286,7 @@ docker compose up -d --build
 
 > 💡 **端口区分**：Docker 环境使用 `7788`，裸机环境使用 `6688`，便于同时运行（部分情况下并行调试）和环境区分（生产环境**严禁同时运行以避免可能的数据冲突**）。
 > 💡 **数据持久化**：用户数据和数据库会自动保存在宿主机 `server/` 目录中，重启容器不会丢失。
-> 💡 **主密钥位置**：`LLM_KEY` 默认写入 `server/llm/agen_matchbox/.env`，无需单独创建 `server/.env`。
+> 💡 **主密钥位置**：`LLM_KEY` 保存在 `server/llm/agen_matchbox/.env`，推荐在管理员后台设置和换密。根目录 `.env` 中的值仅用于首次初始化，不覆盖已保存的主密钥。
 
 然后重新创建容器：
 
@@ -714,7 +718,7 @@ graph TB
 ### 2. 数据库管理
 
 引火AI默认使用SQLite与高性能的向量数据库LanceDB作为本地无需部署的数据库方案。
-业务数据库可以通过**开关一键切换到PostgreSQL**获得大用户量生产级性能；项目级语义向量索引默认使用 LanceDB，与业务库解耦。
+平台业务数据库支持 SQLite 与 PostgreSQL，部署者通过连接配置明确选择；已有数据的数据库切换需执行迁移与校验。项目级语义向量索引默认使用 LanceDB，与业务库解耦。
 
 #### 自动迁移
 
@@ -881,6 +885,7 @@ graph TB
 | [Launcher 本地部署管理器](docs/project/local-deployment-manager.zh-CN.md) | Release Launcher 受管 `main`、系统 Git/Node 边界、网络回退、数据保护与更新流程 |
 | [火柴Agent网关指南](server/llm/agen_matchbox/README.md) | 双通道设计、接入链路、槽位配置、推理流兼容 |
 | [数据库自动迁移指南](docs/project/database-migration.md) | 开发者工作流、迁移接入指南、清理历史风险 |
+| [数据库部署与配置](docs/project/database-deployment.md) | SQLite、Compose PostgreSQL、外部与宿主 PostgreSQL 的首次部署 |
 | [CI/CD 部署指南](docs/project/cicd-deployment.md) | Runner 配置、CI Secret、GitHub Actions 迁移 |
 | [AGENTS.md](AGENTS.md) | Agent 开发规范、新增 Agent 自检清单、提示词协议 |
 | [语义检索引擎](#4-语义检索引擎) | 双模式检索、项目级开关、懒构建+哈希增量、LanceDB 向量存储 |

@@ -44,13 +44,38 @@ html.platform-mobile-shell:has(.product-home-mobile) body {
     overscroll-behavior-y: auto;
 }
 
+/*
+ * 移动端统一操作栏（Action Dock）
+ * 整行实心大块按钮在柔和的卡片/毛玻璃界面里视觉权重过重、且与页面其他圆角卡片不协调；
+ * 这里改为紧凑的胶囊按钮，内容宽度、左对齐成组：主操作实心，其余为淡色 tonal，
+ * 触控高度仍保持 40px。
+ */
+.m-action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+html.viewport-mobile .m-action-bar > .n-button {
+    --n-border-radius: 999px !important;
+    --n-padding: 0 16px !important;
+    min-height: 40px !important;
+    font-weight: 500;
+}
+
+html.viewport-mobile .m-action-bar > .n-button.n-button--primary-type:not(.n-button--secondary):not(.n-button--disabled) {
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--spark-primary) 26%, transparent);
+}
 html.viewport-mobile .n-button {
+
     min-height: 40px !important;
 }
 
+/* tiny/small 按钮在移动端统一 36px：低于 32px 的目标在单手操作时极易误触 */
 html.viewport-mobile .n-button--tiny-type,
 html.viewport-mobile .n-button--small-type {
-    min-height: 32px !important;
+    min-height: 36px !important;
 }
 
 html.viewport-mobile .n-input .n-input__input-el,
@@ -141,7 +166,8 @@ html.viewport-mobile .spark-anim-fade {
 }
 
 html.viewport-mobile .n-message-container {
-    top: 60px !important;
+    /* 顶栏高度 + 刘海安全区 + 间距，避免提示被顶栏遮挡 */
+    top: calc(var(--mobile-header-height, 56px) + var(--sat, 0px) + 8px) !important;
 }
 
 html.viewport-mobile .mobile-hidden {

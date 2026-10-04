@@ -22,7 +22,7 @@
           v-if="showNextButton" 
           class="next-step-fab"
           @click="scrollToNext"
-          :aria-label="nextLabel"
+          :aria-label="resolvedNextLabel"
         >
           <svg viewBox="0 0 24 24" fill="none" class="fab-icon">
              <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5" class="fab-circle"/>
@@ -37,6 +37,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   step: {
@@ -53,7 +56,7 @@ const props = defineProps({
   },
   nextLabel: {
     type: String,
-    default: '下一步'
+    default: ''
   },
   showNextButton: {
     type: Boolean,
@@ -66,6 +69,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['next']);
+
+// 未显式传入时使用统一的多语言文案。
+const resolvedNextLabel = computed(() => props.nextLabel || t('mobileFlow.nextStep'));
 
 function scrollToNext() {
   const nextStep = document.getElementById(`step-${props.step + 1}`);
@@ -162,8 +168,9 @@ function scrollToNext() {
 
 /* 下一步 FAB 按钮 */
 .next-step-fab {
-  width: 44px;
-  height: 44px;
+  /* 视觉图标仍为 44px，通过 48px 外框保证触控目标 */
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: transparent;
   border: none;

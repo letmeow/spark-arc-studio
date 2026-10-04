@@ -1,0 +1,30 @@
+# 可选覆盖文件：docker compose -f docker-compose.yml -f docker-compose.postgres.yml up -d --build
+services:
+  sparkarc:
+    environment:
+      - SPARKARC_POSTGRES_URL=
+      - SPARKARC_POSTGRES_HOST=postgres
+      - SPARKARC_POSTGRES_PORT=5432
+      - SPARKARC_POSTGRES_USER=sparkarc
+      - SPARKARC_POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?请在 .env 设置 POSTGRES_PASSWORD}
+      - SPARKARC_USERS_DATABASE_URL=
+      - AGENT_MATCHBOX_DATABASE_URL=
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sparkarc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 设置 POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U sparkarc -d postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  postgres_data:

@@ -30,6 +30,18 @@ def configure_sparkarc_matchbox_environment() -> Path:
 
     set_default_mgr_home(component_home)
 
+    from core.database_config import configured_database_url
+
+    # 共用连接由宿主适配成组件的标准接口，独立 Matchbox 无需了解 SparkArc 配置。
+    database_url = configured_database_url("llm", os.environ)
+    if database_url:
+        os.environ["AGENT_MATCHBOX_DATABASE_URL"] = database_url
+    initial_key = str(os.environ.get("LLM_KEY") or "").strip()
+    if initial_key:
+        from llm.agen_matchbox.env_utils import bootstrap_master_key
+
+        bootstrap_master_key(initial_key)
+
     for legacy_name, matchbox_name in _LEGACY_ENV_MAP.items():
         if matchbox_name not in os.environ and legacy_name in os.environ:
             os.environ[matchbox_name] = os.environ[legacy_name]

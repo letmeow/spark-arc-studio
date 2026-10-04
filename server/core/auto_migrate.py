@@ -487,6 +487,11 @@ def run_db_upgrade(db_name: str, base_dir: str) -> None:
     """对指定数据库执行 upgrade head（进程内调用）。"""
     database_url = get_database_url(db_name)
     if not database_url.startswith("sqlite:"):
+        from core.database_config import ensure_postgres_database, shared_postgres_url
+
+        maintenance_url = shared_postgres_url()
+        if maintenance_url:
+            ensure_postgres_database(database_url, maintenance_url)
         head_rev = _get_head_revision(base_dir, db_name)
         if not head_rev:
             logger.warning(f"⚠️ [{db_name}] No migration scripts detected (head is empty). Skipping auto-upgrade.")

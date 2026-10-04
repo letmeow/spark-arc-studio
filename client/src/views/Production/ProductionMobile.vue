@@ -66,10 +66,12 @@
         <NovelReader v-else :content="typeof sceneStore.scriptData === 'string' ? sceneStore.scriptData : ''" />
       </div>
 
-      <div v-else-if="!loading" class="empty-state">
-        <n-icon :component="isNovelMode ? BookOpen : Clapperboard" size="40" class="empty-icon" />
-        <p class="empty-text">{{ t('views.production.mobile.selectOrCreateFile') }}</p>
-      </div>
+      <MobileEmptyState
+        v-else-if="!loading"
+        fill
+        :icon="isNovelMode ? BookOpen : Clapperboard"
+        :title="t('views.production.mobile.selectOrCreateFile')"
+      />
 
       <div v-if="!isNovelMode && selectedFilePath" class="detail-bottom-actions">
         <n-button quaternary @click="showNodeEditor = true" :disabled="!sceneStore.selectionType">
@@ -220,6 +222,7 @@
 import { ref, computed, h, onMounted, onUnmounted, inject, watch, type Ref } from 'vue';
 import { NIcon, NSpin, NButton, NInput, NInputNumber, NSelect, NDrawer, NDrawerContent, NTabs, NTabPane, NSwitch, NDropdown, useMessage, type DropdownOption } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
+import MobileEmptyState from '../../components/layouts/mobile/MobileEmptyState.vue';
 import { BookOpen, Clapperboard, Clipboard, FilePlus2, FolderPlus, Pencil, Plus, RadioTower, Send, Sparkles, SquarePen } from '@lucide/vue';
 import { useSceneStore } from '../../components/stores/sceneStore';
 import { useFileStore } from '../../components/stores/fileStore';
@@ -560,28 +563,6 @@ onUnmounted(() => {
 }
 
 /* 空状态 */
-.empty-state {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 40px 20px;
-}
-
-.empty-icon {
-  color: var(--spark-text-muted);
-  opacity: 0.5;
-}
-
-.empty-text {
-  font-size: var(--spark-fs-base);
-  color: var(--spark-text-muted);
-  margin: 0;
-}
-
 .detail-content {
   flex: 1;
   min-height: 0;

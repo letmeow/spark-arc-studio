@@ -246,7 +246,7 @@ const { t } = useI18n();
 .eyebrow {
   color: var(--landing-ember);
   font-family: var(--spark-mono);
-  font-size: 10px;
+  font-size: var(--spark-fs-xs);
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -310,7 +310,7 @@ const { t } = useI18n();
   justify-content: space-between;
   color: var(--landing-muted);
   font-family: var(--spark-mono);
-  font-size: 9px;
+  font-size: var(--spark-fs-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -338,7 +338,7 @@ const { t } = useI18n();
   align-items: center;
   gap: 7px;
   color: #556b50;
-  font-size: 11px;
+  font-size: var(--spark-fs-xs);
   font-weight: 700;
 }
 
@@ -414,7 +414,7 @@ const { t } = useI18n();
 .workflow-index {
   color: var(--landing-muted);
   font-family: var(--spark-mono);
-  font-size: 10px;
+  font-size: var(--spark-fs-xs);
   opacity: 0.7;
 }
 
@@ -469,7 +469,7 @@ const { t } = useI18n();
   padding: 20px 18px calc(var(--sab, 0px) + 22px);
   color: var(--landing-muted);
   background: var(--landing-paper-deep);
-  font-size: 11px;
+  font-size: var(--spark-fs-xs);
 }
 
 .footer-brand {

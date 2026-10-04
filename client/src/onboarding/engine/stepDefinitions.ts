@@ -590,7 +590,7 @@ export const mobileWorkspaceSteps: OnboardingStep[] = [
   // 10. 设置按钮（顶部导航栏内）
   {
     id: 'mw-settings-btn',
-    target: '.flow-header .header-right button:last-child',
+    target: '.flow-header .mobile-settings-trigger',
     placement: 'bottom',
     titleKey: 'onboarding.mobile.workspace.settingsBtnTitle',
     descKey: 'onboarding.mobile.workspace.settingsBtnDesc',

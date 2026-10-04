@@ -17,7 +17,6 @@
           <span class="step-status-label">{{ currentStepLabel }}</span>
           <span class="step-status-count">{{ currentStep + 1 }}/{{ flowSteps.length }}</span>
         </div>
-        <OnboardingHelpButton :scene-id="currentTutorialSceneId" />
       </div>
 
       <div class="header-right">
@@ -48,6 +47,10 @@
             <template #icon><n-icon :component="MoreHorizontal" /></template>
           </n-button>
         </n-dropdown>
+      </div>
+      <!-- 整体创作进度：给用户“我在流程的哪里”的全局感知 -->
+      <div class="flow-progress" aria-hidden="true">
+        <div class="flow-progress-bar" :style="{ width: flowProgress + '%' }"></div>
       </div>
     </header>
     
@@ -199,11 +202,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, provide, watch, h, nextTick } from 'vue';
 import { NButton, NIcon, NDrawer, NDrawerContent, NTabs, NTabPane, NDropdown, type DropdownOption, useDialog } from 'naive-ui';
-import { Archive, BookOpen, ChevronDown, CircleCheckBig, CirclePlus, Clapperboard, FolderOpen, MoreHorizontal, PaintBucket, Play, Settings, Share2, SquarePen, Trash } from '@lucide/vue';
+import { Archive, BookOpen, ChevronDown, CircleCheckBig, CircleHelp, CirclePlus, Clapperboard, FolderOpen, MoreHorizontal, PaintBucket, Play, Settings, Share2, SquarePen, Trash } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 
 import FlowCard from './FlowCard.vue';
-import OnboardingHelpButton from '../../../onboarding/components/OnboardingHelpButton.vue';
 import StepIndicator from './StepIndicator.vue';
 import GlobalChatFloat from '../../chat/GlobalChatFloat.vue';
 import ChatWelcomeScreen from '../../chat/ChatWelcomeScreen.vue';
@@ -274,6 +276,9 @@ const currentStepLabel = computed(() => {
   return flowSteps.value[currentStep.value]?.label || t('mobileFlow.sparkArc');
 });
 
+// 顶栏进度条：第 1 步显示 1/N，避免首步时进度为空。
+const flowProgress = computed(() => ((currentStep.value + 1) / Math.max(flowSteps.value.length, 1)) * 100);
+
 const currentProjectLabel = computed(() => (
   projectStore.currentProject || t('components.headerToolbar.selectProjectFirst')
 ));
@@ -283,6 +288,11 @@ const utilityOptions = computed<DropdownOption[]>(() => [
     label: t('components.headerToolbar.publishTitle'),
     key: 'publish',
     icon: () => h(NIcon, null, { default: () => h(Share2) }),
+  },
+  {
+    label: t('onboarding.common.replayPageGuide'),
+    key: 'tutorial',
+    icon: () => h(NIcon, null, { default: () => h(CircleHelp) }),
   },
 ]);
 
@@ -326,6 +336,7 @@ function openPublishDrawer() {
 
 function handleUtilityAction(key: string) {
   if (key === 'publish') openPublishDrawer();
+  else if (key === 'tutorial') replayPage(currentTutorialSceneId.value);
 }
 
 // ── 项目菜单（含切换、新建、重命名、删除、导入导出） ──
@@ -561,7 +572,7 @@ function setupObserver() {
 }
 
 // 首次进入移动端时触发统一引导（等待登录后检查完成）
-const { triggerIfFirst } = useOnboarding();
+const { triggerIfFirst, replayPage } = useOnboarding();
 const onPostLoginReady = () => {
   nextTick(() => triggerIfFirst('mobile-workspace'));
 };
@@ -663,16 +674,15 @@ onUnmounted(() => {
 
 .header-right {
   justify-content: flex-end;
-  gap: 2px;
-  min-width: 92px;
-  overflow: hidden;
+  gap: 0;
+  min-width: 120px;
 }
 
 .header-right :deep(.n-button) {
-  width: 34px;
-  min-width: 34px;
-  min-height: 34px;
-  height: 34px;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  height: 40px;
 }
 
 .tooltip-dropdown-trigger {
@@ -681,7 +691,7 @@ onUnmounted(() => {
 
 .project-switch-button {
   max-width: 124px;
-  min-height: 36px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -752,6 +762,23 @@ onUnmounted(() => {
   color: var(--spark-text-muted);
   font-family: var(--spark-mono);
   font-size: 10px;
+}
+
+/* 顶栏底部整体进度细条 */
+.flow-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  pointer-events: none;
+}
+
+.flow-progress-bar {
+  height: 100%;
+  border-radius: 0 2px 2px 0;
+  background: var(--spark-primary);
+  transition: width 320ms cubic-bezier(0.22, 0.72, 0.16, 1);
 }
 
 /* 滚动容器 */
@@ -861,17 +888,5 @@ onUnmounted(() => {
 
 .mobile-settings-tabs :deep(.n-tab-pane) {
   padding: 8px 0 calc(84px + var(--sab, 0px));
-}
-
-@media (max-width: 360px) {
-  /* 极窄屏幕优先保持步骤标题单行，教程入口仍可从设置中重开。 */
-  .header-center {
-    flex-wrap: nowrap;
-    padding: 0 2px;
-  }
-
-  .header-center :deep(.onboarding-help-button) {
-    display: none;
-  }
 }
 </style>

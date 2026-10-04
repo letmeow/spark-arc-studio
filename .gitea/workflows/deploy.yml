@@ -110,6 +110,7 @@ jobs:
         shell: sh
         run: |
           echo "🔨 开始构建镜像..."
+          set -eu
           DOCKER_BUILDKIT=1 docker build -t $IMAGE_TAG .
           echo "✅ 镜像构建完成"
 
@@ -135,8 +136,22 @@ jobs:
           SPARKARC_REGISTRATION_VERIFICATION_PROVIDER: ${{ secrets.SPARKARC_REGISTRATION_VERIFICATION_PROVIDER }}
           SPARKARC_TURNSTILE_SITE_KEY: ${{ secrets.SPARKARC_TURNSTILE_SITE_KEY }}
           SPARKARC_TURNSTILE_SECRET_KEY: ${{ secrets.SPARKARC_TURNSTILE_SECRET_KEY }}
+          SPARKARC_USERS_DATABASE_URL: ${{ secrets.SPARKARC_USERS_DATABASE_URL }}
+          AGENT_MATCHBOX_DATABASE_URL: ${{ secrets.AGENT_MATCHBOX_DATABASE_URL }}
+          SPARKARC_DATABASE_NETWORK: ${{ secrets.SPARKARC_DATABASE_NETWORK }}
+          SPARKARC_POSTGRES_URL: ${{ secrets.SPARKARC_POSTGRES_URL }}
+          SPARKARC_POSTGRES_HOST: ${{ secrets.SPARKARC_POSTGRES_HOST }}
+          SPARKARC_POSTGRES_PORT: ${{ secrets.SPARKARC_POSTGRES_PORT }}
+          SPARKARC_POSTGRES_USER: ${{ secrets.SPARKARC_POSTGRES_USER }}
+          SPARKARC_POSTGRES_PASSWORD: ${{ secrets.SPARKARC_POSTGRES_PASSWORD }}
+          SPARKARC_DATABASE_PREFIX: ${{ secrets.SPARKARC_DATABASE_PREFIX }}
+          SPARKARC_EXA_MCP_URL: ${{ secrets.SPARKARC_EXA_MCP_URL }}
+          SPARKARC_EXA_API_KEY: ${{ secrets.SPARKARC_EXA_API_KEY }}
+          SPARKARC_TAVILY_MCP_URL: ${{ secrets.SPARKARC_TAVILY_MCP_URL }}
+          SPARKARC_TAVILY_API_KEY: ${{ secrets.SPARKARC_TAVILY_API_KEY }}
         run: |
           echo "🚀 开始部署..."
+          set -eu
 
           # 创建所有数据卷（已存在则跳过）
           docker volume create $VOL_DATA || true
@@ -145,15 +160,40 @@ jobs:
           docker volume create $VOL_LLM_CONFIG || true
           docker volume create $VOL_RUNTIME_CACHE || true
 
-          # 写入主密钥到 agen_matchbox/.env（如果配置了 Secret）
-          if [ -n "${LLM_KEY}" ]; then
-            echo "✅ 检测到 LLM_KEY，写入 .env 文件"
-            docker run --rm \
-              -v $VOL_LLM_CONFIG:/app/server/llm/agen_matchbox \
-              alpine:latest sh -lc "printf 'LLM_KEY=%s\n' \"${LLM_KEY}\" > /app/server/llm/agen_matchbox/.env"
-          else
-            echo "⚠️  未配置 LLM_KEY，请在首次启动后通过前端设置主密钥"
+          # 保留站点已配置的数据库连接与网络，避免重建后静默退回 SQLite。
+          # 只读取数据库变量；不要打印完整容器环境，里面可能包含密钥。
+          DATABASE_NETWORK="${SPARKARC_DATABASE_NETWORK:-}"
+          if docker inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+            if [ -z "$DATABASE_NETWORK" ]; then
+              DATABASE_NETWORK=$(docker inspect --format '{{.HostConfig.NetworkMode}}' "$CONTAINER_NAME")
+            fi
+            DATABASE_ENV=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER_NAME")
+            # 共用连接的显式选择不继承单库覆盖，避免继续指向另一个服务。
+            if [ -z "${SPARKARC_POSTGRES_URL:-}" ] && [ -z "${SPARKARC_POSTGRES_HOST:-}" ]; then
+              if [ -z "${SPARKARC_USERS_DATABASE_URL:-}" ]; then
+                SPARKARC_USERS_DATABASE_URL=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^SPARKARC_USERS_DATABASE_URL=//p')
+              fi
+              if [ -z "${AGENT_MATCHBOX_DATABASE_URL:-}" ]; then
+                AGENT_MATCHBOX_DATABASE_URL=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^AGENT_MATCHBOX_DATABASE_URL=//p')
+              fi
+              SPARKARC_POSTGRES_URL=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^SPARKARC_POSTGRES_URL=//p')
+              SPARKARC_POSTGRES_HOST=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^SPARKARC_POSTGRES_HOST=//p')
+              if [ -z "${SPARKARC_POSTGRES_PORT:-}" ]; then
+                SPARKARC_POSTGRES_PORT=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^SPARKARC_POSTGRES_PORT=//p')
+              fi
+              if [ -z "${SPARKARC_POSTGRES_USER:-}" ]; then
+                SPARKARC_POSTGRES_USER=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^SPARKARC_POSTGRES_USER=//p')
+              fi
+              if [ -z "${SPARKARC_POSTGRES_PASSWORD:-}" ]; then
+                SPARKARC_POSTGRES_PASSWORD=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^SPARKARC_POSTGRES_PASSWORD=//p')
+              fi
+            fi
+            if [ -z "${SPARKARC_DATABASE_PREFIX:-}" ]; then
+              SPARKARC_DATABASE_PREFIX=$(printf '%s\n' "$DATABASE_ENV" | sed -n 's/^SPARKARC_DATABASE_PREFIX=//p')
+            fi
+            unset DATABASE_ENV
           fi
+          DATABASE_NETWORK="${DATABASE_NETWORK:-bridge}"
 
           # 停止并删除旧容器
           docker rm -f $CONTAINER_NAME || true
@@ -162,7 +202,22 @@ jobs:
           # ⚠️ 挂载目录中的受管文件会在启动时由 docker-entrypoint.sh 自动同步
           docker run -d \
             --name $CONTAINER_NAME \
+            --network "$DATABASE_NETWORK" \
+            --add-host host.docker.internal:host-gateway \
             -p 7788:6688 \
+            -e LLM_KEY \
+            -e SPARKARC_POSTGRES_URL="${SPARKARC_POSTGRES_URL:-}" \
+            -e SPARKARC_POSTGRES_HOST="${SPARKARC_POSTGRES_HOST:-}" \
+            -e SPARKARC_POSTGRES_PORT="${SPARKARC_POSTGRES_PORT:-5432}" \
+            -e SPARKARC_POSTGRES_USER="${SPARKARC_POSTGRES_USER:-sparkarc}" \
+            -e SPARKARC_POSTGRES_PASSWORD="${SPARKARC_POSTGRES_PASSWORD:-}" \
+            -e SPARKARC_DATABASE_PREFIX="${SPARKARC_DATABASE_PREFIX:-sparkarc}" \
+            -e SPARKARC_USERS_DATABASE_URL="$SPARKARC_USERS_DATABASE_URL" \
+            -e AGENT_MATCHBOX_DATABASE_URL="$AGENT_MATCHBOX_DATABASE_URL" \
+            -e SPARKARC_EXA_MCP_URL \
+            -e SPARKARC_EXA_API_KEY \
+            -e SPARKARC_TAVILY_MCP_URL \
+            -e SPARKARC_TAVILY_API_KEY \
             -e SPARKARC_REGISTRATION_VERIFICATION_ENABLED="${SPARKARC_REGISTRATION_VERIFICATION_ENABLED}" \
             -e SPARKARC_REGISTRATION_VERIFICATION_PROVIDER="${SPARKARC_REGISTRATION_VERIFICATION_PROVIDER}" \
             -e SPARKARC_TURNSTILE_SITE_KEY="${SPARKARC_TURNSTILE_SITE_KEY}" \
@@ -177,8 +232,18 @@ jobs:
             $IMAGE_TAG
 
           # 等待容器启动并验证
-          sleep 3
-          docker ps | grep $CONTAINER_NAME
+          HEALTHY=0
+          for attempt in $(seq 1 60); do
+            if docker exec "$CONTAINER_NAME" python -c "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:6688/health', timeout=3).read().strip() == b'sparkarc-ok'" >/dev/null 2>&1; then
+              HEALTHY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$HEALTHY" -ne 1 ]; then
+            echo "应用健康检查失败，请检查容器日志和数据库连接"
+            exit 1
+          fi
           echo "✅ 部署完成！访问 http://localhost:7788"
 
       # ========================================

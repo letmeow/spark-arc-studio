@@ -24,21 +24,22 @@
 
 ## 2. 流水线阶段
 
-三个阶段顺序执行，任意阶段失败则终止：
+五个阶段顺序执行，任意阶段失败则终止：
 
 ```text
-📥 检出代码  →  🔨 构建镜像  →  🧪 测试（预留）  →  🚀 部署  →  🧹 清理
+📥 检出代码  →  🔨 构建镜像  →  🧪 镜像运行时烟测  →  🚀 部署  →  🧹 清理
 ```
 
 1. **构建**：执行 `docker build`，利用 BuildKit 的 `--mount=type=cache` 缓存 npm/pip 包，非首次构建可大幅提速
-2. **测试**：Gitea / GitLab 当前为预留阶段；GitHub Actions 已集成前端类型检查 + 单元测试 + 后端 `pytest` 回归测试 + Docker 构建验证
+2. **测试**：Gitea 部署执行镜像运行时烟测；GitHub Actions 集成前端类型检查 + 单元测试 + 后端 `pytest` 回归测试 + Docker 构建验证
 3. **部署**：
     - 自动创建五个持久化 Docker Volume（`sparkarc_data`、`sparkarc_userdata`、`sparkarc_shares`、`sparkarc_llm_config`、`sparkarc_runtime_cache`），已存在则跳过
-    - 若在 CI Secret 中配置了 `LLM_KEY`，自动写入容器的 `.env` 文件；未配置则启动后可通过前端设置
+    - `LLM_KEY` Secret 仅用于首次初始化组件主密钥；已持久化的主密钥不会被部署覆盖，换密通过管理员后台执行
     - 若在 CI Secret / Variable 中配置了注册验证相关变量，会通过容器环境变量传入运行时
     - 若在管理员后台保存注册验证配置，会写入持久化数据卷中的运行时 `.env`，不会随容器重建丢失
     - 本地嵌入相关的 GGUF 模型、llama.cpp 预编译包、Hugging Face / transformers tokenizer 缓存会写入 `sparkarc_runtime_cache`，Docker 重建后继续复用
-    - 原子替换：先删除旧容器，再以相同 Volume 启动新容器，数据零丢失
+    - 替换应用容器：停止并删除运行中的容器，再使用相同数据卷启动应用；数据卷保持持久化，替换期间会短暂中断服务
+    - 数据库连接串与网络可通过 CI Secrets 显式配置；重建时未配置的值从现有应用容器继承，数据库服务独立管理
     - 启动阶段自动执行"受管文件同步"：将镜像中的 Git 受管文件覆盖回挂载目录，并清理已下线的旧受管文件；`*.db`、`.env` 等运行时数据不覆盖
 4. **清理**：自动执行 `docker image prune` 清理构建过程中产生的悬空镜像
 
@@ -70,11 +71,24 @@ Runner 启动后，向 `main` 分支推送代码即可自动触发完整的构�
 
 | 变量名 | 说明 |
 | :--- | :--- |
-| `LLM_KEY` | 大模型主密钥。配置后自动写入容器；未配置则首次启动后通过前端设置 |
+| `LLM_KEY` | 首次初始化的加密主密钥；组件已有密钥时以持久化值为准，推荐在管理员后台设置及换密 |
+| `SPARKARC_POSTGRES_HOST` | PostgreSQL 地址；填写后使用 PostgreSQL，自动派生两个业务库 |
+| `SPARKARC_POSTGRES_PORT` | 端口，默认 `5432` |
+| `SPARKARC_POSTGRES_USER` | 专用账号，默认 `sparkarc`，需由数据库管理员创建 |
+| `SPARKARC_POSTGRES_PASSWORD` | 账号原密码，无需 URL 编码；缺库时账号需有 `CREATEDB` 权限 |
+| `SPARKARC_POSTGRES_URL` | 高级共用连接，优先于分项配置；用于 TLS 参数或自定义维护库 |
+| `SPARKARC_DATABASE_PREFIX` | 数据库名前缀，默认 `sparkarc`；修改前缀会选择另一组数据库 |
+| `SPARKARC_USERS_DATABASE_URL` | 高级单库覆盖：用户、会话、聊天等平台数据库连接串 |
+| `AGENT_MATCHBOX_DATABASE_URL` | 高级单库覆盖：模型配置、额度及用量等组件数据库连接串 |
+| `SPARKARC_DATABASE_NETWORK` | 已存在的宿主 Docker 网络名称；首次部署默认 `bridge`，数据库容器可与应用加入同一用户定义网络 |
 | `SPARKARC_REGISTRATION_VERIFICATION_ENABLED` | 可选。设为 `1` 开启注册人机验证；缺少 Turnstile site key 或 secret key 时仍会自动关闭 |
 | `SPARKARC_REGISTRATION_VERIFICATION_PROVIDER` | 可选。当前支持 `turnstile`；未配置时默认按 `turnstile` 处理 |
 | `SPARKARC_TURNSTILE_SITE_KEY` | 可选。Cloudflare Turnstile 站点密钥，可公开给前端 |
 | `SPARKARC_TURNSTILE_SECRET_KEY` | 可选。Cloudflare Turnstile 私钥，只传给后端容器，严禁提交到仓库 |
+| `SPARKARC_EXA_MCP_URL` / `SPARKARC_EXA_API_KEY` | 可选。Exa 系统搜索服务地址与密钥，也可在管理员后台设置 |
+| `SPARKARC_TAVILY_MCP_URL` / `SPARKARC_TAVILY_API_KEY` | 可选。Tavily 系统搜索服务地址与密钥，也可在管理员后台设置 |
+
+首次部署 PostgreSQL 时先准备服务、专用账号和所需网络，再填写上述 Secrets。自动建库需要 `CREATEDB`，也可预建业务库后使用普通账号。CI 已提供宿主地址映射，连接宿主数据库可使用 `host.docker.internal` 或容器可达的宿主 IP。将连接配置保存在 Secrets 中，可在应用容器不存在时重复部署。部署完成前会等待应用健康检查通过。详见 [数据库部署与配置](database-deployment.md)。
 
 ### 注册验证变量说明
 

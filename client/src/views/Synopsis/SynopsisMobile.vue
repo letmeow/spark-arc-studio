@@ -20,18 +20,6 @@
       <div class="section-header">
         <n-icon :component="MessagesSquare" size="18" />
         <span>{{ t('views.synopsis.common.guidance') }}</span>
-        <div class="header-actions">
-          <n-button
-            size="tiny"
-            type="primary"
-            :loading="isGenerating"
-            :disabled="!synopsisData.logline?.trim()"
-            @click="handleGenerateSynopsisClick"
-          >
-            <template #icon><n-icon :component="Sparkles" /></template>
-            {{ t('views.synopsis.mobile.generateFullSynopsis') }}
-          </n-button>
-        </div>
       </div>
       <MobileTextArea
         v-model:value="synopsisData.guidance"
@@ -40,6 +28,17 @@
         :title="t('views.synopsis.mobile.editGuidance')"
         :placeholder="t('views.synopsis.common.guidancePlaceholder')"
       />
+      <div class="m-action-bar">
+        <n-button
+          type="primary"
+          :loading="isGenerating"
+          :disabled="!synopsisData.logline?.trim()"
+          @click="handleGenerateSynopsisClick"
+        >
+          <template #icon><n-icon :component="Sparkles" /></template>
+          {{ t('views.synopsis.mobile.generateFullSynopsis') }}
+        </n-button>
+      </div>
     </div>
     
     <!-- 梗概内容 -->
@@ -48,13 +47,7 @@
         <div class="section-header">
         <n-icon :component="BookOpen" size="18" />
         <span>{{ t('views.synopsis.mobile.storySynopsis') }}</span>
-        <div class="header-actions">
-          <n-button size="tiny" type="primary" @click="goToStructureStep">
-            <template #icon><n-icon :component="ArrowRight" /></template>
-            {{ t('views.structure.mobile.generateOutline') }}
-          </n-button>
-          <n-button size="tiny" quaternary @click="synopsisData.synopsis_text = ''">{{ t('views.world.mobile.clear') }}</n-button>
-        </div>
+        <n-button class="header-clear" size="small" quaternary @click="synopsisData.synopsis_text = ''">{{ t('views.world.mobile.clear') }}</n-button>
       </div>
       <MobileTextArea
         v-model:value="synopsisData.synopsis_text"
@@ -63,6 +56,12 @@
         :disabled="isGenerating"
         :autosize="{ minRows: 4, maxRows: 25 }"
       />
+      <div class="m-action-bar">
+        <n-button type="primary" @click="goToStructureStep">
+          <template #icon><n-icon :component="ArrowRight" /></template>
+          {{ t('views.structure.mobile.generateOutline') }}
+        </n-button>
+      </div>
     </div>
     
     <!-- 节拍表快速预览 -->
@@ -71,10 +70,11 @@
       <div class="section-header">
         <n-icon :component="Activity" size="18" />
         <span>{{ t('views.synopsis.common.beatSheet') }}</span>
-        <n-button 
-          size="tiny" 
-          type="primary" 
-          ghost
+      </div>
+      <div class="m-action-bar">
+        <n-button
+          type="primary"
+          secondary
           :loading="isGeneratingBeats"
           :disabled="!synopsisData.synopsis_text?.trim()"
           @click="handleGenerateBeatsClick"
@@ -99,21 +99,20 @@
         <div class="beat-count">{{ t('views.synopsis.mobile.beatCount', { count: beatSheet.beats.length }) }}</div>
       </div>
       
-      <n-empty v-else :description="t('views.synopsis.mobile.noBeatData')" style="padding: 20px 0;">
-        <template #extra>
-          <span class="empty-hint">{{ t('views.synopsis.mobile.generateSynopsisFirst') }}</span>
-        </template>
-      </n-empty>
+      <MobileEmptyState
+        v-else
+        compact
+        :icon="Activity"
+        :title="t('views.synopsis.mobile.noBeatData')"
+        :hint="t('views.synopsis.mobile.generateSynopsisFirst')"
+      />
       
       <!-- 展开详情按钮 -->
-      <n-button 
-        v-if="beatSheet.beats?.length > 0"
-        block 
-        dashed 
-        @click="showBeatDetail = true"
-      >
-        {{ t('views.synopsis.mobile.viewDetailedBeat') }}
-      </n-button>
+      <div v-if="beatSheet.beats?.length > 0" class="m-action-bar">
+        <n-button secondary type="primary" @click="showBeatDetail = true">
+          {{ t('views.synopsis.mobile.viewDetailedBeat') }}
+        </n-button>
+      </div>
     </div>
     
     
@@ -156,9 +155,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { NInput, NSelect, NButton, NIcon, NEmpty, NDrawer, NDrawerContent } from 'naive-ui';
+import { NInput, NSelect, NButton, NIcon, NDrawer, NDrawerContent } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import SparkTag from '../../components/share/SparkTag.vue';
+import MobileEmptyState from '../../components/layouts/mobile/MobileEmptyState.vue';
 import { Activity, ArrowRight, BookOpen, FileText, MessagesSquare, Sparkles, X } from '@lucide/vue';
 import { useSynopsisLogic } from '../../composables/useSynopsisLogic';
 import GlobalLoading from '../../components/share/GlobalLoading.vue';
@@ -233,15 +233,6 @@ function goToStructureStep() {
   color: var(--spark-primary);
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-left: auto;
-}
-
 .section-header > .n-button {
   margin-left: auto;
 }
@@ -272,11 +263,6 @@ function goToStructureStep() {
   font-size: var(--spark-fs-xs);
   color: var(--spark-text-muted);
   text-align: center;
-}
-
-.empty-hint {
-  font-size: var(--spark-fs-xs);
-  color: var(--spark-text-muted);
 }
 
 .beat-detail-list {

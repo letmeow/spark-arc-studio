@@ -7,12 +7,6 @@
       <div class="section-header">
         <n-icon :component="Globe" size="18" />
         <span>{{ t('views.lorebook.mobile.worldview') }}</span>
-        <div class="header-actions">
-          <n-button size="tiny" type="primary" @click="goToSynopsisStep">
-            <template #icon><n-icon :component="ArrowRight" /></template>
-            {{ t('views.lorebook.mobile.writeSynopsisAndRhythm') }}
-          </n-button>
-        </div>
       </div>
       <MobileTextArea
         v-model:value="worldview"
@@ -21,7 +15,44 @@
         :placeholder="t('views.lorebook.mobile.worldviewPlaceholder')"
         :autosize="{ minRows: 3, maxRows: 20 }"
       />
+      <div v-if="!isWorldviewBlank" class="m-action-bar">
+        <n-button type="primary" @click="goToSynopsisStep">
+          <template #icon><n-icon :component="ArrowRight" /></template>
+          {{ t('views.lorebook.mobile.writeSynopsisAndRhythm') }}
+        </n-button>
+        <n-button type="primary" secondary @click="showWorldGen = true">
+          <template #icon><n-icon :component="Sparkles" /></template>
+          {{ t('views.lorebook.mobile.adjustWorldview') }}
+        </n-button>
       </div>
+      </div>
+
+    <!-- 世界观为空：给出可点选的搭建维度 + AI 起草入口，替代整屏留白 -->
+      <MobileEmptyState
+        v-if="isWorldviewBlank"
+        :fill="worldOnly"
+        :compact="!worldOnly"
+        :icon="Globe"
+        :title="t('views.lorebook.mobile.emptyWorldTitle')"
+        :hint="t('views.lorebook.mobile.emptyWorldHint')"
+      >
+        <div class="scaffold-group">
+          <span class="scaffold-label">{{ t('views.lorebook.mobile.scaffoldLabel') }}</span>
+          <div class="scaffold-chips">
+            <button
+              v-for="item in worldScaffolds"
+              :key="item"
+              type="button"
+              class="scaffold-chip"
+              @click="appendScaffold(item)"
+            >+ {{ item }}</button>
+          </div>
+        </div>
+        <n-button type="primary" round @click="showWorldGen = true">
+          <template #icon><n-icon :component="Sparkles" /></template>
+          {{ t('views.lorebook.mobile.aiDraftWorldview') }}
+        </n-button>
+      </MobileEmptyState>
     
     <!-- 角色列表 -->
       <div v-if="!worldOnly" class="flow-section">
@@ -54,31 +85,31 @@
           </div>
         </div>
         
-        <n-empty v-else :description="t('views.lorebook.mobile.noCharacterSettings')" style="padding: 20px 0;">
-          <template #extra>
-            <n-button size="small" type="primary" @click="showEditor = true">
-              {{ t('views.lorebook.mobile.addCharacter') }}
-            </n-button>
-          </template>
-        </n-empty>
+        <MobileEmptyState
+          v-else
+          compact
+          :icon="Users"
+          :title="t('views.lorebook.mobile.noCharacterSettings')"
+        >
+          <n-button type="primary" secondary round @click="showEditor = true">
+            <template #icon><n-icon :component="UserPlus" /></template>
+            {{ t('views.lorebook.mobile.addCharacter') }}
+          </n-button>
+        </MobileEmptyState>
       </n-spin>
       </div>
     
     <!-- 快捷工具 -->
-      <div class="flow-section">
+      <div v-if="!worldOnly" class="flow-section">
       <div class="section-header">
         <n-icon :component="Wrench" size="18" />
         <span>{{ t('views.lorebook.mobile.quickTools') }}</span>
       </div>
       
-      <div class="action-buttons-row">
-        <n-button v-if="!worldOnly" type="primary" secondary class="action-btn" @click="showCharGen = true">
+      <div class="m-action-bar">
+        <n-button type="primary" secondary @click="showCharGen = true">
           <template #icon><n-icon :component="UserPlus" /></template>
           {{ t('views.lorebook.mobile.aiCharacterGeneration') }}
-        </n-button>
-        <n-button type="primary" secondary class="action-btn" @click="showWorldGen = true">
-          <template #icon><n-icon :component="Globe" /></template>
-          {{ t('views.lorebook.mobile.adjustWorldview') }}
         </n-button>
       </div>
       </div>
@@ -142,12 +173,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, inject, watch, reactive, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, inject, watch, reactive, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import bus from '../../eventBus';
-import { NButton, NIcon, NInput, NSpin, NEmpty, NDrawer, NDrawerContent, useMessage } from 'naive-ui';
+import { NButton, NIcon, NInput, NSpin, NDrawer, NDrawerContent, useMessage } from 'naive-ui';
 import SparkTag from '../../components/share/SparkTag.vue';
-import { ArrowRight, ChevronRight, CircleUser, Globe, UserPlus, Users, Wrench } from '@lucide/vue';
+import MobileEmptyState from '../../components/layouts/mobile/MobileEmptyState.vue';
+import { ArrowRight, ChevronRight, CircleUser, Globe, Sparkles, UserPlus, Users, Wrench } from '@lucide/vue';
 import LorebookEditor from '../../components/lorebook/LorebookEditor.vue';
 import GlobalLoading from '../../components/share/GlobalLoading.vue';
 import CharacterGeneratorPanel from '../../components/lorebook/CharacterGeneratorPanel.vue';
@@ -183,6 +215,19 @@ const characters = ref([]);
 const SYSTEM_CHARACTER_IDS = new Set([-1, -2]);
 const isSystemCharacter = (ch: any) => SYSTEM_CHARACTER_IDS.has(Number(ch?.id));
 const userCharactersOnly = (items: any[]) => (Array.isArray(items) ? items.filter(ch => !isSystemCharacter(ch)) : []);
+// “空白”判定忽略 Markdown 标题行：点选搭建维度只会追加标题，不应让引导区立刻消失
+const isWorldviewBlank = computed(() => !worldview.value.replace(/^#.*$/gm, '').trim());
+const worldScaffolds = computed(() => [
+  t('views.lorebook.mobile.scaffold1'),
+  t('views.lorebook.mobile.scaffold2'),
+  t('views.lorebook.mobile.scaffold3'),
+  t('views.lorebook.mobile.scaffold4'),
+]);
+
+function appendScaffold(title: string) {
+  const current = worldview.value.replace(/\s+$/, '');
+  worldview.value = `${current}${current ? '\n\n' : ''}## ${title}\n`;
+}
 let suppressWorldviewAutoSave = false;
 let worldviewSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -480,16 +525,57 @@ watch(projectId, () => {
 .lorebook-mobile-flow {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 20px;
   position: relative;
 }
 
 .lorebook-mobile-host {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   width: calc(100% + 20px);
   margin: 0 -10px;
   padding: 10px;
   box-sizing: border-box;
+}
+
+.scaffold-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.scaffold-label {
+  font-size: var(--spark-fs-xs);
+  color: var(--spark-text-muted);
+}
+
+.scaffold-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.scaffold-chip {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid rgba(var(--spark-primary-rgb), 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--spark-text);
+  font: inherit;
+  font-size: var(--spark-fs-sm);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.scaffold-chip:active {
+  background: rgba(var(--spark-primary-rgb), 0.14);
+  transform: scale(0.97);
 }
 
 .flow-section {
@@ -505,15 +591,6 @@ watch(projectId, () => {
   font-size: var(--spark-fs-base);
   font-weight: 600;
   color: var(--spark-primary);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-left: auto;
 }
 
 .section-header .spark-tag {
@@ -592,15 +669,6 @@ watch(projectId, () => {
   font-size: var(--spark-fs-sm);
   color: var(--spark-primary);
   cursor: pointer;
-}
-
-.action-buttons-row {
-  display: flex;
-  gap: 12px;
-}
-
-.action-buttons-row .action-btn {
-  flex: 1;
 }
 
 /* Custom Textarea Heights */

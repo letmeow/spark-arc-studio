@@ -1,6 +1,6 @@
 # 数据库自动迁移——完整指南
 
-本文档包含数据库自动迁移系统的深度技术细节。README 中仅保留概述和救命方法。
+本文档介绍表结构升级、模型变更工作流和已有实例的数据迁移。首次部署请先阅读 [数据库部署与配置](database-deployment.md)。
 
 ---
 
@@ -47,6 +47,8 @@
 - `SPARKARC_ALEMBIC_USERS_DB` / `SPARKARC_ALEMBIC_LLM_DB`：覆盖 Alembic 目标 DB 路径。未设置时，LLM DB 会跟随 `AGENT_MATCHBOX_HOME`，保证迁移目标和运行时 manager 使用同一个文件。
 - `SPARKARC_USERS_DATABASE_URL`：覆盖 SparkArc 用户主库连接串。未设置时使用 `server/data/users.db`。
 - `AGENT_MATCHBOX_DATABASE_URL`：覆盖 Agent Matchbox 组件数据库连接串。未设置时使用组件目录下的 `llm_config.db`。
+
+共用部署可填写 PostgreSQL 地址、端口、账号和原密码，由程序为两个分支派生连接；需要特殊参数时可使用高级 `SPARKARC_POSTGRES_URL`。上述单库变量优先于共用配置，地址与高级 URL 均为空时使用 SQLite。首次部署配置见 [数据库部署与配置](database-deployment.md)。
 
 ---
 
@@ -114,7 +116,7 @@ app = FastAPI(lifespan=lifespan)
 
 ⚠️ 只有你在本地独自开发的时候才能使用这个脚本！
 
-⚠️ 新版 `gen_migration.py` 已经不依赖真实运行库生成迁移，因此一般不需要通过清理历史来“修正 autogenerate”。清历史只适合私有开发阶段压缩历史；公开分支应只追加迁移。
+`gen_migration.py` 使用临时数据库作为生成迁移的基准，不需要通过清理历史来“修正 autogenerate”。清历史只适合私有开发阶段压缩历史；公开分支应只追加迁移。
 
 ```bash
 cd server
@@ -135,34 +137,99 @@ python clear_migration.py --yes
 
 SparkArc 默认保持 SQLite 零部署；生产部署可把平台主库切到 PostgreSQL。
 
-### 5.1 连接串
+### 5.1 共用连接与单库覆盖
+
+连接同一 PostgreSQL 服务时，只需配置：
+
+```dotenv
+SPARKARC_POSTGRES_HOST=数据库地址
+SPARKARC_POSTGRES_PORT=5432
+SPARKARC_POSTGRES_USER=sparkarc
+SPARKARC_POSTGRES_PASSWORD='填写数据库账号的原密码'
+SPARKARC_DATABASE_PREFIX=sparkarc
+```
+
+程序使用 `sparkarc_users` / `sparkarc_llm` 两个数据库，缺库时尝试创建，已有库直接连接。缺库初始化需要维护库连接权限和 `CREATEDB`；预先建库时无需建库权限。
+
+不同服务、账号或已有数据库名称可使用高级单库覆盖：
 
 ```bash
 # SparkArc 用户、聊天、分享、反馈等平台主库
-SPARKARC_USERS_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/sparkarc
+SPARKARC_USERS_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/sparkarc_users
 
 # Agent Matchbox 独立组件库：平台、模型、密钥、用量日志、兑换码等
-AGENT_MATCHBOX_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/sparkarc
+AGENT_MATCHBOX_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/sparkarc_llm
 ```
 
-两个变量都不设置时，系统继续使用默认 SQLite 文件。Agent Matchbox 是可复用的大模型配置组件，必须使用组件级 `AGENT_MATCHBOX_DATABASE_URL`，不要依赖 SparkArc 专属变量。
+两条单库 URL 优先于高级共用 URL `SPARKARC_POSTGRES_URL`，高级共用 URL 优先于分项配置；地址和高级 URL 均为空时使用 SQLite。分项密码无需 URL 编码。独立 Agent Matchbox 使用组件级 `AGENT_MATCHBOX_DATABASE_URL`，共用连接由 SparkArc 宿主适配层传入组件。
 
-### 5.2 不迁移的项目级数据库
+**必须使用两个独立数据库**：两套 Alembic 分支都维护 `alembic_version`，不能将两条连接串指向同一个数据库的同一个 schema。连接串只改变目标，启动自动升级只负责表结构，不会自动搬运 SQLite 数据。
+
+首次部署的 SQLite、Compose PostgreSQL、外部 PostgreSQL 与宿主连接配置，统一见 [数据库部署与配置](database-deployment.md)。
+
+### 5.2 SQLite 转 PostgreSQL
+
+以下为 Linux shell 示例，须使用与来源数据库相同且已升级到 head 的应用代码/镜像。计划短暂停写，保留原始数据库、主密钥和全部业务卷。
+
+```bash
+dc() { docker compose -f docker-compose.yml -f docker-compose.postgres.yml "$@"; }
+
+# 配置 POSTGRES_PASSWORD 后先启动数据库，现有应用保持运行
+dc up -d --wait postgres
+docker compose stop sparkarc
+
+# 停写后归档全部业务目录；包含 SQLite WAL、.env、密钥、项目与分享
+mkdir -p backups/pre-postgres
+docker compose cp sparkarc:/app/server/data backups/pre-postgres/data
+docker compose cp sparkarc:/app/server/llm/agen_matchbox backups/pre-postgres/agen_matchbox
+docker compose cp sparkarc:/app/server/_userdata backups/pre-postgres/_userdata
+docker compose cp sparkarc:/app/server/shares_data backups/pre-postgres/shares_data
+
+# 利用 SQLite backup API 生成独立副本，退出 WAL 模式以支持只读校验
+dc run --rm -T --no-deps --entrypoint python sparkarc - <<'PY'
+import sqlite3
+from pathlib import Path
+backup = Path('/app/server/data/pg-migration-backup')
+backup.mkdir(exist_ok=False)
+for name, path in [('users', '/app/server/data/users.db'), ('llm', '/app/server/llm/agen_matchbox/llm_config.db')]:
+    with sqlite3.connect(path) as source, sqlite3.connect(backup / f'{name}.db') as target:
+        source.backup(target)
+        target.execute('PRAGMA journal_mode=DELETE')
+PY
+
+# 目标必须为空；脚本复用 Alembic 建表、模型解码和外键顺序
+dc run --rm --no-deps --entrypoint python sparkarc migrate_sqlite_to_postgres.py users data/pg-migration-backup/users.db
+dc run --rm --no-deps --entrypoint python sparkarc migrate_sqlite_to_postgres.py llm data/pg-migration-backup/llm.db
+dc run --rm --no-deps --entrypoint python sparkarc migrate_sqlite_to_postgres.py users data/pg-migration-backup/users.db --verify-only
+dc run --rm --no-deps --entrypoint python sparkarc migrate_sqlite_to_postgres.py llm data/pg-migration-backup/llm.db --verify-only
+
+# 两库全部校验成功后切换
+dc up -d sparkarc
+curl -fsS http://localhost:7788/health
+```
+
+迁移命令按表比较记录数及全部字段 SHA-256，并修复自增序列；JSON 按业务值比较，密钥密文原样保留。非空目标、来源版本不符、额外表/列、约束冲突或内容差异都会拒绝迁移，每库导入在一个事务内完成。两库并非跨库原子事务：如果第二库失败，保持应用停写，处理失败库后重试，已成功的库只执行 `--verify-only`。
+
+切换前失败时可启动原 SQLite 配置恢复服务。**切换后 PostgreSQL 已有新写入时，不能直接回退到旧 SQLite**，需要先停写并迁回增量数据。创作文件、项目 `stories.db`、向量索引和分享快照保持原卷，不需要搬进 PostgreSQL。
+
+CI 管理的实例应在切换前配置数据库连接及应用网络，配置入口见 [数据库部署与配置](database-deployment.md#5-ci-部署)。
+
+### 5.3 项目级存储边界
 
 每个项目的 `stories.db` 继续使用 SQLite。它是用户私有、轻量、几乎无并发的项目快照/导出格式，仍服务于版本、分享、试玩和下载链路，不纳入 PostgreSQL 主线。
 
-项目级语义索引也不使用 PostgreSQL/pgvector。默认后端是每项目本地 LanceDB 目录 `.vector_index_lancedb`，适合单人写作项目的文本规模，旧 Chroma 索引无需迁移，重建即可。
+项目级语义索引使用每项目本地 LanceDB 目录 `.vector_index_lancedb`，不使用 PostgreSQL/pgvector，也不纳入主库迁移范围。
 
-### 5.3 当前类型策略
+### 5.4 跨数据库类型映射
 
-#### 现状：`SqliteJSONB` 自定义类型
+#### `SqliteJSONB` 自定义类型
 
 `core/models.py` 中的 `SqliteJSONB` 是一个 dialect-aware `TypeDecorator`：
 
-- SQLite：继续兼容历史 BLOB JSON，避免破坏既有本地数据。
+- SQLite：使用 BLOB 保存 UTF-8 编码的 JSON 文本。
 - PostgreSQL：映射为原生 `JSONB`。
 
-历史 SQLite 存储方式为：
+SQLite 存储方式为：
 
 ```
 Python dict → json.dumps → UTF-8 bytes → BLOB 列
@@ -172,7 +239,7 @@ Python dict → json.dumps → UTF-8 bytes → BLOB 列
 
 #### 受影响范围
 
-| 数据库 | 表 | 需改字段 |
+| 数据库 | 表 | JSON 字段 |
 |---|---|---|
 | users.db | `chat_messages` | `content`, `metadata_json` |
 

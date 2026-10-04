@@ -27,6 +27,12 @@ def normalize_database_url(
     raw = (os.environ.get(env_key) or "").strip()
     if raw:
         return raw
+    if env_key == "SPARKARC_USERS_DATABASE_URL":
+        from core.database_config import configured_database_url
+
+        configured = configured_database_url("users")
+        if configured:
+            return configured
     return _coerce_sqlite_url(default_sqlite_path)
 
 

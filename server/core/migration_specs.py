@@ -96,14 +96,11 @@ def get_database_url(db_name: str) -> str:
             return alembic_override
         return sqlite_url(_resolve_path(alembic_override))
 
-    if db_name == "users":
-        raw = (os.environ.get("SPARKARC_USERS_DATABASE_URL") or "").strip()
-        if raw:
-            return raw
-    elif db_name == "llm":
-        raw = (os.environ.get("AGENT_MATCHBOX_DATABASE_URL") or "").strip()
-        if raw:
-            return raw
+    from core.database_config import configured_database_url
+
+    configured = configured_database_url(db_name)
+    if configured:
+        return configured
     return sqlite_url(get_db_path(db_name))
 
 

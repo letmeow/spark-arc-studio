@@ -75,31 +75,32 @@
       </button>
     </main>
 
-    <div v-else class="relation-empty">
-      <n-icon :component="filterMode === 'issues' ? ShieldCheck : GitBranch" size="38" />
-      <strong>
-        {{ filterMode === 'issues'
-          ? t('views.blueprint.mobileNew.noIssues')
-          : (selectedFilePath ? t('views.blueprint.mobileNew.noScenes') : t('views.blueprint.mobileNew.selectFileFirst')) }}
-      </strong>
-      <n-button
-        v-if="filterMode === 'issues' && diagnostics.sceneCount"
-        secondary
-        size="small"
-        @click="filterMode = 'all'"
-      >
-        {{ t('views.blueprint.mobileNew.showAll') }}
-      </n-button>
-      <n-button
-        v-else-if="!diagnostics.sceneCount"
-        type="primary"
-        secondary
-        size="small"
-        @click="openSceneInProduction()"
-      >
-        {{ t('views.blueprint.mobileNew.goProduction') }}
-      </n-button>
-    </div>
+    <MobileEmptyState
+      v-else
+      fill
+      :icon="filterMode === 'issues' ? ShieldCheck : GitBranch"
+      :title="filterMode === 'issues'
+        ? t('views.blueprint.mobileNew.noIssues')
+        : (selectedFilePath ? t('views.blueprint.mobileNew.noScenes') : t('views.blueprint.mobileNew.selectFileFirst'))"
+    >
+        <n-button
+          v-if="filterMode === 'issues' && diagnostics.sceneCount"
+          secondary
+          size="small"
+          @click="filterMode = 'all'"
+        >
+          {{ t('views.blueprint.mobileNew.showAll') }}
+        </n-button>
+        <n-button
+          v-else-if="!diagnostics.sceneCount"
+          type="primary"
+          secondary
+          size="small"
+          @click="openSceneInProduction()"
+        >
+          {{ t('views.blueprint.mobileNew.goProduction') }}
+        </n-button>
+    </MobileEmptyState>
 
     <n-drawer v-model:show="detailVisible" placement="bottom" height="72%" class="relation-detail-drawer">
       <n-drawer-content closable :native-scrollbar="false">
@@ -180,6 +181,7 @@
 <script setup lang="ts">
 import { computed, inject, nextTick, onMounted, ref, watch, type Ref } from 'vue';
 import { NButton, NDrawer, NDrawerContent, NIcon, NSelect } from 'naive-ui';
+import MobileEmptyState from '../../components/layouts/mobile/MobileEmptyState.vue';
 import {
   ArrowRight,
   ChevronRight,
@@ -427,24 +429,6 @@ watch(diagnostics, nextDiagnostics => {
 
 .status-ok { color: var(--spark-success); }
 .row-chevron { color: var(--spark-text-muted); }
-
-.relation-empty {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 24px;
-  color: var(--spark-text-muted);
-  text-align: center;
-}
-
-.relation-empty strong {
-  color: var(--spark-text-secondary);
-  font-size: var(--spark-fs-base);
-}
 
 .detail-drawer-title {
   display: block;

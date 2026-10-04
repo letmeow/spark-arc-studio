@@ -70,18 +70,12 @@
         </label>
       </div>
       
-      <n-button 
-        type="primary" 
-        block 
-        size="small"
-        class="generate-outline-btn"
-        :loading="isLoading"
-        :disabled="!context?.trim()"
-        @click="handleGenerateOutlineClick"
-      >
-        <template #icon><n-icon :component="Sparkles" /></template>
-        {{ t('views.structure.mobile.generateOutline') }}
-      </n-button>
+      <div class="m-action-bar">
+        <n-button type="primary" :loading="isLoading" :disabled="!context?.trim()" @click="handleGenerateOutlineClick">
+          <template #icon><n-icon :component="Sparkles" /></template>
+          {{ t('views.structure.mobile.generateOutline') }}
+        </n-button>
+      </div>
     </div>
     
     <!-- 大纲列表 -->
@@ -90,12 +84,7 @@
         <n-icon :component="Files" size="18" />
         <span>{{ t(`views.structure.mobile.${workspaceMode}.groupOutline`) }}</span>
         <SparkTag type="info" size="small">{{ t(`views.structure.mobile.${workspaceMode}.groupCountLabel`, { count: outlineChapters.length }) }}</SparkTag>
-        <div class="header-actions">
-          <n-button size="tiny" type="primary" secondary @click="openAutoWrite">
-            <template #icon><n-icon :component="ArrowRight" /></template>
-            {{ t(structureKey('startAutoWrite')) }}
-          </n-button>
-        </div>
+        <!-- 自动写作入口见列表下方操作栏 -->
       </div>
       
       <div class="chapter-list">
@@ -116,15 +105,22 @@
           {{ t(`views.structure.mobile.${workspaceMode}.viewAllGroups`, { count: outlineChapters.length }) }}
         </div>
       </div>
+      <div class="m-action-bar">
+        <n-button type="primary" secondary @click="openAutoWrite">
+          <template #icon><n-icon :component="ArrowRight" /></template>
+          {{ t(structureKey('startAutoWrite')) }}
+        </n-button>
+      </div>
       
     </div>
     
 
-    <n-empty v-else :description="t('views.structure.mobile.noOutline')" style="padding: 30px 0;">
-      <template #extra>
-        <span class="empty-hint">{{ t('views.structure.mobile.emptyHint') }}</span>
-      </template>
-    </n-empty>
+    <MobileEmptyState
+      v-else
+      :icon="Files"
+      :title="t('views.structure.mobile.noOutline')"
+      :hint="t('views.structure.mobile.emptyHint')"
+    />
     
     <!-- 历史入口 -->
     <div class="history-hint" @click="showHistory = true">
@@ -174,11 +170,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { NButton, NIcon, NInputNumber, NEmpty, NDrawer, NDrawerContent, NTooltip } from 'naive-ui';
+import { NButton, NIcon, NInputNumber, NDrawer, NDrawerContent, NTooltip } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
 import SparkTag from '../../components/share/SparkTag.vue';
 import GlobalLoading from '../../components/share/GlobalLoading.vue';
 import MobileTextArea from '../../components/editors/mobile/MobileTextArea.vue';
+import MobileEmptyState from '../../components/layouts/mobile/MobileEmptyState.vue';
 import { ArrowRight, ChevronRight, Clock, Files, Info, List, Sparkles } from '@lucide/vue';
 import HistoryPanel from '../../components/dlg-editor/HistoryPanel.vue';
 import { useStructureLogic } from '../../composables/useStructureLogic';
@@ -282,15 +279,6 @@ function openAutoWrite() {
   margin-left: auto;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-left: auto;
-}
-
 .control-section {
   gap: 10px;
   padding: 10px 12px 12px;
@@ -313,7 +301,7 @@ function openAutoWrite() {
 
 .preset-chip {
   min-width: 0;
-  min-height: 30px;
+  min-height: 40px;
   padding: 5px 6px;
   border: 1px solid color-mix(in srgb, var(--spark-border), transparent 18%);
   border-radius: 999px;
@@ -355,9 +343,17 @@ function openAutoWrite() {
   gap: 8px;
 }
 
+/* 扩展点击热区到 44px，视觉尺寸不变 */
+.length-help-button::after {
+  content: '';
+  position: absolute;
+  inset: -11px;
+}
+
 .length-help-button {
   width: 22px;
   height: 22px;
+  position: relative;
   flex: 0 0 22px;
   padding: 0;
   border: 1px solid var(--spark-border);
@@ -414,10 +410,6 @@ function openAutoWrite() {
 
 .compact-number-input {
   width: 100%;
-}
-
-.generate-outline-btn {
-  min-height: 38px;
 }
 
 .chapter-list {
@@ -495,11 +487,6 @@ function openAutoWrite() {
 
 .history-hint span {
   flex: 1;
-}
-
-.empty-hint {
-  font-size: var(--spark-fs-xs);
-  color: var(--spark-text-muted);
 }
 
 .full-chapter-list {

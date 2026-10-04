@@ -3,6 +3,7 @@
 统一管理 .env 文件的读取和写入
 """
 import os
+import logging
 from pathlib import Path
 from typing import Dict, Optional
 from dotenv import dotenv_values, set_key
@@ -114,3 +115,20 @@ def set_env_var(key: str, value: str) -> bool:
     except Exception as e:
         print(f"\u274c Failed to write .env: {e}")
         return False
+
+
+def bootstrap_master_key(initial_key: str) -> None:
+    """环境变量仅用于首次初始化；已持久化的主密钥不会被部署配置覆盖。"""
+    initial_key = str(initial_key or "").strip()
+    if not initial_key:
+        return
+    current_key = get_env_file_var("LLM_KEY")
+    if current_key:
+        if current_key != initial_key:
+            logging.getLogger(__name__).warning(
+                "已使用组件持久化的 LLM_KEY；环境变量仅用于首次初始化，换密请使用管理员后台"
+            )
+        os.environ["LLM_KEY"] = current_key
+        return
+    if not set_env_var("LLM_KEY", initial_key):
+        raise RuntimeError("首次初始化 LLM_KEY 持久化失败，请检查组件配置目录权限")

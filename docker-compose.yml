@@ -2,7 +2,7 @@
 # SparkArc Docker Compose 配置
 # ============================================================
 # 使用方法：
-#   1. （可选）在项目根目录 .env 中填写 LLM_KEY / Turnstile 等环境变量
+#   1. （可选）首次部署复制 .env.example 为 .env，填写数据库 / LLM_KEY / Turnstile 配置
 #   2. 首次运行: docker compose up -d --build
 #   3. 更新代码后: git pull --ff-only && docker compose up -d --build --force-recreate
 #   4. 访问: http://localhost:7788
@@ -18,6 +18,9 @@ services:
       # 宿主机端口 7788 映射到容器 6688
       # 区分环境：Docker=7788，裸机=6688，便于同时运行和调试
       - "7788:6688"
+    # 允许需要时访问宿主机上的 PostgreSQL；不使用时不会产生数据库副作用。
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     dns:
       # 公网环境若出现 DNS 解析失败，可在此指定可靠 DNS
       - 223.5.5.5
@@ -26,11 +29,26 @@ services:
       - 8.8.8.8
     environment:
       - LLM_KEY=${LLM_KEY:-}
+      # 共用 PostgreSQL 服务连接；应用默认派生 sparkarc_users / sparkarc_llm
+      - SPARKARC_POSTGRES_URL=${SPARKARC_POSTGRES_URL:-}
+      - SPARKARC_POSTGRES_HOST=${SPARKARC_POSTGRES_HOST:-}
+      - SPARKARC_POSTGRES_PORT=${SPARKARC_POSTGRES_PORT:-5432}
+      - SPARKARC_POSTGRES_USER=${SPARKARC_POSTGRES_USER:-sparkarc}
+      - SPARKARC_POSTGRES_PASSWORD=${SPARKARC_POSTGRES_PASSWORD:-}
+      - SPARKARC_DATABASE_PREFIX=${SPARKARC_DATABASE_PREFIX:-sparkarc}
+      # 留空保持 SQLite；外部 PostgreSQL 可直接在根目录 .env 配置
+      - SPARKARC_USERS_DATABASE_URL=${SPARKARC_USERS_DATABASE_URL:-}
+      - AGENT_MATCHBOX_DATABASE_URL=${AGENT_MATCHBOX_DATABASE_URL:-}
       # 注册人机验证（可选）：三项同时配置后才会启用；缺少 site key 或 secret 时默认关闭
       - SPARKARC_REGISTRATION_VERIFICATION_ENABLED=${SPARKARC_REGISTRATION_VERIFICATION_ENABLED:-}
       - SPARKARC_REGISTRATION_VERIFICATION_PROVIDER=${SPARKARC_REGISTRATION_VERIFICATION_PROVIDER:-}
       - SPARKARC_TURNSTILE_SITE_KEY=${SPARKARC_TURNSTILE_SITE_KEY:-}
       - SPARKARC_TURNSTILE_SECRET_KEY=${SPARKARC_TURNSTILE_SECRET_KEY:-}
+      # 联网搜索（可选），也可在管理员后台配置
+      - SPARKARC_EXA_MCP_URL=${SPARKARC_EXA_MCP_URL:-}
+      - SPARKARC_EXA_API_KEY=${SPARKARC_EXA_API_KEY:-}
+      - SPARKARC_TAVILY_MCP_URL=${SPARKARC_TAVILY_MCP_URL:-}
+      - SPARKARC_TAVILY_API_KEY=${SPARKARC_TAVILY_API_KEY:-}
       - SPARKARC_RUNTIME_CACHE_DIR=/app/server/.runtime
     volumes:
       # ====================================
