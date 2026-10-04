@@ -113,7 +113,6 @@ const FIELD_LABEL_KEYS: Readonly<Record<string, string>> = {
   search_text: 'components.chatMessageList.toolDetails.fields.searchText',
   replace_text: 'components.chatMessageList.toolDetails.fields.replaceText',
   provider: 'components.chatMessageList.toolDetails.fields.provider',
-  query: 'components.chatMessageList.toolDetails.fields.query',
   num_results: 'components.chatMessageList.toolDetails.fields.numResults',
   exa_options: 'components.chatMessageList.toolDetails.fields.exaOptions',
   tavily_options: 'components.chatMessageList.toolDetails.fields.tavilyOptions',
